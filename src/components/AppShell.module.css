@@ -1,0 +1,28 @@
+.shell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: var(--app-max-width);
+  height: 100%;
+  min-height: 100dvh;
+  margin: 0 auto;
+  background: var(--color-bg);
+  border-left: var(--border-pixel);
+  border-right: var(--border-pixel);
+}
+
+@media (max-width: 480px) {
+  .shell {
+    border-left: none;
+    border-right: none;
+  }
+}
+
+.content {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: calc(var(--space-4) + var(--safe-top)) var(--space-4)
+    calc(var(--tabbar-height) + var(--safe-bottom) + var(--space-4));
+}
