@@ -1,0 +1,141 @@
+{
+  "version": 1,
+  "habits": [
+    {
+      "id": "move",
+      "label": "Move",
+      "shortLabel": "Move",
+      "vassal": {
+        "name": "Pell",
+        "epithet": "the Runner",
+        "pronouns": "she/her",
+        "personality": "Former bike courier who never learned to sit still; talks in short bursts and counts everything in laps. Thinks any problem looks smaller after you have walked around it twice.",
+        "portrait": "Wiry woman in her thirties, close-cropped dark hair under a faded cycling cap, bright reflective jacket over a plain tee, one knee scuffed, always mid-stride. Warm brown skin, a grin with a chipped tooth. Palette: safety orange and asphalt grey."
+      },
+      "color": "#F2893B",
+      "icon": "boot",
+      "utility": null,
+      "defaultEnabled": true,
+      "description": "Exercise and movement: walks, stairs, workouts, dancing in the kitchen."
+    },
+    {
+      "id": "outside",
+      "label": "Outside",
+      "shortLabel": "Out",
+      "vassal": {
+        "name": "Wren",
+        "epithet": "the Scout",
+        "pronouns": "they/them",
+        "personality": "Quiet observer who maps the neighbourhood by what the light does to it at different hours. Reports back on weather, pigeons and which bakery opened early, as if these were tactical intelligence.",
+        "portrait": "Slight, androgynous figure with a long olive-green coat, binoculars on a frayed strap, tawny freckled skin, sun-bleached hair tucked under a knit beanie. Usually shown squinting at the sky. Palette: olive, sky blue and gold."
+      },
+      "color": "#5BA7D9",
+      "icon": "sun",
+      "utility": null,
+      "defaultEnabled": true,
+      "description": "Time outdoors and daylight: doorstep air, walks, errands on foot, parks."
+    },
+    {
+      "id": "clean",
+      "label": "Clean",
+      "shortLabel": "Clean",
+      "vassal": {
+        "name": "Ondra",
+        "epithet": "the Steward",
+        "pronouns": "he/him",
+        "personality": "Retired stage manager who runs the Haven like a theatre: everything has a place and a cue. Deeply unbothered by mess, deeply pleased by the moment it stops being mess.",
+        "portrait": "Stocky older man with a silver beard, sleeves rolled, an apron full of pockets, a clipboard tucked under one arm. Light skin with laugh lines, reading glasses pushed up on his forehead. Palette: slate blue and warm cream."
+      },
+      "color": "#7C8FB8",
+      "icon": "broom",
+      "utility": null,
+      "defaultEnabled": true,
+      "description": "Tidying and chores: beds, dishes, surfaces, laundry, floors, decluttering."
+    },
+    {
+      "id": "social",
+      "label": "Social",
+      "shortLabel": "Social",
+      "vassal": {
+        "name": "Tobi",
+        "epithet": "the Herald",
+        "pronouns": "he/him",
+        "personality": "Ex-radio host who treats every message as a broadcast worth doing well. Loud laugh, remembers everyone's name, insists that a two-line text still counts as showing up.",
+        "portrait": "Tall round-faced man in his forties, dark brown skin, big headphones around his neck, a mustard cardigan and a satchel of letters. Mid-gesture, mouth open, delighted. Palette: mustard yellow and deep plum."
+      },
+      "color": "#E0B33A",
+      "icon": "horn",
+      "utility": null,
+      "defaultEnabled": true,
+      "description": "Contact with people: messages, calls, meeting up, saying thanks, helping."
+    },
+    {
+      "id": "study",
+      "label": "Study",
+      "shortLabel": "Study",
+      "vassal": {
+        "name": "Imre",
+        "epithet": "the Archivist",
+        "pronouns": "she/her",
+        "personality": "Night-school librarian who believes any skill is just a stack of twenty-five-minute blocks. Dry, precise, secretly thrilled when the player learns something useless but beautiful.",
+        "portrait": "Lean woman in her fifties, grey-streaked black hair in a severe bun, round brass spectacles, ink on her fingers, a cardigan with too many pens. Pale olive skin. Palette: ink blue and parchment."
+      },
+      "color": "#5E6FD1",
+      "icon": "book",
+      "utility": null,
+      "defaultEnabled": true,
+      "description": "Learning and deep work: reading, focus blocks, lessons, practice."
+    },
+    {
+      "id": "sleep",
+      "label": "Sleep",
+      "shortLabel": "Sleep",
+      "vassal": {
+        "name": "Lunel",
+        "epithet": "the Nightwatch",
+        "pronouns": "he/him",
+        "personality": "Former night-shift security guard, now the person who turns the Haven's lights off. Speaks slowly and kindly; considers a dark room at a sensible hour the finest fortification ever built.",
+        "portrait": "Broad, sleepy-eyed man with a shaved head, deep brown skin, a navy wool coat buttoned to the chin, a lantern on a hook at his belt. Always slightly backlit by moonlight. Palette: midnight navy and soft lamp yellow."
+      },
+      "color": "#4C5A9E",
+      "icon": "lantern",
+      "utility": "power",
+      "defaultEnabled": true,
+      "description": "Lights-out and wake times, wind-down, screens off, enough hours."
+    },
+    {
+      "id": "eat",
+      "label": "Eat",
+      "shortLabel": "Eat",
+      "vassal": {
+        "name": "Basil",
+        "epithet": "the Quartermaster",
+        "pronouns": "they/them",
+        "personality": "Cheerful canteen cook who keeps a running tally of every glass of water in the building. Believes a meal eaten at a table is a small act of dignity, and says so, often.",
+        "portrait": "Round, rosy person with curly auburn hair tied up in a scarf, flour on their cheek, a green apron over a striped shirt, ladle in hand. Freckled light-brown skin. Palette: basil green and tomato red."
+      },
+      "color": "#5FAE5F",
+      "icon": "pot",
+      "utility": "gas",
+      "defaultEnabled": true,
+      "description": "Meals, cooking, groceries and water."
+    },
+    {
+      "id": "hygiene",
+      "label": "Hygiene",
+      "shortLabel": "Care",
+      "vassal": {
+        "name": "Marisol",
+        "epithet": "the Bathkeeper",
+        "pronouns": "she/her",
+        "personality": "Ran a seaside bathhouse before the Haven; gentle, unhurried, with a towel for every occasion. Treats a shower as a ceremony and a clean shirt as armor.",
+        "portrait": "Tall woman in her sixties, long silver hair in a loose braid, deep tan skin, a pale teal robe with rolled sleeves and a stack of folded towels. Calm half-smile. Palette: sea teal and white."
+      },
+      "color": "#3FB3B3",
+      "icon": "drop",
+      "utility": "water",
+      "defaultEnabled": true,
+      "description": "Self-care: teeth, showers, fresh clothes, grooming, health appointments."
+    }
+  ]
+}

@@ -1,0 +1,233 @@
+{
+  "version": 1,
+  "app": {
+    "name": "Haven Protocol",
+    "tagline": "Go out. Come home. The Haven grows.",
+    "nonAffiliation": "Haven Protocol is an original work. It is not affiliated with, endorsed by or connected to any novel, webtoon, publisher or studio. All names, characters, text and art are original."
+  },
+  "placeholders": {
+    "{name}": "the vassal's name",
+    "{habit}": "the habit label",
+    "{quest}": "the quest title",
+    "{level}": "a level number",
+    "{ring}": "the ring name",
+    "{utility}": "Power, Water or Gas",
+    "{xp}": "XP amount",
+    "{coins}": "settlement amount",
+    "{defense}": "defense score",
+    "{attack}": "attack score",
+    "{days}": "a day count"
+  },
+  "opening": "Protocol online. Domain registered: one room. Nothing enters without your permission; nothing ever will. This is the only rule, and it is already keeping you safe, so the rest of this message is optional. Eight people are waiting in the corridor. They are not here to make you leave. They are here to go out with you, one small errand at a time, and to bring the city back in pieces: a walk, a meal, a phone call, a made bed. Each piece makes the Haven a little larger. There is no deadline. There is no losing. There is a door, and it opens from the inside.",
+  "levelUp": [
+    "Level {level}. The Ledger has been updated and, frankly, is impressed.",
+    "Level {level} registered. The walls feel slightly thicker. This may be imagination; the Protocol allows it.",
+    "Level {level}. Somewhere, Ondra has updated a chart.",
+    "You are now level {level}. Nothing in the Haven changes except the number, and the number matters.",
+    "Level {level}. Pell says this calls for a lap. Pell says that about everything.",
+    "Level {level} reached. Tobi is drafting an announcement. It will be longer than necessary.",
+    "Level {level}. The Protocol has filed this under 'expected, but still nice'.",
+    "Level {level}. Imre notes that growth is mostly repetition wearing a good coat.",
+    "Level {level} confirmed. Basil has put the kettle on in your honour.",
+    "Level {level}. Lunel nods once, slowly. From Lunel, this is a parade.",
+    "Level {level}. Marisol has laid out a fresh towel. It is ceremonial.",
+    "Level {level}. Wren reports the view from the window has not changed, but you have."
+  ],
+  "questIssued": [
+    "Quest issued: {quest}. The board is up; the day is yours.",
+    "Today's contracts are posted. {name} has first pick and chose {quest}.",
+    "Quest issued: {quest}. No rush. The Haven keeps.",
+    "{name} has pinned {quest} to the board and is pretending not to watch you read it.",
+    "New quest: {quest}. The Protocol rates it 'entirely doable'.",
+    "Quest issued: {quest}. If today is not the day, the board will still be here tomorrow.",
+    "The morning dispatch is in. {quest} is on it, in {name}'s handwriting.",
+    "Quest issued: {quest}. Bring back whatever you find.",
+    "Board refreshed. {quest} is waiting, patiently, as quests do.",
+    "{name} suggests {quest}. {name} is usually right about these things.",
+    "Quest issued: {quest}. The Protocol has no opinion on the weather but has checked it."
+  ],
+  "bonusContract": [
+    "Bonus contract: {quest} pays double today. Optional. Tempting.",
+    "The hardest thing on the board is {quest}. Finish it and the Ledger doubles the entry.",
+    "Bonus contract posted on {quest}. The Protocol would like to see what happens."
+  ],
+  "questDone": [
+    "{quest} settled. +{xp} XP, +{coins} settlement. {name} is pleased.",
+    "Settlement complete: {quest}. {name} has already told the others.",
+    "{quest} done. The Haven did not need it to survive, but it is better for it.",
+    "Logged: {quest}. The boundary line on the map moved by an amount the Protocol describes as 'real'.",
+    "{quest} complete. {name} salutes, badly, on purpose.",
+    "Settled. {name} says that was the hard part, and {name} is right.",
+    "{quest} filed. Ondra has ticked a box so firmly the pen squeaked.",
+    "Returned from {quest}. Welcome home. The lights are on.",
+    "{quest} done. That is one more thing the city gave back today.",
+    "Settlement: {quest}. Nothing dramatic happened, which is the point."
+  ],
+  "questTried": [
+    "Marked as attempted. Trying is logged in the same ink as finishing.",
+    "{name} has written 'attempted' next to {quest} and underlined it kindly.",
+    "Attempt recorded. The Protocol does not grade attempts. It counts them.",
+    "Noted: you tried. {name} says the second try is usually shorter."
+  ],
+  "questUndone": [
+    "Undone. The Ledger has quietly erased the line. No one saw.",
+    "Entry reverted. The Protocol assumes a slip of the thumb.",
+    "Settlement reversed. {name} shrugs; the board is unchanged."
+  ],
+  "utilityRestored": [
+    "{utility} restored. The Haven hums.",
+    "{utility} back to full. {name} looks smug about it.",
+    "{utility} restored. The flicker is gone; the kettle is grateful.",
+    "{utility} online. Lunel has checked the switch twice.",
+    "{utility} restored. The Protocol notes that this took one ordinary action.",
+    "{utility} steady again. Marisol has run a bath to celebrate, or possibly just because.",
+    "{utility} is back. Basil says the soup will be edible now.",
+    "{utility} restored. Somewhere a pipe stops knocking.",
+    "{utility} at full. The Haven looks, briefly, like a brochure.",
+    "{utility} restored. Tobi wanted to announce it over a loudspeaker. There is no loudspeaker."
+  ],
+  "utilityDegraded": [
+    "{utility} is flickering. Not an emergency; the Haven never falls. Just a nudge.",
+    "{utility} running low. {name} has left a note on the fridge. It is polite.",
+    "{utility} dimmed a notch. One {habit} quest will put it right.",
+    "{utility} is down to a trickle. The Haven is fine. The Haven is always fine.",
+    "{utility} dropping. {name} is not worried, only attentive.",
+    "{utility} degraded. The Protocol lists this as 'cosmetic, but you will notice'.",
+    "{utility} low. Nobody is in danger. The lamp is just moody.",
+    "{utility} is out. The walls still hold; they always do. Whenever you are ready.",
+    "{utility} faltering. {name} says: tomorrow is also a day.",
+    "{utility} needs attention when you have some to spare. Not before."
+  ],
+  "vassalLeaving": [
+    "{name} has gone to visit family for a while. The door stays open; the Ledger keeps the seat.",
+    "{name} stepped out of the Haven today. No speech, no hard feelings. Re-recruit whenever you like.",
+    "{name} is taking some time away. {habit} quests pause until they return. The Haven is unchanged.",
+    "{name} left a note: 'Back when you need me. You know where the board is.'",
+    "{name} has moved to the guest list. One quest brings them back through the door.",
+    "{name} has wandered off to sit by the window of a different building. This is not a punishment; it is a pause.",
+    "The Ledger marks {name} as away. Away is not gone.",
+    "{name} is resting. Vassals do that. So should you, sometimes.",
+    "{name}'s seat is empty for now. Everyone else has agreed not to make it weird.",
+    "{name} has left the Haven, gently. Say the word and they come back."
+  ],
+  "vassalReturning": [
+    "{name} is back, carrying snacks, pretending it was always the plan.",
+    "{name} re-recruited. The seat was never given away.",
+    "{name} walks back in, looks around, says 'tidy', and sits down.",
+    "{name} has returned. Loyalty starts fresh; the stories do not.",
+    "Welcome back, {name}. Tobi has made a banner. It is slightly crooked.",
+    "{name} is home. The Protocol updates one line and does not comment further.",
+    "{name} returned on the first quest. Of course they did.",
+    "{name} is back on the board. Pell did a lap about it.",
+    "{name} has rejoined the Haven. Nobody asks where they went.",
+    "{name} re-recruited. Ondra hands them the same clipboard as before."
+  ],
+  "vassalWaiting": [
+    "{name} is waiting by the window. Not impatient; just there.",
+    "{name} has made tea and is not drinking it until you are back.",
+    "{name} says there is no hurry. {name} has said it three days running, and means it each time.",
+    "{name} is keeping the seat warm. That is the entire job right now.",
+    "{name} checked the board, saw nothing new, and went back to reading."
+  ],
+  "waveWin": [
+    "Wave repelled. Defense {defense} against {attack}. The walls were mostly habit.",
+    "Wave held. {defense} versus {attack}. Ondra is sweeping up what is left.",
+    "The wave broke on the stairs. Defense {defense}, attack {attack}. Pell ran the perimeter twice to be sure.",
+    "Wave repelled. The Protocol would like to note that the monsters never had a chance, and also that you did the work.",
+    "Held. {defense} to {attack}. Tobi has already told the neighbours.",
+    "Wave over. Defense {defense} beat {attack}. Basil served soup on the landing.",
+    "The week's work stood up and was counted: {defense} against {attack}. Wave repelled.",
+    "Wave repelled. Lunel slept through it, which is the highest compliment he can pay a defense.",
+    "Defense {defense}, attack {attack}. The map has new ink on it.",
+    "Wave held. Imre has filed the battle log under 'inevitable, with footnotes'."
+  ],
+  "waveDecisive": [
+    "Decisive. {defense} against {attack}. The wave turned around at the courtyard and apologised.",
+    "Overwhelming defense: {defense} to {attack}. Wren watched from the roof and called it 'boring, in the best way'.",
+    "Decisive win. Marisol did not even put down her towel.",
+    "{defense} against {attack}. The Protocol is required to call this a battle. It was more of a formality.",
+    "Decisive. Ondra has nothing to sweep. He is suspicious of this."
+  ],
+  "waveLoss": [
+    "The wave pushed past the gate. Defense {defense} against {attack}. Nothing is lost; the ring simply waits a week.",
+    "Wave not repelled this time. {defense} to {attack}. The Haven stands, as it always does. The walls do not keep score.",
+    "A hard week. The wave came through; the Haven held anyway, because that is the one rule. Next week is a new count.",
+    "Defense {defense}, attack {attack}. Not enough this week, and that is allowed. The Protocol has seen worse weeks end well.",
+    "The wave got in and found nothing to take. The Haven keeps everything. Try again next week, or do not; the door stays.",
+    "Wave not repelled. Lunel says the night was long and you are still here. He counts that.",
+    "{defense} against {attack}. The map stays as it is. The people in it stay too.",
+    "A loss on paper. Tobi refuses to broadcast it and has instead announced the weather.",
+    "The wave came through the gate. Basil fed it soup; it left. Domain Points: a few, for holding.",
+    "Not this week. The Protocol notes, for the record, that nothing in the Haven can be lost, including you."
+  ],
+  "waveQuiet": [
+    "A quiet week: the Haven was closed and the monsters got bored. No wave, no loss, no points. Welcome back.",
+    "No wave was fought while you were away. The walls kept themselves. Nothing changed, which was the plan."
+  ],
+  "ringUnlock": [
+    "Domain expanded: {ring}. The map redraws itself; the vassals pretend they are not excited.",
+    "{ring} registered. Facilities unlocked. A short dispatch follows.",
+    "The boundary moved. {ring} is yours now, in the same sense that the Room was: because you keep going out of it."
+  ],
+  "catchUp": [
+    "Welcome back. {days} days passed. The Haven held, the vassals waited, and the board is fresh.",
+    "You were away {days} days. Nothing is lost. A few lights dimmed; one quest each fixes them.",
+    "Back after {days} days. The Protocol applied the usual small decay and nothing more. It never does more.",
+    "{days} days away. The seat was kept. The map is unchanged. Start wherever is easiest.",
+    "Returned after {days} days. {name} is the first to say hello. The others are pretending to be busy."
+  ],
+  "encouragement": [
+    "The Haven is always safe.",
+    "One quest is a whole day's work, if that is what today has in it.",
+    "Nothing in the Ledger can be taken away. Only added.",
+    "You are allowed to pick the easiest thing on the board.",
+    "The city is still out there. It will wait. It is good at waiting.",
+    "Trying counts. Trying is most of it.",
+    "A short walk is not a small thing. It is a walk.",
+    "Vassals do not keep score. They keep seats.",
+    "Dim lights are a note, not a verdict.",
+    "The door opens from the inside. Always has.",
+    "Rest is a quest too; Lunel wrote that one.",
+    "Whatever you did today, the Haven is bigger for it, or exactly the same size, and both are fine."
+  ],
+  "resurrection": {
+    "offer": "A Resurrection token is available this month for {coins} settlement. It restores one thing lost in the last fourteen days: a streak, or a vassal who left.",
+    "used": "Token used. The Ledger line is rewritten as if the gap never happened. The Protocol will not mention it again.",
+    "unavailable": "The token has been used this month. Next month brings another; the Haven brings nothing else, which is to say, nothing is lost.",
+    "nothingToRestore": "Nothing to restore. The Protocol is pleased to report this."
+  },
+  "difficulty": {
+    "gentle": { "label": "Gentle", "blurb": "Three quests a day, mostly small. Vassals are patient. Waves are mild." },
+    "steady": { "label": "Steady", "blurb": "Four quests a day, a mix. The default pace." },
+    "hardcore": { "label": "Hardcore", "blurb": "Five quests a day, mostly big. Vassals need attention; waves hit harder. Rings roughly twice as fast." }
+  },
+  "benevolence": {
+    "benevolent": { "label": "Benevolent", "blurb": "Neglected vassals wait. Loyalty stops at 1; nobody ever leaves." },
+    "strict": { "label": "Strict", "blurb": "At 0 loyalty a vassal takes leave. One completed quest, or a token, brings them back." }
+  },
+  "ui": {
+    "home": "Haven",
+    "quests": "Board",
+    "character": "Ledger",
+    "settings": "Settings",
+    "complete": "Done",
+    "tried": "Tried",
+    "undo": "Undo",
+    "startTimer": "Start timer",
+    "stopTimer": "Stop",
+    "reroll": "Swap quest ({coins})",
+    "settlement": "Settlement",
+    "domainPoints": "Domain Points",
+    "trust": "Trust",
+    "loyalty": "Loyalty",
+    "power": "Power",
+    "water": "Water",
+    "gas": "Gas",
+    "nextWave": "Next wave in {days} days",
+    "waveToday": "Wave settles tonight",
+    "recruit": "Welcome back",
+    "resetHour": "Day starts at",
+    "lightsOut": "Lights-out hour",
+    "wakeHour": "Wake hour"
+  }
+}

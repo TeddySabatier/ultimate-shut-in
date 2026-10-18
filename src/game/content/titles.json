@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "stackCaps": { "xpMult": 0.20, "coinMult": 0.15, "dpMult": 0.10, "defenseFlat": 12 },
+  "titles": [
+    { "id": "first_vassal", "name": "First Vassal", "flavor": "The first of the eight to trust you completely.", "condition": { "type": "anyVassalLoyaltyAtLeast", "value": 80 }, "effect": { "type": "xpMult", "scope": "habit", "habitFrom": "conditionVassal", "value": 0.05 } },
+    { "id": "seven_days", "name": "Seven Days", "flavor": "A quest a day for a week. The Protocol noticed.", "condition": { "type": "questDayStreak", "count": 7 }, "effect": { "type": "xpMult", "scope": "all", "value": 0.03 } },
+    { "id": "thirty_days", "name": "The Long Month", "flavor": "Thirty days with at least one quest done.", "condition": { "type": "questDaysTotal", "count": 30 }, "effect": { "type": "coinMult", "scope": "all", "value": 0.05 } },
+    { "id": "long_season", "name": "The Long Season", "flavor": "Ninety quest-days. The seasons changed and you were out in them.", "condition": { "type": "questDaysTotal", "count": 90 }, "effect": { "type": "xpMult", "scope": "all", "value": 0.05 } },
+    { "id": "hundred_quests", "name": "Hundred Quests", "flavor": "One hundred quests settled in the Ledger.", "condition": { "type": "questsTotal", "count": 100 }, "effect": { "type": "xpMult", "scope": "all", "value": 0.05 } },
+    { "id": "pathfinder", "name": "Pathfinder", "flavor": "Sixty Move quests. Pell says you are nearly fast now.", "condition": { "type": "questsOfHabit", "habit": "move", "count": 60 }, "effect": { "type": "xpMult", "scope": "habit", "habit": "move", "value": 0.05 } },
+    { "id": "dawn_walker", "name": "Dawn Walker", "flavor": "Twenty-five Outside quests. Wren has stopped checking whether you came back.", "condition": { "type": "questsOfHabit", "habit": "outside", "count": 25 }, "effect": { "type": "xpMult", "scope": "habit", "habit": "outside", "value": 0.05 } },
+    { "id": "steward_apprentice", "name": "Steward's Apprentice", "flavor": "Forty Clean quests. Ondra has handed you a spare clipboard.", "condition": { "type": "questsOfHabit", "habit": "clean", "count": 40 }, "effect": { "type": "xpMult", "scope": "habit", "habit": "clean", "value": 0.05 } },
+    { "id": "herald", "name": "Herald", "flavor": "Twenty Social quests. Tobi has you on the broadcast schedule.", "condition": { "type": "questsOfHabit", "habit": "social", "count": 20 }, "effect": { "type": "xpMult", "scope": "habit", "habit": "social", "value": 0.05 } },
+    { "id": "stairwell_scholar", "name": "Scholar of the Stairwell", "flavor": "Forty Study quests. Imre has shelved you under 'promising'.", "condition": { "type": "questsOfHabit", "habit": "study", "count": 40 }, "effect": { "type": "xpMult", "scope": "habit", "habit": "study", "value": 0.05 } },
+    { "id": "night_warden", "name": "Night Warden", "flavor": "Forty Sleep quests. The lights go off by themselves now.", "condition": { "type": "questsOfHabit", "habit": "sleep", "count": 40 }, "effect": { "type": "utilityDecayMult", "utility": "power", "value": 0.75 } },
+    { "id": "quartermaster_favourite", "name": "Quartermaster's Favourite", "flavor": "Forty Eat quests. Basil keeps a plate warm for you.", "condition": { "type": "questsOfHabit", "habit": "eat", "count": 40 }, "effect": { "type": "utilityDecayMult", "utility": "gas", "value": 0.75 } },
+    { "id": "scrubbed_spotless", "name": "Scrubbed Spotless", "flavor": "Forty Hygiene quests. Marisol has named a towel after you.", "condition": { "type": "questsOfHabit", "habit": "hygiene", "count": 40 }, "effect": { "type": "utilityDecayMult", "utility": "water", "value": 0.75 } },
+    { "id": "keeper_of_lights", "name": "Keeper of the Lights", "flavor": "Power at full for seven days in a row.", "condition": { "type": "utilityFullStreak", "utility": "power", "days": 7 }, "effect": { "type": "xpMult", "scope": "habit", "habit": "sleep", "value": 0.05 } },
+    { "id": "wall_holder", "name": "Wall-Holder", "flavor": "Four waves held. The walls are mostly habit.", "condition": { "type": "waveWins", "count": 4 }, "effect": { "type": "defenseFlat", "value": 3 } },
+    { "id": "decisive", "name": "Decisive", "flavor": "Three decisive wins in a row.", "condition": { "type": "decisiveWinStreak", "count": 3 }, "effect": { "type": "defenseFlat", "value": 3 } },
+    { "id": "cartographer", "name": "Cartographer", "flavor": "The Floor is registered. Wren has redrawn the map.", "condition": { "type": "ringReached", "ring": 3 }, "effect": { "type": "dpMult", "value": 0.05 } },
+    { "id": "smith_of_odd_things", "name": "Smith of Odd Things", "flavor": "Ten combo items forged. Ondra is proud and slightly worried.", "condition": { "type": "combosForged", "count": 10 }, "effect": { "type": "comboPower", "value": 1 } },
+    { "id": "full_table", "name": "Full Table", "flavor": "All eight vassals at sixty loyalty or more at the same time.", "condition": { "type": "allVassalsLoyaltyAtLeast", "value": 60 }, "effect": { "type": "coinMult", "scope": "all", "value": 0.05 } },
+    { "id": "returned", "name": "Returned", "flavor": "You used a Resurrection token. Coming back counts.", "condition": { "type": "resurrectionUsed", "count": 1 }, "effect": { "type": "xpMult", "scope": "all", "value": 0.02 } },
+    { "id": "re_recruiter", "name": "Open Door", "flavor": "A vassal left and you welcomed them back. The door was never locked.", "condition": { "type": "vassalReRecruited", "count": 1 }, "effect": { "type": "loyaltyGainFlat", "value": 1 } }
+  ]
+}

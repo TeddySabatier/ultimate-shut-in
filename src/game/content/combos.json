@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "rules": {
+    "minRing": 2,
+    "oncePerWeekEach": true,
+    "maxCountedPerWave": 6,
+    "expiresAtWave": true
+  },
+  "combos": [
+    { "id": "sprinting_umbrella", "name": "Sprinting Umbrella", "habits": ["move", "outside"], "power": 4, "flavor": "Opens itself when you break into a jog. Monsters find this unsettling." },
+    { "id": "dustpan_buckler", "name": "Dustpan Buckler", "habits": ["move", "clean"], "power": 4, "flavor": "A shield that also collects crumbs. Ondra calls it efficient." },
+    { "id": "protein_shaker_flail", "name": "Protein Shaker Flail", "habits": ["move", "eat"], "power": 4, "flavor": "Rattles ominously. Smells faintly of banana." },
+    { "id": "tandem_kettlebell", "name": "Tandem Kettlebell", "habits": ["move", "social"], "power": 5, "flavor": "Requires two people to lift and one to laugh about it." },
+    { "id": "park_bench_banner", "name": "Park Bench Banner", "habits": ["outside", "social"], "power": 5, "flavor": "A flag planted wherever two people sat and talked. Tobi designed it." },
+    { "id": "sunlit_flashcards", "name": "Sunlit Flashcards", "habits": ["outside", "study"], "power": 4, "flavor": "Facts absorbed in daylight stick better. Imre has a chart." },
+    { "id": "morning_light_lantern", "name": "Morning-Light Lantern", "habits": ["outside", "sleep"], "power": 5, "flavor": "Charged by dawn, lit by a sensible bedtime. Lunel's favourite." },
+    { "id": "shared_casserole_shield", "name": "Shared Casserole Shield", "habits": ["social", "eat"], "power": 4, "flavor": "Oven-safe, friend-approved. Deflects most things." },
+    { "id": "guest_ready_doormat", "name": "Guest-Ready Doormat", "habits": ["social", "clean"], "power": 4, "flavor": "Says WELCOME in a tone that monsters respect." },
+    { "id": "well_rested_thesis", "name": "Well-Rested Thesis", "habits": ["study", "sleep"], "power": 5, "flavor": "Argues, convincingly, that you should not be fought before coffee." },
+    { "id": "annotated_recipe_scroll", "name": "Annotated Recipe Scroll", "habits": ["study", "eat"], "power": 4, "flavor": "Margins full of notes like 'more garlic' and 'why did this work'." },
+    { "id": "alphabetised_bookwall", "name": "Alphabetised Bookwall", "habits": ["study", "clean"], "power": 4, "flavor": "Structural. Load-bearing. Sorted by author." },
+    { "id": "fluffy_towel_cape", "name": "Fluffy Towel Cape", "habits": ["sleep", "hygiene"], "power": 5, "flavor": "Warm, dry and faintly heroic. Marisol insists on the hood." },
+    { "id": "minty_fresh_spatula", "name": "Minty-Fresh Spatula", "habits": ["eat", "hygiene"], "power": 4, "flavor": "Flips pancakes and freshens breath. Not at the same time, please." },
+    { "id": "lemon_scented_halberd", "name": "Lemon-Scented Halberd", "habits": ["clean", "hygiene"], "power": 4, "flavor": "Long reach, citrus finish. Streak-free." },
+    { "id": "boiled_kettle_cannon", "name": "Boiled-Kettle Cannon", "habits": ["clean", "eat"], "power": 4, "flavor": "A clean kitchen and a hot drink, weaponised." },
+    { "id": "whispered_lullaby_horn", "name": "Whispered Lullaby Horn", "habits": ["social", "sleep"], "power": 4, "flavor": "A goodnight message sent on time. Monsters doze off mid-charge." },
+    { "id": "the_full_set", "name": "The Full Set", "habits": ["move", "outside", "clean", "social", "study", "sleep", "eat", "hygiene"], "power": 12, "flavor": "All eight vassals in one day. Ondra has framed the clipboard page.", "legendary": true }
+  ]
+}

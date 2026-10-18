@@ -1,0 +1,92 @@
+{
+  "version": 1,
+  "rings": [
+    {
+      "id": 1,
+      "key": "room",
+      "name": "The Room",
+      "domainPointsRequired": 0,
+      "wallBonus": 5,
+      "facilities": [
+        { "id": "questBoard", "name": "Quest Board", "effect": "Daily quests are issued here." },
+        { "id": "ledger", "name": "The Ledger", "effect": "Character sheet, titles and settlement history." }
+      ],
+      "vignette": "Domain registered: one room. The desk, the bed, the chair that is mostly laundry. The Protocol confirms that nothing crosses this threshold without your say-so, which is reassuring, if slightly academic, since nothing has tried. A voice from the corridor introduces itself as Pell and asks whether you have considered going out. You have not. Pell says that is fine; the Room is safe, and safe is a good place to start. Eight names are listed in the Ledger as 'awaiting assignment'. The Protocol would like to remind you that every step taken beyond the door counts as a quest, and that it keeps very careful books."
+    },
+    {
+      "id": 2,
+      "key": "flat",
+      "name": "The Flat",
+      "domainPointsRequired": 120,
+      "wallBonus": 8,
+      "facilities": [
+        { "id": "kitchen", "name": "Kitchen", "effect": "Tier 2 Eat quests and the Resupply run are issued." },
+        { "id": "forge", "name": "Improvised Forge", "effect": "Combo items forge automatically when two habits are completed in one day." },
+        { "id": "noticeboard", "name": "Hallway Noticeboard", "effect": "More tier 2 quests of every enabled habit enter the pool." }
+      ],
+      "vignette": "Domain expanded: the whole flat. The kitchen, it turns out, has a window. Basil has already taken inventory and reports two tins, one onion of uncertain age and a kettle described as 'a strategic asset'. Ondra walks the rooms with a clipboard, nodding at the floor as if it has done something right. The Protocol notes that utilities are now your responsibility: power, water and gas respond to sleep, washing and meals, respectively, which is not how plumbing works, but it is how the Haven works. Lunel has claimed the hallway light switch. Nobody argues. Outside, the city carries on. In here, the kettle boils, and that counts."
+    },
+    {
+      "id": 3,
+      "key": "floor",
+      "name": "The Floor",
+      "domainPointsRequired": 330,
+      "wallBonus": 11,
+      "facilities": [
+        { "id": "stairwell", "name": "Stairwell Gym", "effect": "Tier 3 Move quests enter the pool." },
+        { "id": "readingNook", "name": "Reading Nook", "effect": "Two blocks and Explain it back enter the Study pool." },
+        { "id": "linenRoom", "name": "Linen Room", "effect": "Tier 3 Hygiene and Clean quests enter the pool." }
+      ],
+      "vignette": "Domain expanded: the whole floor. Four doors, one stairwell, a corridor that echoes. Tobi has taped a sign to the lift reading 'OUT OF ORDER, USE LEGS' and is delighted to report that two neighbours laughed. Pell has measured the stairwell: eleven steps per flight, which she has already turned into a drill. Marisol has found a linen cupboard and declared it a bathhouse annex. The Protocol observes that you now share walls with people you have greeted, which it classes as a fortification upgrade. Wren, from the landing window, reports a bakery two streets over that opens at seven. The Floor is quiet, warm and yours."
+    },
+    {
+      "id": 4,
+      "key": "building",
+      "name": "The Building",
+      "domainPointsRequired": 650,
+      "wallBonus": 14,
+      "facilities": [
+        { "id": "rooftop", "name": "Rooftop", "effect": "Scout a new street and Join a session enter the pool." },
+        { "id": "commonRoom", "name": "Common Room", "effect": "Join the crowd enters the Social pool." },
+        { "id": "workshop", "name": "Workshop", "effect": "Combo items forged from here on have +1 power." }
+      ],
+      "vignette": "Domain expanded: the building, roof included. Wren got there first and has been standing on the rooftop for an hour 'calibrating'. From up here you can see the park, the bus stop, the roofs of places you have been to and the roofs of places you have not. Imre has set up a reading nook in the common room with a sign that says 'quiet, please' in four languages. Ondra has a workshop now and is building something out of a broom and an umbrella; he says it is for the weekly wave. The Protocol notes, in its driest voice, that the walls are now four storeys tall, that your name is on the door downstairs, and that both were earned one ordinary morning at a time."
+    },
+    {
+      "id": 5,
+      "key": "block",
+      "name": "The Block",
+      "domainPointsRequired": 1100,
+      "wallBonus": 17,
+      "facilities": [
+        { "id": "cornerShop", "name": "Corner Shop", "effect": "Resurrection token costs 450 settlement instead of 500; quest reroll costs 10 instead of 15." },
+        { "id": "courtyard", "name": "Courtyard", "effect": "The Well-kept Haven wave bonus is +8 defense instead of +5." }
+      ],
+      "vignette": "Domain expanded: the block. The corner shop, the courtyard with the one stubborn tree, the launderette that hums at night. Basil has negotiated with the shop (negotiated meaning 'bought vegetables and chatted') and reports that the owner knows your name now. Tobi insists this is the single greatest fortification in the Haven's history and has drawn a banner. Lunel walks the block at dusk, checking that windows go dark at sensible hours, which is not in his job description but he enjoys it. The Protocol confirms that the perimeter now includes places you walk to without thinking about it. It would like you to notice that 'without thinking about it' used to be impossible."
+    },
+    {
+      "id": 6,
+      "key": "district",
+      "name": "The District",
+      "domainPointsRequired": 1700,
+      "wallBonus": 20,
+      "facilities": [
+        { "id": "clinic", "name": "District Clinic", "effect": "Utility decay reduced by 25% for all three utilities." },
+        { "id": "library", "name": "District Library", "effect": "Title XP multipliers stack up to +25% instead of +20%." }
+      ],
+      "vignette": "Domain expanded: the district. The library, the clinic, the park with the pond Wren keeps calling 'the lake' for morale reasons. Marisol has befriended the clinic receptionist and now gets appointment reminders delivered as if they were dispatches. Imre has a library card and has used it as a key to the entire district, which the Protocol admits is roughly how it works. Pell runs the park loop every morning and has started waving at a man with a dog, who waves back; Tobi has logged this as an alliance. You remember when the Room was the whole world. The Protocol does too, and keeps the first entry in the Ledger exactly where it was: one room, one step, one quest."
+    },
+    {
+      "id": 7,
+      "key": "city",
+      "name": "The City",
+      "domainPointsRequired": 2500,
+      "wallBonus": 23,
+      "facilities": [
+        { "id": "observatory", "name": "Observatory", "effect": "Cosmetic: the Haven map shows the whole city at night, every ring lit." },
+        { "id": "openSky", "name": "Open Sky", "effect": "Weekly waves continue; Domain Points keep accumulating for the Ledger's record." }
+      ],
+      "vignette": "Domain expanded: the city. The Protocol pauses, which it has never done before, then reports that there is no further ring to register, because the boundary now runs along the river, the hills and the last bus stop on the night route. Eight vassals stand on the rooftop with you. Ondra has brought chairs. Basil has brought soup. Lunel points out that it is late and you should all go to bed soon, and everyone agrees that he is right and nobody moves. The city glows the way it always did; the difference is that you have been in most of it. The Protocol closes tonight's entry with its usual line, which it would like you to read slowly: the Haven is safe. It was always going to be. You went out anyway."
+    }
+  ]
+}
