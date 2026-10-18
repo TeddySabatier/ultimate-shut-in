@@ -1,8 +1,8 @@
 name: Deploy to GitHub Pages
 
+# Manual trigger only: GitHub Pages needs a public repo (or a paid plan) and
+# Pages source set to "GitHub Actions" in Settings > Pages. See README.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
