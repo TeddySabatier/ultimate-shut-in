@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- serpent whose body is a stack of glowing feed cards -->
+  <g stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter">
+    <rect x="8" y="44" width="12" height="14" fill="#2e2e6e"/>
+    <rect x="18" y="34" width="12" height="24" fill="#2e2e6e"/>
+    <rect x="28" y="26" width="12" height="32" fill="#2e2e6e"/>
+  </g>
+  <path d="M10 48h8M10 52h5M20 38h8M20 42h6M20 46h8M30 30h8M30 34h5M30 38h8M30 42h6" stroke="#4da3ff" stroke-width="1.5" opacity="0.8"/>
+  <!-- phone head -->
+  <rect x="30" y="6" width="30" height="20" rx="3" fill="#3a3a8a" stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter"/>
+  <rect x="33" y="9" width="24" height="14" fill="#4da3ff"/>
+  <path d="M33 12h24M33 16h24M33 20h24" stroke="#2e2e6e" stroke-width="1" opacity="0.5"/>
+  <rect x="38" y="12" width="5" height="6" fill="#0f0f14"/>
+  <rect x="48" y="12" width="5" height="6" fill="#0f0f14"/>
+  <path d="M60 18l6 2-4 2 4 2-6 1" fill="none" stroke="#ff4d6d" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M36 26l3 4 3-4" fill="#e8e8f0" stroke="#0f0f14" stroke-width="1.5"/>
+  <path d="M8 58l-4-4 4-4" fill="#2e2e6e" stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter"/>
+  <path d="M4 60h56" stroke="#0f0f14" stroke-width="2"/>
+</svg>

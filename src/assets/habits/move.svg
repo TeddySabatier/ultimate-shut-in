@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square">
+  <!-- dumbbell -->
+  <rect x="4.5" y="17.5" width="4" height="13" fill="currentColor" stroke="none"/>
+  <rect x="10.5" y="12.5" width="6" height="23"/>
+  <rect x="31.5" y="12.5" width="6" height="23"/>
+  <rect x="39.5" y="17.5" width="4" height="13" fill="currentColor" stroke="none"/>
+  <path d="M18 24h12"/>
+  <!-- motion ticks -->
+  <path d="M22 8h4M18 40h12" stroke-width="2" opacity="0.6"/>
+</svg>

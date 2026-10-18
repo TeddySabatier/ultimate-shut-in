@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square">
+  <!-- broom, tilted -->
+  <g transform="rotate(35 22 26)">
+    <path d="M22 5v17"/>
+    <rect x="13.5" y="22.5" width="17" height="6"/>
+    <path d="M15 29v12M19 29v13M23 29v13M27 29v12" stroke-width="2.5"/>
+    <path d="M14 41h14" stroke-width="2.5"/>
+  </g>
+  <!-- sparkle -->
+  <path d="M40 27v12M34 33h12" stroke-width="2.5"/>
+  <rect x="38" y="31" width="4" height="4" fill="currentColor" stroke="none"/>
+  <path d="M8 8v4M6 10h4" stroke-width="2" opacity="0.7"/>
+</svg>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square">
+  <!-- bubble A -->
+  <path d="M6 6h20l2 2v10l-2 2H14l-6 6v-6H6l-2-2V8z"/>
+  <circle cx="11" cy="14" r="1.5" fill="currentColor" stroke="none"/>
+  <circle cx="16" cy="14" r="1.5" fill="currentColor" stroke="none"/>
+  <circle cx="21" cy="14" r="1.5" fill="currentColor" stroke="none"/>
+  <!-- bubble B -->
+  <path d="M22 24h20l2 2v10l-2 2h-2v6l-6-6H22l-2-2V26z"/>
+  <path d="M27 31h10M27 35h6" stroke-width="2.5"/>
+</svg>

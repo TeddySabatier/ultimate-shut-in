@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- fluff ball with dust ears -->
+  <path d="M18 24l-6-14 12 8zM46 24l6-14-12 8z" fill="#8a8a9e" stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter"/>
+  <path d="M14 40c-4-10 4-22 18-22s22 12 18 22c-4 10-10 14-18 14S18 50 14 40z" fill="#8a8a9e" stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter"/>
+  <path d="M20 30c-2 4 0 10 4 12M44 30c2 4 0 10-4 12" fill="none" stroke="#b0b0c4" stroke-width="2" stroke-linecap="round"/>
+  <path d="M10 44l-5 2M12 50l-5 1M52 44l5 2M50 50l5 1" stroke="#8a8a9e" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="26" cy="36" r="3" fill="#ff4d6d" stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter"/>
+  <circle cx="38" cy="36" r="3" fill="#ff4d6d" stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter"/>
+  <circle cx="27" cy="35" r="1" fill="#e8e8f0"/>
+  <circle cx="39" cy="35" r="1" fill="#e8e8f0"/>
+  <path d="M29 44h6l-3 3z" fill="#0f0f14"/>
+  <circle cx="8" cy="22" r="2" fill="#8a8a9e" opacity="0.6"/>
+  <circle cx="57" cy="28" r="1.5" fill="#8a8a9e" opacity="0.6"/>
+</svg>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- golem stacked from pillows, alarm clock in the chest -->
+  <g stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter">
+    <rect x="10" y="40" width="44" height="18" rx="4" fill="#5a4a7a"/>
+    <rect x="6" y="28" width="16" height="12" rx="4" fill="#7a6a9a"/>
+    <rect x="42" y="28" width="16" height="12" rx="4" fill="#7a6a9a"/>
+    <rect x="18" y="26" width="28" height="16" rx="3" fill="#6a5a8a"/>
+    <rect x="20" y="6" width="24" height="20" rx="5" fill="#8a7aaa"/>
+  </g>
+  <path d="M24 10h8M14 32h4M46 32h4" stroke="#b8a8d8" stroke-width="2" stroke-linecap="round"/>
+  <path d="M25 17h6M33 17h6" stroke="#0f0f14" stroke-width="2.5" stroke-linecap="square"/>
+  <path d="M30 21h4" stroke="#0f0f14" stroke-width="2"/>
+  <circle cx="32" cy="34" r="6" fill="#ffb84d" stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter"/>
+  <path d="M32 31v3l2 1" fill="none" stroke="#0f0f14" stroke-width="1.5"/>
+  <path d="M27 29l-2-2M37 29l2-2" stroke="#0f0f14" stroke-width="2"/>
+  <path d="M14 46h8M42 46h8" stroke="#0f0f14" stroke-width="2" opacity="0.5"/>
+  <path d="M48 8h5l-5 5h5" fill="none" stroke="#e8e8f0" stroke-width="2" stroke-linecap="square"/>
+  <path d="M55 2h3l-3 3h3" fill="none" stroke="#e8e8f0" stroke-width="1.5"/>
+</svg>

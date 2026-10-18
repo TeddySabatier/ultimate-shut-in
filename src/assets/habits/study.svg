@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square">
+  <!-- open book -->
+  <path d="M24 40L6 35V9l18 5z"/>
+  <path d="M24 40l18-5V9l-18 5"/>
+  <path d="M24 14v26"/>
+  <path d="M10 15.5l9 2.5M10 21.5l9 2.5M10 27.5l9 2.5M38 15.5l-9 2.5M38 21.5l-9 2.5M38 27.5l-9 2.5" stroke-width="2"/>
+  <!-- stand / table edge -->
+  <path d="M4 42h40" stroke-width="2.5" opacity="0.6"/>
+</svg>

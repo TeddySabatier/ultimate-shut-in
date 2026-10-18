@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- slime made of mess: sock, mug, cable -->
+  <path d="M10 52c-4-14 4-32 22-32s26 18 22 32z" fill="#5f8a6a" stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter"/>
+  <path d="M14 46c-1-9 6-20 18-20" fill="none" stroke="#8fc29a" stroke-width="2" stroke-linecap="round"/>
+  <path d="M38 30h10v10h-10z" fill="#e8e8f0" stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter"/>
+  <path d="M48 32h3v5h-3" fill="none" stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter"/>
+  <path d="M16 28v9l-5 4 3 4 8-6V28z" fill="#ffb84d" stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter"/>
+  <path d="M16 28h6v3h-6z" fill="#ff4d6d"/>
+  <path d="M26 50c3-3 7 3 10 0s6 2 9-1" fill="none" stroke="#1a1a24" stroke-width="2" stroke-linecap="round"/>
+  <ellipse cx="26" cy="40" rx="3" ry="4" fill="#0f0f14"/>
+  <ellipse cx="38" cy="42" rx="3" ry="4" fill="#0f0f14"/>
+  <circle cx="27" cy="39" r="1" fill="#e8e8f0"/>
+  <circle cx="39" cy="41" r="1" fill="#e8e8f0"/>
+  <path d="M30 48h6" stroke="#0f0f14" stroke-width="2" stroke-linecap="square"/>
+  <path d="M8 52h48" stroke="#0f0f14" stroke-width="2"/>
+</svg>

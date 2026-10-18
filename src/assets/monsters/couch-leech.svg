@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- leech fused to a couch cushion, remote in reach -->
+  <path d="M6 48V32h52v16z" fill="#4a3a5a" stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter"/>
+  <path d="M6 48h52v8H6z" fill="#3a2a4a" stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter"/>
+  <path d="M10 36h44" stroke="#5a4a6a" stroke-width="2"/>
+  <path d="M16 36c-2-12 6-26 22-26 10 0 16 8 16 14 0 8-8 12-16 12z" fill="#a84a6a" stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter"/>
+  <path d="M22 30c0-6 4-12 10-14" fill="none" stroke="#d07090" stroke-width="2" stroke-linecap="round"/>
+  <path d="M26 36v-4M32 36v-5M38 36v-4M44 36v-3" stroke="#0f0f14" stroke-width="1.5"/>
+  <circle cx="48" cy="26" r="5" fill="#ff4d6d" stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter"/>
+  <circle cx="48" cy="26" r="2" fill="#0f0f14"/>
+  <circle cx="38" cy="18" r="2.5" fill="#ffb84d" stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter"/>
+  <circle cx="44" cy="20" r="2" fill="#ffb84d" stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter"/>
+  <circle cx="38" cy="18" r="1" fill="#0f0f14"/>
+  <circle cx="44" cy="20" r="0.8" fill="#0f0f14"/>
+  <rect x="8" y="22" width="5" height="12" rx="1" fill="#1a1a24" stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter"/>
+  <circle cx="10.5" cy="25" r="0.8" fill="#ff4d6d"/>
+</svg>

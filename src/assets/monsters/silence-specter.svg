@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- ghost with a stitched mouth and a crossed-out bubble -->
+  <path d="M14 58V28c0-12 8-20 18-20s18 8 18 20v30l-6-5-6 5-6-5-6 5-6-5z" fill="#c8c8dc" stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter"/>
+  <path d="M20 28c0-6 4-12 10-14" fill="none" stroke="#e8e8f0" stroke-width="2" stroke-linecap="round"/>
+  <ellipse cx="26" cy="30" rx="3" ry="4" fill="#0f0f14"/>
+  <ellipse cx="38" cy="30" rx="3" ry="4" fill="#0f0f14"/>
+  <path d="M24 42h16" stroke="#0f0f14" stroke-width="2.5" stroke-linecap="square"/>
+  <path d="M27 39v6M32 39v6M37 39v6" stroke="#0f0f14" stroke-width="1.5"/>
+  <path d="M44 6h14l2 2v8l-2 2h-6l-4 4v-4h-4l-2-2V8z" fill="#1a1a24" stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter"/>
+  <path d="M48 9l8 8M56 9l-8 8" stroke="#ff4d6d" stroke-width="2"/>
+  <circle cx="10" cy="40" r="1.5" fill="#c8c8dc" opacity="0.6"/>
+</svg>

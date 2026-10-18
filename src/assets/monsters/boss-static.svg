@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
+  <defs>
+    <radialGradient id="bs-glow" cx="48" cy="34" r="40" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8a8a9e" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#8a8a9e" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <circle cx="48" cy="34" r="40" fill="url(#bs-glow)"/>
+  <path d="M38 8L28 0M58 8L68 0" stroke="#0f0f14" stroke-width="3"/>
+  <path d="M38 8L28 0M58 8L68 0" stroke="#8a8a9e" stroke-width="1.5"/>
+  <rect x="14" y="8" width="68" height="48" rx="4" fill="#2c2c3c" stroke="#0f0f14" stroke-width="2.5"/>
+  <rect x="20" y="14" width="48" height="36" fill="#1a1a24" stroke="#0f0f14" stroke-width="2"/>
+  <path d="M22 17h4M30 17h8M44 17h2M52 17h6M62 17h4M22 23h8M34 23h2M42 23h10M58 23h4M24 29h2M30 29h12M46 29h4M56 29h8M22 35h6M32 35h8M44 35h2M50 35h10M64 35h2M24 41h4M32 41h2M38 41h10M52 41h8M22 47h8M36 47h6M46 47h4M56 47h8" stroke="#8a8a9e" stroke-width="2.5"/>
+  <path d="M22 26h44" stroke="#e8e8f0" stroke-width="2" opacity="0.5"/>
+  <path d="M30 28h8v6h-8zM50 28h8v6h-8z" fill="#ff4d6d" opacity="0.9"/>
+  <circle cx="75" cy="20" r="3" fill="#1a1a24" stroke="#0f0f14" stroke-width="1.5"/>
+  <circle cx="75" cy="30" r="3" fill="#1a1a24" stroke="#0f0f14" stroke-width="1.5"/>
+  <path d="M75 17v3M75 30h2" stroke="#8a8a9e" stroke-width="1.5"/>
+  <circle cx="75" cy="40" r="2" fill="#ff4d6d"/>
+  <circle cx="75" cy="47" r="2" fill="#4dff9a"/>
+  <path d="M30 56h36l10 16v18H20V72z" fill="#3a3a4e" stroke="#0f0f14" stroke-width="2.5"/>
+  <path d="M40 64h16M36 72h24" stroke="#0f0f14" stroke-width="1.5" opacity="0.5"/>
+  <path d="M20 72L8 60v16l6 6zM76 72l12-12v16l-6 6z" fill="#3a3a4e" stroke="#0f0f14" stroke-width="2.5"/>
+  <path d="M8 76l-4 6M10 80l-2 8M14 82v8M88 76l4 6M86 80l2 8M82 82v8" stroke="#0f0f14" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M8 76l-4 6M10 80l-2 8M14 82v8M88 76l4 6M86 80l2 8M82 82v8" stroke="#8a8a9e" stroke-width="1" stroke-linecap="round"/>
+  <path d="M20 90h12v6H20zM64 90h12v6H64z" fill="#2c2c3c" stroke="#0f0f14" stroke-width="2"/>
+</svg>

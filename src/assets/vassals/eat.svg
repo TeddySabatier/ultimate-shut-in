@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <clipPath id="v-eat-clip"><rect x="5" y="5" width="118" height="118" rx="9"/></clipPath>
+    <radialGradient id="v-eat-glow" cx="64" cy="70" r="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#e2a44a" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#e2a44a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- panel -->
+  <rect x="3" y="3" width="122" height="122" rx="10" fill="#1a1a24" stroke="#2c2c3c" stroke-width="2"/>
+  <g clip-path="url(#v-eat-clip)">
+    <rect x="5" y="5" width="118" height="118" fill="url(#v-eat-glow)"/>
+    <path d="M5 123L123 5v40L45 123z" fill="#e2a44a" opacity="0.08"/>
+    
+    
+    <!-- torso -->
+    <path d="M18 128c0-22 14-30 32-34h28c18 4 32 12 32 34z" fill="#e8e8f0" stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter"/>
+    <path d="M18 128c0-22 14-30 32-34l14 10 14-10c18 4 32 12 32 34z" fill="#0f0f14" opacity="0.35"/>
+    <path d="M44 128V100l20-6 20 6v28z" fill="#e2a44a" stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter"/><path d="M44 100l-6-4M84 100l6-4" stroke="#0f0f14" stroke-width="2"/>
+          <path d="M48 108h32" stroke="#b8741f" stroke-width="2"/>
+          <path d="M100 122l5-28" stroke="#8a8a9e" stroke-width="4" stroke-linecap="round"/><path d="M100 122l5-28" stroke="#c0c0cc" stroke-width="1.5" stroke-linecap="round"/>
+          <ellipse cx="108" cy="84" rx="12" ry="9" fill="#8a8a9e" stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter"/><ellipse cx="108" cy="82" rx="8" ry="5" fill="#e2a44a" stroke="#0f0f14" stroke-width="1.5"/><path d="M104 94l4 1" stroke="#c0c0cc" stroke-width="2"/>
+          <path d="M94 128l4-12 8 0 2 12z" fill="#6a3e22" stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter"/>
+    <!-- neck -->
+    <path d="M54 80h20v18l-10 8-10-8z" fill="#6a3e22" stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter"/>
+    <path d="M54 80h20v8c-6 4-14 4-20 0z" fill="#0f0f14" opacity="0.18"/>
+    <!-- ears -->
+    <rect x="36" y="56" width="10" height="14" rx="4" fill="#6a3e22" stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter"/>
+    <rect x="82" y="56" width="10" height="14" rx="4" fill="#6a3e22" stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter"/>
+    <!-- head -->
+    <rect x="40" y="30" width="48" height="56" rx="14" fill="#6a3e22" stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter"/>
+    <path d="M44 36c4-6 12-8 20-8s16 2 20 8" fill="none" stroke="#8a5a3a" stroke-width="2" opacity="0.6"/>
+         <path d="M50 46c2-2 6-2 8 0" fill="none" stroke="#e8e8f0" stroke-width="2" opacity="0.4" stroke-linecap="round"/>
+    <path d="M48 54l11-2M80 54l-11-2" stroke="#0f0f14" stroke-width="3" stroke-linecap="round"/>
+    <path d="M49 63c3-4 7-4 10 0M69 63c3-4 7-4 10 0" fill="none" stroke="#0f0f14" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M46 72c6-6 12-4 18 0 6-4 12-6 18 0-4 4-10 6-18 4-8 2-14 0-18-4z" fill="#1c1c24" stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter"/><path d="M58 80c2 3 10 3 12 0" fill="none" stroke="#0f0f14" stroke-width="2" stroke-linecap="round"/>
+    <rect x="44" y="66" width="8" height="4" rx="2" fill="#ff4d6d" opacity="0.45"/><rect x="76" y="66" width="8" height="4" rx="2" fill="#ff4d6d" opacity="0.45"/>
+  </g>
+  
+  <!-- frame notches -->
+  <path d="M3 17V3h14M111 3h14v14M125 111v14h-14M17 125H3v-14" fill="none" stroke="#e2a44a" stroke-width="2"/>
+</svg>

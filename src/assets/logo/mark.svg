@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <radialGradient id="mk-glow" cx="32" cy="36" r="22" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7c5cff" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#7c5cff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- glow -->
+  <circle cx="32" cy="36" r="22" fill="url(#mk-glow)"/>
+  <!-- hex ring -->
+  <path d="M32 3l25.1 14.5v29L32 61 6.9 46.5v-29z" fill="none" stroke="#7c5cff" stroke-width="4" stroke-linejoin="miter"/>
+  <path d="M32 9l19.9 11.5v23L32 55 12.1 43.5v-23z" fill="none" stroke="#7c5cff" stroke-width="1.5" opacity="0.45"/>
+  <!-- door: amber slab with a violet window -->
+  <path d="M23 46V22h18v24" fill="#ffb84d" stroke="#0f0f14" stroke-width="2" stroke-linejoin="miter"/>
+  <path d="M26 46V25h12v21" fill="#b8741f" stroke="none"/>
+  <rect x="29" y="28" width="6" height="7" fill="#7c5cff"/>
+  <rect x="31" y="28" width="2" height="7" fill="#e8e3ff" opacity="0.7"/>
+  <circle cx="36.5" cy="38.5" r="1.4" fill="#ffe3b0"/>
+  <!-- threshold -->
+  <path d="M18 46h28" stroke="#ffb84d" stroke-width="3" stroke-linecap="square"/>
+  <!-- light spill -->
+  <path d="M20 46l-6 8h36l-6-8z" fill="#7c5cff" opacity="0.35"/>
+</svg>
