@@ -1,0 +1,96 @@
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
+import type { WaveRecord } from '../../game';
+import { useGameStore } from '../../state/gameStore';
+import { seedStore } from '../../test/storeUtils';
+import { OverlayHost } from './OverlayHost';
+
+describe('OverlayHost', () => {
+  it('renders nothing with an empty queue', () => {
+    seedStore();
+    const { container } = render(<OverlayHost />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('shows a reward toast for questDone and dismisses on tap', () => {
+    const save = seedStore();
+    const q = save.board?.quests[0];
+    if (!q) throw new Error('no quest');
+    useGameStore.setState({
+      pendingEvents: [
+        { type: 'questDone', instanceId: q.instanceId, habit: q.habit, rewards: { xp: 24, coins: 11, dp: 1, loyalty: 6, utility: 0 }, timedBonus: true },
+        { type: 'catchUp', days: 3 },
+      ],
+    });
+    render(<OverlayHost />);
+    const toast = screen.getByRole('status');
+    expect(toast).toHaveTextContent(/settlement/i);
+    expect(toast).toHaveTextContent('+24');
+    expect(toast).toHaveTextContent(/timed \+10%/i);
+    fireEvent.click(toast);
+    expect(useGameStore.getState().pendingEvents).toHaveLength(1);
+    expect(screen.getByRole('status')).toHaveTextContent(/welcome back/i);
+  });
+
+  it('shows the level-up window and dismisses with Enter', () => {
+    seedStore();
+    useGameStore.setState({ pendingEvents: [{ type: 'levelUp', level: 2 }] });
+    render(<OverlayHost />);
+    const dialog = screen.getByRole('dialog', { name: /level up/i });
+    expect(dialog).toHaveTextContent('Lv 2');
+    fireEvent.keyDown(window, { key: 'Enter' });
+    expect(useGameStore.getState().pendingEvents).toHaveLength(0);
+  });
+
+  it('shows the ring unlock window with the ring scene and vignette', () => {
+    seedStore();
+    useGameStore.setState({ pendingEvents: [{ type: 'ringUnlocked', ring: 2 }] });
+    render(<OverlayHost />);
+    expect(screen.getByRole('dialog', { name: /domain expanded/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'The Flat' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'The Flat' })).toBeInTheDocument();
+    expect(screen.getByText(/Unlocked:/).parentElement).toHaveTextContent('Kitchen');
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
+    expect(useGameStore.getState().pendingEvents).toHaveLength(0);
+  });
+
+  it('shows the wave result window with bars, breakdown and log', () => {
+    seedStore();
+    const record: WaveRecord = {
+      index: 0,
+      ring: 1,
+      attack: 20,
+      defense: 31,
+      breakdown: { vassals: 8, trust: 14, walls: 5, combos: 0, titles: 0, wellKept: 4 },
+      result: 'decisive',
+      dpAwarded: 22,
+      log: ['Wave 1 reaches The Room.', 'Pell holds the stairwell. +9', 'Decisive.'],
+      settledAt: Date.now(),
+    };
+    useGameStore.setState({ pendingEvents: [{ type: 'waveSettled', record }] });
+    render(<OverlayHost />);
+    expect(screen.getByRole('dialog', { name: /wave 1/i })).toBeInTheDocument();
+    expect(screen.getByRole('progressbar', { name: 'Attack' })).toHaveAttribute('aria-valuenow', '20');
+    expect(screen.getByRole('progressbar', { name: 'Defense' })).toHaveAttribute('aria-valuenow', '31');
+    expect(screen.getByText('Decisive')).toBeInTheDocument();
+    expect(screen.getByRole('list', { name: /battle log/i })).toHaveTextContent('Pell holds the stairwell');
+    expect(screen.getByText(/\+22 Domain Points/)).toBeInTheDocument();
+  });
+
+  it('shows the vassal-left window with a Welcome back shortcut', () => {
+    seedStore();
+    useGameStore.setState({ pendingEvents: [{ type: 'vassalLeft', habit: 'move' }] });
+    render(<OverlayHost />);
+    expect(screen.getByRole('dialog', { name: /pell is away/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /welcome back/i })).toBeInTheDocument();
+  });
+
+  it('shows a refusal notice as a toast and clears it', () => {
+    seedStore();
+    useGameStore.setState({ notice: 'not enough settlement' });
+    render(<OverlayHost />);
+    expect(screen.getByRole('status')).toHaveTextContent('not enough settlement');
+    fireEvent.click(screen.getByRole('button', { name: /dismiss/i }));
+    expect(useGameStore.getState().notice).toBeNull();
+  });
+});

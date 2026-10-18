@@ -1,18 +1,20 @@
 import { NavLink } from 'react-router-dom';
+import { strings } from '../game';
+import { uiIcons } from '../assets';
+import { Icon } from './Icon';
 import styles from './TabBar.module.css';
 
 interface Tab {
   to: string;
   label: string;
-  /** Simple text glyph placeholder until pixel icons exist. */
-  glyph: string;
+  icon: string;
 }
 
 const TABS: readonly Tab[] = [
-  { to: '/', label: 'Home', glyph: '⌂' },
-  { to: '/quests', label: 'Quests', glyph: '!' },
-  { to: '/character', label: 'Character', glyph: '☺' },
-  { to: '/settings', label: 'Settings', glyph: '⚙' },
+  { to: '/', label: strings.ui.home, icon: uiIcons.home },
+  { to: '/quests', label: strings.ui.quests, icon: uiIcons.quests },
+  { to: '/character', label: strings.ui.character, icon: uiIcons.character },
+  { to: '/settings', label: strings.ui.settings, icon: uiIcons.settings },
 ];
 
 export function TabBar() {
@@ -25,9 +27,7 @@ export function TabBar() {
           end={tab.to === '/'}
           className={({ isActive }) => (isActive ? `${styles.tab} ${styles.active}` : styles.tab)}
         >
-          <span className={styles.glyph} aria-hidden="true">
-            {tab.glyph}
-          </span>
+          <Icon src={tab.icon} size={22} className={styles.icon} />
           <span className={styles.label}>{tab.label}</span>
         </NavLink>
       ))}

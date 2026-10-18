@@ -10,6 +10,7 @@
   background: var(--color-bg);
   border-left: var(--border-pixel);
   border-right: var(--border-pixel);
+  overflow: hidden;
 }
 
 @media (max-width: 480px) {
@@ -23,6 +24,6 @@
   flex: 1 1 auto;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: calc(var(--space-4) + var(--safe-top)) var(--space-4)
-    calc(var(--tabbar-height) + var(--safe-bottom) + var(--space-4));
+  padding: calc(var(--space-4) + var(--safe-top)) calc(var(--space-4) + var(--safe-right))
+    calc(var(--tabbar-height) + var(--safe-bottom) + var(--space-4)) calc(var(--space-4) + var(--safe-left));
 }

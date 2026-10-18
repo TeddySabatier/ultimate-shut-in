@@ -7,8 +7,11 @@
   grid-template-columns: repeat(4, 1fr);
   height: calc(var(--tabbar-height) + var(--safe-bottom));
   padding-bottom: var(--safe-bottom);
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
   background: var(--color-panel);
   border-top: var(--border-pixel);
+  z-index: 5;
 }
 
 .tab {
@@ -17,6 +20,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-1);
+  min-height: var(--touch-target);
   color: var(--color-muted);
   text-decoration: none;
   transition: color var(--duration-fast) var(--ease-snap);
@@ -30,13 +34,12 @@
   color: var(--color-accent-2);
 }
 
-.glyph {
-  font-size: var(--text-xl);
-  line-height: 1;
+.icon {
+  color: currentColor;
 }
 
 .label {
   font-family: var(--font-heading);
-  font-size: 0.5rem;
+  font-size: var(--heading-xs);
   text-transform: uppercase;
 }

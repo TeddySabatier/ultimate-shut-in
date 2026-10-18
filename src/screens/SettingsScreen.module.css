@@ -1,0 +1,114 @@
+.fieldset {
+  border: none;
+  padding: 0;
+  margin: 0 0 var(--space-4);
+  min-width: 0;
+}
+
+.fieldset:last-child {
+  margin-bottom: 0;
+}
+
+.legend {
+  font-family: var(--font-heading);
+  font-size: var(--heading-xs);
+  text-transform: uppercase;
+  color: var(--color-muted);
+  margin-bottom: var(--space-2);
+  padding: 0;
+}
+
+.choices,
+.habits {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.choice,
+.habit {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--touch-target);
+  padding: var(--space-2);
+  border: var(--border-pixel);
+  background: var(--color-panel);
+  cursor: pointer;
+}
+
+.choiceOn {
+  border-color: var(--color-accent-2);
+  background: var(--color-panel-raised);
+}
+
+.habitOn {
+  border-color: currentColor;
+  background: var(--color-panel-raised);
+}
+
+.choice > span,
+.habitText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.choiceLabel {
+  font-family: var(--font-heading);
+  font-size: var(--heading-xs);
+  text-transform: uppercase;
+  color: var(--color-accent-2);
+}
+
+.choiceDesc,
+.habitDesc {
+  font-size: var(--text-xs);
+}
+
+.habitLabel {
+  color: var(--color-text);
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
+
+.help {
+  font-size: var(--text-xs);
+  margin: var(--space-2) 0 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--touch-target);
+  margin-bottom: var(--space-2);
+}
+
+.row select {
+  min-width: 7em;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--touch-target);
+  margin-bottom: var(--space-3);
+  cursor: pointer;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.error {
+  color: var(--color-danger);
+  font-size: var(--text-sm);
+  margin: var(--space-2) 0 0;
+}

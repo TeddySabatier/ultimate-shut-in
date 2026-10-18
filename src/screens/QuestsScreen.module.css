@@ -1,0 +1,17 @@
+.boardMeta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-3);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-4);
+}
+
+.list {
+  display: block;
+}
+
+.note {
+  font-size: var(--text-xs);
+  text-align: center;
+}

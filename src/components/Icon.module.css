@@ -1,0 +1,14 @@
+.icon {
+  display: inline-block;
+  flex: none;
+  vertical-align: middle;
+  background-color: currentColor;
+  -webkit-mask: var(--icon) center / contain no-repeat;
+  mask: var(--icon) center / contain no-repeat;
+}
+
+.sprite {
+  display: block;
+  flex: none;
+  user-select: none;
+}

@@ -4,22 +4,39 @@
   --color-bg: #0f0f14;
   --color-panel: #1a1a24;
   --color-panel-raised: #22222f;
+  --color-panel-glass: rgba(20, 20, 30, 0.92);
   --color-border: #2c2c3c;
+  --color-border-light: #6b6b8a;
   --color-accent: #7c5cff;
+  /* lighter violet that passes 4.5:1 on panels when used as text */
+  --color-accent-text: #b8a6ff;
   --color-accent-2: #ffb84d;
-  --color-danger: #ff4d6d;
+  --color-danger: #ff6b85;
   --color-success: #4dff9a;
+  --color-info: #7cc6ff;
   --color-text: #e8e8f0;
-  --color-muted: #8a8a9e;
+  --color-muted: #9a9ab0;
+
+  /* habit accents (from habits.json) */
+  --habit-move: #f2893b;
+  --habit-outside: #5ba7d9;
+  --habit-clean: #7c8fb8;
+  --habit-social: #e0b33a;
+  --habit-study: #a98bd6;
+  --habit-sleep: #5e6ed8;
+  --habit-eat: #d9774f;
+  --habit-hygiene: #4fc3c7;
 
   /* typography */
   --font-heading: 'Press Start 2P', 'Courier New', monospace;
   --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Mono', 'Courier New', monospace;
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-md: 1rem;
   --text-lg: 1.125rem;
   --text-xl: 1.5rem;
+  --heading-xs: 0.5rem;
   --heading-sm: 0.625rem; /* Press Start 2P is wide; keep headings small */
   --heading-md: 0.875rem;
   --heading-lg: 1.125rem;
@@ -35,16 +52,21 @@
   /* layout */
   --app-max-width: 480px;
   --tabbar-height: 64px;
+  --touch-target: 44px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
 
   /* shape: pixel feel = small/no radius, hard shadows */
   --radius-sm: 2px;
   --radius-md: 4px;
   --shadow-hard: 4px 4px 0 0 rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 24px rgba(124, 92, 255, 0.35);
   --border-pixel: 2px solid var(--color-border);
 
   /* motion */
   --ease-snap: steps(4, end);
   --duration-fast: 120ms;
+  --duration-med: 240ms;
 }

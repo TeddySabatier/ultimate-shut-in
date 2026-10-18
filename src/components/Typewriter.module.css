@@ -1,0 +1,19 @@
+.typewriter {
+  white-space: pre-wrap;
+}
+
+.caret {
+  display: inline-block;
+  width: 0.55em;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.15em;
+  background: var(--color-accent-2);
+  animation: blink 0.8s steps(2, end) infinite;
+}
+
+@keyframes blink {
+  to {
+    opacity: 0;
+  }
+}

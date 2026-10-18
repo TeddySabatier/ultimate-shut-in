@@ -1,0 +1,151 @@
+.card {
+  position: relative;
+  background: var(--color-panel);
+  border: var(--border-pixel);
+  border-left: 6px solid var(--habit, var(--color-border-light));
+  box-shadow: var(--shadow-hard);
+  padding: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.bonusCard {
+  border-color: var(--color-accent-2);
+  border-left-color: var(--habit, var(--color-accent-2));
+}
+
+.done {
+  opacity: 0.75;
+}
+
+.head {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.habitIcon {
+  color: var(--habit, var(--color-text));
+  margin-top: 2px;
+}
+
+.heading {
+  min-width: 0;
+  flex: 1;
+}
+
+.title {
+  font-size: var(--heading-sm);
+  color: var(--color-text);
+  margin: 0 0 var(--space-1);
+  line-height: 1.5;
+}
+
+.done .title {
+  text-decoration: line-through;
+  text-decoration-color: var(--color-muted);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+
+.vassal {
+  color: var(--habit, var(--color-text));
+  font-weight: 600;
+}
+
+.bonus,
+.tag {
+  font-family: var(--font-heading);
+  font-size: var(--heading-xs);
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border: 1px solid currentColor;
+}
+
+.bonus {
+  color: var(--color-accent-2);
+}
+
+.tag {
+  color: var(--color-info);
+}
+
+.settled {
+  color: var(--color-success);
+}
+
+.desc {
+  margin: var(--space-2) 0;
+  font-size: var(--text-sm);
+}
+
+.rewards {
+  margin-bottom: var(--space-2);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.controls > .btn--primary,
+.controls > :global(.btn--primary) {
+  margin-left: auto;
+}
+
+.timerBlock {
+  margin-top: var(--space-2);
+}
+
+.clock {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-lg);
+  min-width: 7.5em;
+}
+
+.clock[data-running='true'] {
+  color: var(--color-success);
+}
+
+.hint {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+
+.hintReady {
+  color: var(--color-success);
+}
+
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.count {
+  min-width: 4.5em;
+  text-align: center;
+  font-size: var(--text-lg);
+}
+
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: var(--space-2);
+  font-size: var(--text-xs);
+}

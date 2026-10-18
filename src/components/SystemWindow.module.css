@@ -1,0 +1,63 @@
+.window {
+  position: relative;
+  background: var(--color-panel-glass);
+  border: 8px solid var(--color-border-light);
+  border-image-width: 8px;
+  border-image-repeat: stretch;
+  padding: var(--space-3) var(--space-3) var(--space-3);
+  margin-bottom: var(--space-4);
+  box-shadow: var(--shadow-hard);
+  color: var(--color-text);
+}
+
+.flush {
+  padding: 0;
+}
+
+.title {
+  position: relative;
+  z-index: 1;
+  font-size: var(--heading-sm);
+  margin: 0 0 var(--space-3);
+  color: var(--color-accent-2);
+}
+
+.accent .title {
+  color: var(--color-accent-2);
+}
+.danger .title {
+  color: var(--color-danger);
+}
+.success .title {
+  color: var(--color-success);
+}
+
+.body {
+  position: relative;
+  z-index: 1;
+  font-size: var(--text-sm);
+}
+
+.body > :last-child {
+  margin-bottom: 0;
+}
+
+.actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  margin-top: var(--space-3);
+}
+
+/* subtle CRT scanlines, static (no animation) */
+.scanlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.14) 0 1px, transparent 1px 3px);
+  opacity: 0.6;
+  z-index: 0;
+}

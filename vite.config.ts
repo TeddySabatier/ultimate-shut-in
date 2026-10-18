@@ -21,10 +21,10 @@ export default defineConfig({
       includeAssets: ['icons/*.png', 'favicon.svg'],
       manifest: {
         id: './',
-        name: 'Ultimate Shut-In',
-        short_name: 'ShutIn',
+        name: 'Haven Protocol',
+        short_name: 'Haven',
         description:
-          'A real-life quest RPG: do things in real life, level up in the game.',
+          'A habit RPG. Go out. Come home. The Haven grows.',
         start_url: './',
         scope: './',
         display: 'standalone',

@@ -1,0 +1,217 @@
+/* ---- toasts ---- */
+.toastHost {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--tabbar-height) + var(--safe-bottom) + var(--space-3));
+  padding: 0 var(--space-3);
+  z-index: 20;
+  pointer-events: none;
+  animation: slide-up var(--duration-med) var(--ease-snap);
+}
+
+.toast {
+  pointer-events: auto;
+  margin: 0;
+  cursor: pointer;
+  padding-right: calc(var(--space-3) + 28px);
+}
+
+.toastLine {
+  font-size: var(--text-sm);
+}
+
+.close {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  background: transparent;
+  border: none;
+  color: var(--color-muted);
+}
+
+/* ---- modal windows ---- */
+.backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: var(--space-3);
+  padding-bottom: calc(var(--tabbar-height) + var(--safe-bottom) + var(--space-3));
+  background: rgba(8, 8, 12, 0.78);
+  animation: fade-in var(--duration-fast) linear;
+  overflow-y: auto;
+}
+
+.backdrop:focus {
+  outline: none;
+}
+
+.fullscreen {
+  align-items: flex-start;
+  flex-direction: column;
+  padding: 0;
+  padding-bottom: calc(var(--tabbar-height) + var(--safe-bottom));
+  background: var(--color-bg);
+}
+
+.modalInner {
+  width: 100%;
+  animation: slide-up var(--duration-med) var(--ease-snap);
+}
+
+.window {
+  margin: 0;
+}
+
+.bigNumber {
+  font-family: var(--font-heading);
+  font-size: var(--heading-lg);
+  color: var(--color-accent-2);
+  text-align: center;
+  margin: var(--space-2) 0 var(--space-3);
+}
+
+.actionsRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+/* ---- ring unlock ---- */
+.ringScene {
+  width: 100%;
+  height: 200px;
+  background-size: cover;
+  background-position: center;
+  image-rendering: pixelated;
+  border-bottom: var(--border-pixel);
+  box-shadow: var(--shadow-glow);
+  animation: haven-glow 4s ease-in-out infinite alternate;
+}
+
+.fullscreen .window {
+  margin: var(--space-3);
+  width: auto;
+}
+
+.ringName {
+  font-size: var(--heading-md);
+  color: var(--color-text);
+  margin-bottom: var(--space-2);
+}
+
+.headline {
+  color: var(--color-accent-2);
+  font-size: var(--text-sm);
+}
+
+.vignette {
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+.facilities {
+  font-size: var(--text-xs);
+}
+
+/* ---- wave ---- */
+.waveHead {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  margin-bottom: var(--space-2);
+}
+
+.monster {
+  border: var(--border-pixel);
+  background: var(--color-bg);
+}
+
+.waveBars {
+  flex: 1;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.waveBar {
+  display: grid;
+  gap: 2px;
+}
+
+.waveLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-heading);
+  font-size: var(--heading-xs);
+  color: var(--color-muted);
+  text-transform: uppercase;
+}
+
+.resultLine {
+  font-family: var(--font-heading);
+  font-size: var(--heading-md);
+  color: var(--color-text);
+  text-transform: uppercase;
+  text-align: center;
+  margin: var(--space-2) 0;
+}
+
+.resultDecisive {
+  color: var(--color-success);
+}
+
+.breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+
+.log {
+  list-style: none;
+  padding: var(--space-2);
+  margin: 0 0 var(--space-2);
+  background: var(--color-bg);
+  border: var(--border-pixel);
+  font-size: var(--text-xs);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.log li {
+  padding: 2px 0;
+}
+
+.dpLine {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-accent-text);
+  font-weight: 600;
+}
+
+/* ---- vassal ---- */
+.vassalRow {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.vassalRow p {
+  margin: 0;
+}

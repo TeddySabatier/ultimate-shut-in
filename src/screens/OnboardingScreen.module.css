@@ -1,0 +1,135 @@
+.screen {
+  width: 100%;
+  max-width: var(--app-max-width);
+  min-height: 100dvh;
+  margin: 0 auto;
+  background: var(--color-bg);
+  border-left: var(--border-pixel);
+  border-right: var(--border-pixel);
+}
+
+@media (max-width: 480px) {
+  .screen {
+    border-left: none;
+    border-right: none;
+  }
+}
+
+.main {
+  padding: calc(var(--space-5) + var(--safe-top)) var(--space-4) calc(var(--space-5) + var(--safe-bottom));
+}
+
+.logo {
+  display: block;
+  width: 240px;
+  height: auto;
+  margin: 0 auto var(--space-3);
+}
+
+.step {
+  text-align: center;
+  font-family: var(--font-heading);
+  font-size: var(--heading-xs);
+  text-transform: uppercase;
+  margin-bottom: var(--space-4);
+}
+
+.vignette {
+  font-size: var(--text-md);
+  line-height: 1.65;
+}
+
+.label {
+  display: block;
+  font-family: var(--font-heading);
+  font-size: var(--heading-xs);
+  text-transform: uppercase;
+  color: var(--color-muted);
+  margin-bottom: var(--space-1);
+}
+
+.nameInput {
+  width: 100%;
+  font-size: var(--text-lg);
+}
+
+.help {
+  font-size: var(--text-xs);
+  margin: var(--space-2) 0 0;
+}
+
+.fieldset {
+  border: none;
+  padding: 0;
+  margin: 0 0 var(--space-4);
+  min-width: 0;
+}
+
+.legend {
+  font-family: var(--font-heading);
+  font-size: var(--heading-xs);
+  text-transform: uppercase;
+  color: var(--color-muted);
+  margin-bottom: var(--space-2);
+  padding: 0;
+}
+
+.habitList,
+.choiceList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.habitList {
+  grid-template-columns: 1fr 1fr;
+}
+
+.habit,
+.choice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--touch-target);
+  padding: var(--space-2);
+  border: var(--border-pixel);
+  background: var(--color-panel);
+  cursor: pointer;
+}
+
+.habitOn,
+.choiceOn {
+  border-color: currentColor;
+  background: var(--color-panel-raised);
+}
+
+.choiceOn {
+  border-color: var(--color-accent-2);
+}
+
+.habitText,
+.choice > span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.habitLabel {
+  color: var(--color-text);
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
+
+.habitDesc,
+.choiceDesc {
+  font-size: var(--text-xs);
+}
+
+.choiceLabel {
+  font-family: var(--font-heading);
+  font-size: var(--heading-xs);
+  text-transform: uppercase;
+  color: var(--color-accent-2);
+}
