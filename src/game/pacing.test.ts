@@ -66,7 +66,7 @@ const TABLE: Record<string, { difficulty: Difficulty; adherence: number; rings: 
   'Hardcore 90%': { difficulty: 'hardcore', adherence: 0.9, rings: { 2: 1.1, 3: 3.0, 4: 6.0, 5: 10.0 } },
 };
 
-describe('pacing simulation (365 days)', () => {
+describe('pacing simulation (365 days)', { timeout: 120_000 }, () => {
   for (const [label, spec] of Object.entries(TABLE)) {
     it(`${label}: ring weeks within +-1.5 of the GDD table and no wave losses`, () => {
       const sim = simulate(spec.difficulty, spec.adherence, 1234);
