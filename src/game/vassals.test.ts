@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { activeVassals, decayLoyalty, gainLoyaltyDraft, markActiveDraft, reRecruitVassal, revertLoyaltyDraft, vassalName, waitingLine } from './vassals';
+import { activeVassals, decayLoyalty, gainLoyaltyDraft, markActiveDraft, revertLoyaltyDraft, vassalName, waitingLine } from './vassals';
+import { reRecruitVassal } from './recruit';
 import { fresh, T0, TZ } from './testUtils';
 import { gameDayIndex } from './time';
 

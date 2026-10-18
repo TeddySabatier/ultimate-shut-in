@@ -102,9 +102,12 @@ export function chooseBonus(questsOnBoard: readonly BoardQuest[]): string {
   return best?.instanceId ?? '';
 }
 
-/** Generate the board for `day` deterministically from the save (GDD 6.3). */
-export function generateBoard(save: SaveFile, day: number): Board {
-  const seed = boardSeed(save.firstPlayDay, day, save.player.name);
+/**
+ * Generate the board for `day` deterministically from the save (GDD 6.3).
+ * `seed` defaults to the GDD seed for the current name; pass a stored
+ * `board.seed` to replay a day issued under an earlier name.
+ */
+export function generateBoard(save: SaveFile, day: number, seed: number = boardSeed(save.firstPlayDay, day, save.player.name)): Board {
   const rng = mulberry32(seed);
   const table = DIFFICULTY[save.settings.difficulty];
   const pool = eligiblePool(save, day);
@@ -145,6 +148,21 @@ export function generateBoard(save: SaveFile, day: number): Board {
   return { day, seed, quests: questsOnBoard, bonusId: chooseBonus(questsOnBoard), rerolledToday: false };
 }
 
+/**
+ * Re-issue the board for `day` on the draft when it is empty (every eligible
+ * vassal was away) and a vassal has just returned (errata 14). Uses the
+ * stored seed so the board is the one the day would have had.
+ */
+export function refillEmptyBoardDraft(draft: SaveFile, day: number, now: number): GameEvent[] {
+  const b = draft.board;
+  if (!b || b.day !== day || b.quests.length > 0) return [];
+  const board = generateBoard(draft, day, b.seed);
+  if (board.quests.length === 0) return [];
+  draft.board = board;
+  pushLog(draft, now, day, 'boardIssued', `Board issued: ${board.quests.length} quests.`);
+  return [{ type: 'boardIssued', day }];
+}
+
 /* ------------------------------ Helpers ------------------------------ */
 
 function findQuest(save: SaveFile, id: string): BoardQuest | undefined {
@@ -169,12 +187,35 @@ function currentDay(save: SaveFile, now: number, opts?: TimeOptions): number {
   return gameDayIndex(now, save.settings.resetHour, opts?.tz);
 }
 
+/**
+ * Common refusals for quest actions: the quest must be on the board and its
+ * habit enabled. A disabled habit's vassal and utility are frozen (GDD 15.4),
+ * so its quests cannot be acted on (errata 11).
+ */
+function actionable(save: SaveFile, id: string): { q?: BoardQuest; error?: string } {
+  const q = findQuest(save, id);
+  if (!q) return { error: 'quest not on board' };
+  if (!isHabitEnabled(save, q.habit)) return { q, error: 'habit is disabled' };
+  return { q };
+}
+
+/**
+ * The board is "today's" when it was issued for the current game day. When
+ * the day index moved backwards (clock set back, westward travel) the board
+ * for `lastOpenDay` still counts as today's rather than being settled.
+ */
+function boardIsCurrent(save: SaveFile, now: number, opts?: TimeOptions): boolean {
+  if (!save.board) return false;
+  const today = currentDay(save, now, opts);
+  return save.board.day === today || (today < save.board.day && save.board.day === save.lastOpenDay);
+}
+
 /* ------------------------------ Timer ------------------------------ */
 
 /** Start (or resume) a quest timer; any other running timer is paused. */
 export function startTimer(save: SaveFile, id: string, now: number): ActionResult {
-  const q = findQuest(save, id);
-  if (!q) return refuse(save, 'quest not on board');
+  const { q, error } = actionable(save, id);
+  if (!q || error) return refuse(save, error ?? 'quest not on board');
   if (q.kind !== 'timer' || !q.timer) return refuse(save, 'quest has no timer');
   if (q.status === 'done') return refuse(save, 'quest already done');
   if (q.timer.startedAt !== null) return ok(save, []);
@@ -207,13 +248,15 @@ export function pauseTimer(save: SaveFile, id: string, now: number): ActionResul
  * stepping below the target after completion undoes it (GDD 6.6).
  */
 export function incrementCount(save: SaveFile, id: string, delta: number, now: number, opts?: TimeOptions): ActionResult {
-  const q = findQuest(save, id);
-  if (!q) return refuse(save, 'quest not on board');
+  const { q, error } = actionable(save, id);
+  if (!q || error) return refuse(save, error ?? 'quest not on board');
   if (q.kind !== 'count') return refuse(save, 'quest is not a counter');
   const t = getQuest(q.templateId);
   const target = t?.targetCount ?? 1;
   const nextCount = Math.max(0, q.count + delta);
   if (q.status === 'done') {
+    // Same-day rule as undo (GDD 6.7): a settled day's counter is read-only.
+    if (!boardIsCurrent(save, now, opts)) return refuse(save, 'the day is settled; undo is same-day only');
     if (nextCount >= target) {
       const draft = clone(save);
       const dq = findQuest(draft, id);
@@ -237,8 +280,8 @@ export function incrementCount(save: SaveFile, id: string, delta: number, now: n
 
 /** Mark a quest done: rewards, snapshot, vassal, utility, stats, combos, titles. */
 export function completeQuest(save: SaveFile, id: string, now: number): ActionResult {
-  const q = findQuest(save, id);
-  if (!q) return refuse(save, 'quest not on board');
+  const { q, error } = actionable(save, id);
+  if (!q || error) return refuse(save, error ?? 'quest not on board');
   if (q.status === 'done') return refuse(save, 'quest already done');
   return completeQuestOn(clone(save), id, now);
 }
@@ -308,8 +351,8 @@ function completeQuestOn(draft: SaveFile, id: string, now: number): ActionResult
 
 /** Mark an open quest as attempted: counts for trust and holds loyalty, nothing else. */
 export function markTried(save: SaveFile, id: string, now: number): ActionResult {
-  const q = findQuest(save, id);
-  if (!q || !save.board) return refuse(save, 'quest not on board');
+  const { q, error } = actionable(save, id);
+  if (!q || error || !save.board) return refuse(save, error ?? 'quest not on board');
   if (q.status !== 'open') return refuse(save, 'quest is not open');
   const draft = clone(save);
   const dq = findQuest(draft, id);
@@ -327,7 +370,7 @@ export function undoQuest(save: SaveFile, id: string, now: number, opts?: TimeOp
   const q = findQuest(save, id);
   if (!q || !save.board) return refuse(save, 'quest not on board');
   if (q.status !== 'done' || !q.rewards) return refuse(save, 'quest is not done');
-  if (save.board.day !== currentDay(save, now, opts)) return refuse(save, 'the day is settled; undo is same-day only');
+  if (!boardIsCurrent(save, now, opts)) return refuse(save, 'the day is settled; undo is same-day only');
   const draft = clone(save);
   const dq = findQuest(draft, id);
   if (!dq || !dq.rewards) return refuse(save, 'quest is not done');
@@ -338,7 +381,7 @@ export function undoQuest(save: SaveFile, id: string, now: number, opts?: TimeOp
   removePlayerXpDraft(draft, r.xp);
   draft.player.coins = Math.max(0, draft.player.coins - r.coins);
   draft.player.domainPoints = Math.max(0, draft.player.domainPoints - r.dp);
-  recomputeRingDraft(draft); // ring can go down with DP; the overlay is not re-shown
+  recomputeRingDraft(draft); // DP is reverted; the ring is sticky and no overlay is re-shown (errata 15)
   removeVassalXpDraft(vassal, r.xp);
   vassal.lifetimeQuests = Math.max(0, vassal.lifetimeQuests - 1);
   revertLoyaltyDraft(vassal, r.loyalty);
@@ -372,8 +415,8 @@ export function undoQuest(save: SaveFile, id: string, now: number, opts?: TimeOp
 /** Swap one open quest for another of the same habit and tier, once per day, for settlement. */
 export function rerollQuest(save: SaveFile, id: string, now: number): ActionResult {
   const board = save.board;
-  const q = findQuest(save, id);
-  if (!board || !q) return refuse(save, 'quest not on board');
+  const { q, error } = actionable(save, id);
+  if (!board || !q || error) return refuse(save, error ?? 'quest not on board');
   if (board.rerolledToday) return refuse(save, 'already swapped a quest today');
   if (q.status !== 'open') return refuse(save, 'only open quests can be swapped');
   const price = rerollPrice(save.player.ring);
@@ -397,7 +440,13 @@ export function rerollQuest(save: SaveFile, id: string, now: number): ActionResu
   db.quests.splice(idx, 1, fresh);
   db.rerolledToday = true;
   draft.player.coins -= price;
-  db.bonusId = chooseBonus(db.quests);
+  // The bonus flag only moves when the bonus itself was swapped, and only onto
+  // an open quest (the replacement is always one), never onto a done quest
+  // whose rewards were already paid at x1 (errata 9).
+  if (db.bonusId === id) {
+    const recomputed = chooseBonus(db.quests.filter((x) => x.status === 'open'));
+    if (recomputed !== '') db.bonusId = recomputed;
+  }
   pushLog(draft, now, db.day, 'questRerolled', `${t.title} swapped for ${replacement.title} (-${price} settlement).`);
   return ok(draft, [{ type: 'questRerolled', oldInstanceId: id, newInstanceId: fresh.instanceId, cost: price }]);
 }

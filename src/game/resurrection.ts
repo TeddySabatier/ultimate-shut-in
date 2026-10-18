@@ -9,6 +9,7 @@ import { currentMonthKey, type TimeOptions } from './time';
 import type { ActionResult, GameEvent, HabitId, SaveFile } from './types';
 import { HABIT_IDS } from './types';
 import { strings } from './content';
+import { returnVassalDraft } from './recruit';
 
 export type ResurrectionChoice = { kind: 'streak' } | { kind: 'vassal'; habit: HabitId };
 
@@ -75,10 +76,8 @@ export function applyResurrection(save: SaveFile, choice: ResurrectionChoice, no
     events.push({ type: 'resurrectionUsed', restored: 'streak' });
   } else if (choice.kind === 'vassal') {
     const v = draft.vassals[choice.habit];
-    v.away = false;
-    v.loyalty = Math.max(v.loyalty, LOYALTY_START);
-    v.lastActiveDay = today;
     events.push({ type: 'resurrectionUsed', restored: 'vassal', habit: choice.habit });
+    events.push(...returnVassalDraft(draft, choice.habit, Math.max(v.loyalty, LOYALTY_START), now, today));
   }
 
   pushLog(draft, now, today, 'resurrection', strings.resurrection.used);

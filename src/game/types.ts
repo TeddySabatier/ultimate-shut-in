@@ -54,6 +54,12 @@ export interface Player {
   coins: number;
   domainPoints: number;
   ring: RingId;
+  /**
+   * Highest ring ever reached (errata 15). `ring` never drops below it, and
+   * `ringUnlocked` fires only when it rises, so an undo that reverts DP
+   * below a threshold neither demotes the player nor re-shows the overlay.
+   */
+  highestRing: RingId;
   resurrectionMonth: string | null;
 }
 

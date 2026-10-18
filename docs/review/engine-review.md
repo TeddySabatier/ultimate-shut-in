@@ -211,3 +211,28 @@ Totals: **0 critical, 2 major, 8 minor, 6 nit.**
 - **Legacy migration**: `{name, level, xp}` with and without the real `usi.player` persist envelope (`{ state, version: 1 }` as written by `src/state/playerStore.ts`) keeps name/level/xp and starts everything else fresh; v2 round-trips through `exportSave`.
 - **Content**: 79 templates, ids unique, every `minRing` in 1..4, tier-1 `baseXp` (15-22) < tier-2 (35-38) < tier-3 (55-60) with no inversions, coins likewise, DP per quest equals tier, 21 titles and 18 combos match the GDD tables (names, thresholds, powers), rings table matches section 7, `validateContent()` runs in CI. Hygiene has only tier-1 templates at ring 1 and sleep a single tier-3 template overall; both are handled by the tier fallback (and the latter is what finding 3 exploits).
 - **Economy constants**: XP curve table, vassal curve, difficulty tables, attack formula examples, DP awards, utility restore/decay with clinic and title multipliers all reproduce the GDD numbers.
+
+---
+
+## Resolution (game-core pass, 2026-10-18)
+
+All fixes live in `src/game/**`; each finding has a regression in `src/game/review.test.ts` (numbered as here). Suite: 126 -> 155 tests, `npx eslint src/game` and `npx tsc --noEmit` clean. Errata entries 7-19 document every departure. API additions (all additive): `changeResetHour`, `setBenevolence`, `comboRequiredHabits`, `generateBoard(save, day, seed?)`, `player.highestRing`, constants `CATCHUP_MAX_DAYS`, `WAVE_HISTORY_MAX`, `FULL_SET_MIN_HABITS`; `reRecruitVassal` moved to `recruit.ts` (same export from `index.ts`).
+
+| # | Severity | Resolution |
+|---|---|---|
+| 1 | major | **Fixed.** `issueBoardDraft` only issues when `board === null \|\| board.day < today`; undo/counter edits accept the `lastOpenDay` board while the index is behind it. `changeResetHour(save, hour, now)` shifts every stored day index by `gameDayIndex(now, newHour) - gameDayIndex(now, oldHour)` so "today" is unchanged and the day ends at the next occurrence of the new hour (errata 7). The store must call it instead of writing the setting. |
+| 2 | major | **Fixed.** `migrate` unwraps the envelope, detects the v2 shape structurally, the inner `version` wins; the legacy path also reads `player.name`. Tested with outer version 0, 1 and none (errata 8). |
+| 3 | minor | **Fixed.** The bonus flag moves only when the bonus itself was rerolled, and only onto an `open` quest (errata 9). |
+| 4 | minor | **Fixed.** `migrateQuest` normalises every quest (missing `rewards.utility` -> 0, unknown templates dropped, done-without-snapshot reopened, stray `bonusId` cleared); combos, titles, wave history and log are validated too (errata 8). |
+| 5 | minor | **Fixed.** `gameDayIndex` uses the offset at `now` per the GDD formula; README documents it; tests at change +1.5h both directions plus monotonicity sweeps (errata 10). |
+| 6 | minor | **Fixed.** Quiet check uses `activeVassals`; `resetTrustDraft` stays global and is documented as intended (errata 11). |
+| 7 | minor | **Fixed.** The Full Set forges when every enabled, present habit (minimum 5) is done on one board; unforge uses the same rule (errata 12). |
+| 8 | minor | **Fixed.** Replay capped at `CATCHUP_MAX_DAYS` (400) with a fast-forward of `lastOpenDay`/`week.index`; `week.history` capped at 104 at settlement and on migrate; missing `lastOpenDay` defaults to today (errata 13). |
+| 9 | minor | **Fixed.** `returnVassalDraft` (Welcome back, token, Benevolent switch) re-issues an empty board for today from the stored seed (errata 14). |
+| 10 | minor | **Fixed.** `completeQuest`, `markTried`, `startTimer`, `incrementCount`, `rerollQuest` refuse quests of a disabled habit with `habit is disabled` (errata 11). |
+| 11 | nit | **Fixed.** Reward line reads `{ring} is registered.` when the award crosses a threshold (errata 16). |
+| 12 | nit | **Fixed.** `player.highestRing` added; `recomputeRingDraft` keeps the ring sticky and emits `ringUnlocked` only when `highestRing` rises; `migrate` fills it (errata 15). |
+| 13 | nit | **Fixed.** The `>= target` branch of `incrementCount` on a done counter applies the same-day rule. |
+| 14 | nit | **Fixed.** The catch-up line greets with the enabled, present vassal of highest loyalty. |
+| 15 | nit | **Fixed / documented.** `lastActiveDay = today` on return and trust zeroed on leaving (errata 17); monster header (errata 19); any-tier reroll fallback (errata 9); `generateBoard` seed parameter (errata 19); schema note corrected; `migrate` uses `VASSAL_LEVEL_CAP`/`TRUST_MAX`; `createNewSave` ignores `enabledHabits: []`. |
+| 16 | nit | **Fixed.** `setBenevolence(save, mode, now, day)` re-recruits every away vassal when switching to Benevolent (errata 18); the store should call it instead of writing the setting. |

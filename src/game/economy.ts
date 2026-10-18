@@ -49,6 +49,12 @@ export const WELCOME_GIFT_PRICE = 30;
 export const LOYALTY_CATCHUP_CAP_DAYS = 7;
 export const UTILITY_CATCHUP_CAP_DAYS = 3;
 export const STREAK_LOSS_MIN_LENGTH = 3;
+/** Boundaries replayed per catch-up before the rest of the absence is fast-forwarded (errata 13). */
+export const CATCHUP_MAX_DAYS = 400;
+/** Wave records kept in `week.history` (two years of weekly waves, errata 13). */
+export const WAVE_HISTORY_MAX = 104;
+/** Enabled, present habits needed before The Full Set can forge (errata 12). */
+export const FULL_SET_MIN_HABITS = 5;
 
 /* ------------------------- Facilities by ring ------------------------- */
 
@@ -219,13 +225,19 @@ export function removeVassalXpDraft(vassal: Vassal, xp: number): void {
   if (vassal.xp < 0) vassal.xp = 0;
 }
 
-/** Re-derive `player.ring` from `domainPoints`; emits ringUnlocked when it rose. */
+/**
+ * Re-derive `player.ring` from `domainPoints`. The ring is sticky: it never
+ * drops below `highestRing`, and `ringUnlocked` fires once per ring, only
+ * when `highestRing` rises (errata 15).
+ */
 export function recomputeRingDraft(draft: SaveFile): GameEvent[] {
   const events: GameEvent[] = [];
-  const before = draft.player.ring;
-  const after = ringForDomainPoints(draft.player.domainPoints);
-  draft.player.ring = after;
-  for (let r = before + 1; r <= after; r++) events.push({ type: 'ringUnlocked', ring: r as RingId });
+  const p = draft.player;
+  const highest = Math.max(p.highestRing, p.ring) as RingId;
+  const after = Math.max(ringForDomainPoints(p.domainPoints), highest) as RingId;
+  p.ring = after;
+  p.highestRing = after;
+  for (let r = highest + 1; r <= after; r++) events.push({ type: 'ringUnlocked', ring: r as RingId });
   return events;
 }
 

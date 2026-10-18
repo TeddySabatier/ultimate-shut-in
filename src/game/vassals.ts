@@ -3,18 +3,9 @@
  * trust, Strict-mode leaving and re-recruiting, Benevolent waiting.
  */
 import { getHabit, pickLine, formatLine, strings } from './content';
-import { clamp, clone, ok, pushLog, refuse } from './draft';
-import {
-  LOYALTY_MAX,
-  LOYALTY_START,
-  LOYALTY_WELCOME_GIFT,
-  TRUST_MAX,
-  WELCOME_GIFT_PRICE,
-  isHabitEnabled,
-  loyaltyDecay,
-} from './economy';
+import { clamp, clone, ok, pushLog } from './draft';
+import { LOYALTY_MAX, TRUST_MAX, isHabitEnabled, loyaltyDecay } from './economy';
 import { fnv1a } from './rng';
-import { evaluateTitlesDraft } from './titles';
 import type { ActionResult, GameEvent, HabitId, SaveFile, Vassal } from './types';
 import { HABIT_IDS } from './types';
 
@@ -89,32 +80,18 @@ export function decayLoyaltyDraft(
   return { events, decayed };
 }
 
-/** Reset trust for all vassals (wave settlement). */
+/**
+ * Reset trust for all vassals (wave settlement), disabled ones included:
+ * trust is period state, not vassal history, so a habit re-enabled later
+ * starts the period at zero like everyone else (errata 11).
+ */
 export function resetTrustDraft(draft: SaveFile): void {
   for (const h of HABIT_IDS) draft.vassals[h].trust = 0;
 }
 
-/**
- * Welcome an away vassal back (Strict mode). Free; the optional welcome gift
- * costs 30 settlement and returns them at loyalty 70 instead of 50.
- */
-export function reRecruitVassal(save: SaveFile, habit: HabitId, now: number, day: number, welcomeGift = false): ActionResult {
-  const v = save.vassals[habit];
-  if (!v.away) return refuse(save, 'vassal is not away');
-  if (welcomeGift && save.player.coins < WELCOME_GIFT_PRICE) return refuse(save, 'not enough settlement for the welcome gift');
-  const draft = clone(save);
-  const dv = draft.vassals[habit];
-  dv.away = false;
-  dv.loyalty = welcomeGift ? LOYALTY_WELCOME_GIFT : LOYALTY_START;
-  dv.lastActiveDay = day; // fresh grace day
-  if (welcomeGift) draft.player.coins -= WELCOME_GIFT_PRICE;
-  draft.stats.reRecruitments += 1;
-  const events: GameEvent[] = [{ type: 'vassalReturned', habit }];
-  const line = formatLine(pickLine(strings.vassalReturning, fnv1a(`${habit}:${day}:return`)), { name: vassalName(habit) });
-  pushLog(draft, now, day, 'vassalReturned', line);
-  events.push(...evaluateTitlesDraft(draft, now, day));
-  return ok(draft, events);
-}
+/* `reRecruitVassal`, `setBenevolence` and the shared return routine live in
+ * `recruit.ts`: they re-issue an empty board, which needs `board.ts`, and
+ * `board.ts` already depends on this module. */
 
 /** Benevolent-mode idle line for a vassal with low loyalty (UI helper). */
 export function waitingLine(habit: HabitId, day: number): string {

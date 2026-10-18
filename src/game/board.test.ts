@@ -301,7 +301,7 @@ describe('markTried', () => {
 describe('undoQuest', () => {
   function snapshot(s: SaveFile): unknown {
     return {
-      player: s.player,
+      player: { ...s.player, ring: 0, highestRing: 0 }, // the ring is sticky (errata 15), checked separately
       utilities: s.utilities,
       stats: { ...s.stats, bestQuestDayStreak: 0 }, // high-water mark is never revoked
       vassal: { level: s.vassals.study.level, xp: s.vassals.study.xp, loyalty: s.vassals.study.loyalty, lifetime: s.vassals.study.lifetimeQuests },
@@ -323,7 +323,10 @@ describe('undoQuest', () => {
     expect(done.board!.quests[0]!.rewards?.loyalty).toBe(3);
     const { save: undone, events } = undoQuest(done, id, T0, TZ);
     expect(snapshot(undone)).toEqual(before);
-    expect(undone.player.ring).toBe(1);
+    // DP is reverted but the ring never goes down (GDD 6.7, errata 15).
+    expect(undone.player.domainPoints).toBe(118);
+    expect(undone.player.ring).toBe(2);
+    expect(undone.player.highestRing).toBe(2);
     expect(undone.board!.quests[0]!.status).toBe('open');
     expect(undone.board!.quests[0]!.rewards).toBeNull();
     expect(events[0]?.type).toBe('questUndone');

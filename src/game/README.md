@@ -27,6 +27,21 @@ Day indices are absolute: whole days since the Unix epoch on the local clock
 shifted back by `settings.resetHour` (`time.gameDayIndex`). `firstPlayDay` is
 the index of the first open; wave periods are counted from it.
 
+`gameDayIndex(now, resetHour, tz)` follows GDD 6.8 literally: the timezone
+offset is evaluated at `now` (not at `now - resetHour`), the local wall clock
+is shifted back by the reset hour, and the calendar date is taken. On a DST
+change-over day the boundary therefore stays at the reset hour on the new
+clock and the game day lasts 23 or 25 hours; the index never decreases.
+
+Because every stored day index (`firstPlayDay`, `lastOpenDay`, `board.day`,
+quest `instanceId`s, `lastActiveDay`, `lastQuestDay`, `streakLostOnDay`,
+`forgedDay`, `log[].day`) lives in the frame defined by `resetHour`, the
+store must change the hour through `changeResetHour(save, hour, now)`, which
+shifts them all so "today" is unchanged; writing `settings.resetHour`
+directly is not supported. `processBoundaries` never replaces a board for
+today or a later day, so a clock set back (or westward travel) keeps the
+current board and its done quests until the index catches up again.
+
 ## Module map
 
 | Module | Purpose |
@@ -37,14 +52,15 @@ the index of the first open; wave periods are counted from it.
 | `time.ts` | `gameDayIndex`, `currentMonthKey`, wave-period helpers, `fixedTz` for tests. |
 | `economy.ts` | Difficulty tables, XP curves, ring derivation, wall bonus, `questRewards`, prices, constants. |
 | `board.ts` | `generateBoard` (GDD 6.3) and quest actions: `startTimer`, `pauseTimer`, `incrementCount`, `completeQuest`, `markTried`, `undoQuest`, `rerollQuest`. |
-| `vassals.ts` | Loyalty gain/decay with the grace day, trust, Strict-mode leaving, `reRecruitVassal`. |
+| `vassals.ts` | Loyalty gain/decay with the grace day, trust, Strict-mode leaving. |
+| `recruit.ts` | `reRecruitVassal` (Welcome back), `setBenevolence` (Strict -> Benevolent brings away vassals back), shared return routine that refills an empty board. |
 | `utilities.ts` | Tied habits, restore/decay, state thresholds, Well-kept check. |
 | `wave.ts` | `waveAttack`, `waveDefense`, `classifyWave`, `settleWave`, monsters and battle-log lines. |
 | `titles.ts` | Condition evaluation (never revokes) and capped effect sums. |
 | `combos.ts` | Forge on same-day habit pairs, unforge on undo, counted items for the wave. |
 | `resurrection.ts` | Token offer, eligibility window, `applyResurrection`. |
-| `tick.ts` | `processBoundaries(save, now)`: the single entry point on app open/focus. |
-| `save.ts` | `createNewSave`, `migrate` (legacy `{name, level, xp}` and v2), `exportSave`. |
+| `tick.ts` | `processBoundaries(save, now)`: the single entry point on app open/focus (catch-up replay capped at 400 boundaries). `changeResetHour(save, hour, now)`. |
+| `save.ts` | `createNewSave`, `migrate` (legacy `{name, level, xp}`, v2 with or without a persist envelope; boards, combos, titles and history are normalised), `exportSave`. |
 | `draft.ts` | Internal clone/log helpers behind the contract. |
 | `index.ts` | Public re-exports. |
 
@@ -59,9 +75,25 @@ const r = completeQuest(save, instanceId, Date.now());
 if (!r.error) { save = r.save; toast(r.events); }
 ```
 
+Settings that the engine must see as actions rather than plain writes:
+
+- `changeResetHour(save, hour, now)` for "Day starts at" (see above).
+- `setBenevolence(save, mode, now, today)` for the Benevolent/Strict switch:
+  going Benevolent welcomes every away vassal back, since Benevolent mode has
+  no "Welcome back" button.
+- Disabling a habit needs no call: its quests stay on the board but every
+  action on them is refused with `habit is disabled`, and its vassal, trust
+  and utility are frozen and ignored by the wave.
+
+`player.ring` is sticky: it is derived from Domain Points but never drops
+below `player.highestRing`, and `ringUnlocked` fires once per ring, so the
+store needs no deduplication for the ring overlay.
+
 ## Tests
 
 Colocated `*.test.ts`, vitest. `pacing.test.ts` runs a seeded 365-day simulation
 through the public API and asserts the GDD 19 ring-arrival weeks within
 +-1.5 weeks and zero wave losses at 90% adherence. `content.test.ts` runs
 `validateContent()` so a broken JSON cross-reference fails CI.
+`review.test.ts` holds one regression per finding of
+`docs/review/engine-review.md`.

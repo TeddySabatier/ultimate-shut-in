@@ -30,13 +30,8 @@ export {
   undoQuest,
   rerollQuest,
 } from './board';
-export {
-  vassalName,
-  activeVassals,
-  reRecruitVassal,
-  waitingLine,
-  decayLoyalty,
-} from './vassals';
+export { vassalName, activeVassals, waitingLine, decayLoyalty } from './vassals';
+export { reRecruitVassal, setBenevolence } from './recruit';
 export {
   TIED_HABIT,
   tiedUtility,
@@ -70,10 +65,10 @@ export {
   evaluateTitles,
   LIBRARY_XP_CAP,
 } from './titles';
-export { doneHabitsOnBoard, comboPowerBonus, countedCombos, comboDefense, forgeCombos } from './combos';
+export { doneHabitsOnBoard, comboRequiredHabits, comboPowerBonus, countedCombos, comboDefense, forgeCombos } from './combos';
 export { resurrectionOffer, canResurrect, applyResurrection } from './resurrection';
 export type { ResurrectionChoice, ResurrectionOffer } from './resurrection';
-export { processBoundaries, newBoundaryCaps } from './tick';
+export { processBoundaries, changeResetHour, newBoundaryCaps } from './tick';
 export type { BoundaryCaps } from './tick';
 export {
   SAVE_VERSION,

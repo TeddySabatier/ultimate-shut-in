@@ -4,7 +4,7 @@
  */
 import { formatLine, getHabit, pickLine, strings } from './content';
 import { clone, ok, pushLog } from './draft';
-import { DIFFICULTY, WAVE_DP, WAVE_WEEK_CAP, nextRing, recomputeRingDraft, ringName, wallBonus } from './economy';
+import { DIFFICULTY, WAVE_DP, WAVE_HISTORY_MAX, WAVE_WEEK_CAP, nextRing, recomputeRingDraft, ringForDomainPoints, ringName, wallBonus } from './economy';
 import { countedCombos } from './combos';
 import { fnv1a, mulberry32, rngPick } from './rng';
 import { evaluateTitlesDraft, titleDefenseFlat, titleDpMult } from './titles';
@@ -93,10 +93,18 @@ export function waveDpAward(result: WaveResult, dpMult: number): number {
 
 /* ------------------------------ Battle log ------------------------------ */
 
+/**
+ * Ring-progress clause of the reward line. `save.player.ring` is still the
+ * ring the wave was fought at while `domainPoints` already includes the
+ * award, so a wave that crosses the threshold reads "{ring} is registered"
+ * rather than "132/120 toward" (errata 16).
+ */
 function ringProgress(save: SaveFile): string {
   const next = nextRing(save.player.ring);
   if (!next) return 'The City is registered; the Ledger keeps counting.';
-  return `${save.player.domainPoints}/${next.domainPointsRequired} toward ${next.name}`;
+  const dp = save.player.domainPoints;
+  if (dp >= next.domainPointsRequired) return `${ringName(ringForDomainPoints(dp))} is registered.`;
+  return `${dp}/${next.domainPointsRequired} toward ${next.name}`;
 }
 
 function buildLog(save: SaveFile, week: number, attack: number, detail: DefenseDetail, result: Exclude<WaveResult, 'quiet'>, dp: number, seed: number): string[] {
@@ -130,14 +138,15 @@ function buildLog(save: SaveFile, week: number, attack: number, detail: DefenseD
 
 /**
  * Settle the wave for `periodIndex` on the draft. A period with zero trust
- * across all vassals resolves as `quiet` (no attack, no DP). Trust resets and
- * combo items expire either way.
+ * across the active (enabled, present) vassals resolves as `quiet` (no
+ * attack, no DP); trust frozen on a disabled vassal counts for nothing
+ * (errata 11). Trust resets and combo items expire either way.
  */
 export function settleWaveDraft(draft: SaveFile, periodIndex: number, now: number, day: number): GameEvent[] {
   const events: GameEvent[] = [];
   const week = periodIndex + 1;
   const seed = fnv1a(`${draft.firstPlayDay}:${periodIndex}`);
-  const totalTrust = Object.values(draft.vassals).reduce((s, v) => s + v.trust, 0);
+  const totalTrust = activeVassals(draft).reduce((s, v) => s + v.trust, 0);
   const ringAtSettlement = draft.player.ring;
   let record: WaveRecord;
 
@@ -180,6 +189,7 @@ export function settleWaveDraft(draft: SaveFile, periodIndex: number, now: numbe
   }
 
   draft.week.history.push(record);
+  if (draft.week.history.length > WAVE_HISTORY_MAX) draft.week.history.splice(0, draft.week.history.length - WAVE_HISTORY_MAX);
   draft.week.index = periodIndex + 1;
   resetTrustDraft(draft);
   draft.combos = [];

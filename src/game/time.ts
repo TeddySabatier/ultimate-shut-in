@@ -26,11 +26,17 @@ export interface TimeOptions {
   tz?: TzOffsetProvider;
 }
 
-/** Absolute game day index for an instant, given the player's reset hour (0..23). */
+/**
+ * Absolute game day index for an instant, given the player's reset hour (0..23).
+ *
+ * GDD 6.8: take the local wall clock of `now` (offset evaluated at `now`,
+ * not at `now - resetHour`), subtract the reset hour, take the calendar date.
+ * Evaluating the offset at `now` keeps the day boundary at the reset hour on
+ * DST change-over days; the day itself then lasts 23 or 25 hours.
+ */
 export function gameDayIndex(nowMs: number, resetHour: number, tz: TzOffsetProvider = defaultTzOffset): number {
-  const shifted = nowMs - resetHour * HOUR_MS;
-  const local = shifted - tz(shifted) * 60_000;
-  return Math.floor(local / DAY_MS);
+  const local = nowMs - tz(nowMs) * 60_000;
+  return Math.floor((local - resetHour * HOUR_MS) / DAY_MS);
 }
 
 /** Unix ms at which the given game day starts (its reset hour), for display. */

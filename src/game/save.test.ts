@@ -11,7 +11,7 @@ describe('createNewSave', () => {
     const s = createNewSave(T0, undefined, TZ);
     expect(s.version).toBe(2);
     expect(SAVE_VERSION).toBe(2);
-    expect(s.player).toEqual({ name: 'Absolute', level: 1, xp: 0, coins: 0, domainPoints: 0, ring: 1, resurrectionMonth: null });
+    expect(s.player).toEqual({ name: 'Absolute', level: 1, xp: 0, coins: 0, domainPoints: 0, ring: 1, highestRing: 1, resurrectionMonth: null });
     expect(s.settings).toEqual(defaultSettings());
     expect(s.settings.enabledHabits).toEqual([...HABIT_IDS]);
     for (const h of HABIT_IDS) expect(s.vassals[h]).toMatchObject({ habit: h, level: 1, loyalty: 50, trust: 0, away: false, lastActiveDay: null });
@@ -52,6 +52,7 @@ describe('migrate', () => {
     const s = createNewSave(T0, 'Round', TZ);
     s.player.domainPoints = 400;
     s.player.ring = 3;
+    s.player.highestRing = 3;
     s.titles.push({ titleId: 'herald', earnedAt: T0, habit: 'social' });
     s.combos.push({ comboId: 'sprinting_umbrella', power: 4, forgedDay: DAY0 });
     s.log.push({ at: T0, day: DAY0, kind: 'x', text: 'y' });
@@ -78,7 +79,7 @@ describe('migrate', () => {
       lastOpenDay: 50,
     };
     const s = migrate(partial, T0, TZ);
-    expect(s.player).toEqual({ name: 'P', level: 1, xp: 10, coins: 0, domainPoints: 700, ring: 4, resurrectionMonth: null });
+    expect(s.player).toEqual({ name: 'P', level: 1, xp: 10, coins: 0, domainPoints: 700, ring: 4, highestRing: 4, resurrectionMonth: null });
     expect(s.settings).toMatchObject({ difficulty: 'steady', benevolence: 'strict', enabledHabits: ['move'], resetHour: 23 });
     expect(s.vassals.move).toMatchObject({ level: 30, trust: 7, loyalty: 100, lastActiveDay: null, away: false });
     expect(s.vassals.clean.level).toBe(1);

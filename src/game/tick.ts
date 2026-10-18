@@ -5,16 +5,17 @@
  * periods, issues today's board when missing and bumps `lastOpenDay`.
  */
 import { formatLine, pickLine, strings } from './content';
-import { generateBoard } from './board';
-import { clone, ok, pushLog } from './draft';
-import { LOYALTY_CATCHUP_CAP_DAYS, STREAK_LOSS_MIN_LENGTH, UTILITY_CATCHUP_CAP_DAYS } from './economy';
+import { generateBoard, instanceId } from './board';
+import { clone, ok, pushLog, refuse } from './draft';
+import { CATCHUP_MAX_DAYS, LOYALTY_CATCHUP_CAP_DAYS, STREAK_LOSS_MIN_LENGTH, UTILITY_CATCHUP_CAP_DAYS } from './economy';
 import { fnv1a } from './rng';
 import { evaluateTitlesDraft } from './titles';
 import { gameDayIndex, isWaveBoundary, wavePeriodIndex, type TimeOptions } from './time';
 import { decayUtilitiesDraft } from './utilities';
-import { decayLoyaltyDraft } from './vassals';
+import { activeVassals, decayLoyaltyDraft, vassalName } from './vassals';
 import { settleWaveDraft } from './wave';
 import type { ActionResult, GameEvent, HabitId, SaveFile, UtilityId } from './types';
+import { HABIT_IDS } from './types';
 
 /**
  * Catch-up caps (GDD 6.9): per catch-up, each vassal loses loyalty on at most
@@ -94,17 +95,34 @@ export function processDayBoundaryDraft(draft: SaveFile, dayEnded: number, now: 
   return events;
 }
 
-/** Issue the board for `day` on the draft if it is missing or stale. */
+/**
+ * Issue the board for `day` on the draft when there is none or the stored
+ * one is for an earlier day. A board for `day` or later is never replaced:
+ * when the day index moved backwards (clock set back, westward travel) the
+ * current board, its done quests and its rewards survive (errata 7).
+ */
 export function issueBoardDraft(draft: SaveFile, day: number, now: number): GameEvent[] {
-  if (draft.board && draft.board.day === day) return [];
+  if (draft.board && draft.board.day >= day) return [];
   draft.board = generateBoard(draft, day);
   pushLog(draft, now, day, 'boardIssued', `Board issued: ${draft.board.quests.length} quests.`);
   return [{ type: 'boardIssued', day }];
 }
 
+/** The vassal the catch-up line greets with: enabled, present, highest loyalty. */
+function greeter(draft: SaveFile): string {
+  const present = activeVassals(draft).sort((a, b) => b.loyalty - a.loyalty);
+  return vassalName(present[0]?.habit ?? 'move');
+}
+
 /**
  * Advance the save to `now`: process every missed boundary in order (with
  * the catch-up caps), then make sure today's board exists.
+ *
+ * At most `CATCHUP_MAX_DAYS` boundaries are replayed per catch-up; after
+ * that every period would be quiet (trust is reset at the first settlement
+ * and the decay caps are long spent), so the rest of the absence is
+ * fast-forwarded: `lastOpenDay` and `week.index` jump to today without a
+ * wave record per period (errata 13).
  */
 export function processBoundaries(save: SaveFile, now: number, opts?: TimeOptions): ActionResult {
   const draft = clone(save);
@@ -114,14 +132,59 @@ export function processBoundaries(save: SaveFile, now: number, opts?: TimeOption
   if (today > draft.lastOpenDay) {
     const missed = today - draft.lastOpenDay;
     const caps = newBoundaryCaps();
-    for (let d = draft.lastOpenDay; d < today; d++) events.push(...processDayBoundaryDraft(draft, d, now, caps));
+    const replayUntil = Math.min(today, draft.lastOpenDay + CATCHUP_MAX_DAYS);
+    for (let d = draft.lastOpenDay; d < replayUntil; d++) events.push(...processDayBoundaryDraft(draft, d, now, caps));
+    if (replayUntil < today) draft.week.index = Math.max(draft.week.index, wavePeriodIndex(today, draft.firstPlayDay));
     draft.lastOpenDay = today;
     if (missed >= 2) {
       events.push({ type: 'catchUp', days: missed });
-      pushLog(draft, now, today, 'catchUp', formatLine(pickLine(strings.catchUp, fnv1a(`catchup:${today}`)), { days: missed, name: 'Pell' }));
+      pushLog(draft, now, today, 'catchUp', formatLine(pickLine(strings.catchUp, fnv1a(`catchup:${today}`)), { days: missed, name: greeter(draft) }));
     }
   }
 
   events.push(...issueBoardDraft(draft, today, now));
   return ok(draft, events);
+}
+
+/* ------------------------------ Reset hour ------------------------------ */
+
+function shiftInstanceId(id: string, oldDay: number, newDay: number): string {
+  const prefix = `${oldDay}-`;
+  return id.startsWith(prefix) ? instanceId(newDay, id.slice(prefix.length)) : id;
+}
+
+/**
+ * Change `settings.resetHour` without moving the player's "today" (GDD 15.4:
+ * the new hour "applies from the next boundary"). Every stored game-day
+ * index is in a frame that depends on the reset hour, so they are all
+ * shifted by the difference between today's index under the old and the
+ * new hour (always -1, 0 or +1). The current board, its done quests and
+ * `lastOpenDay` therefore stay "today", nothing is regenerated and no
+ * boundary runs early; the next boundary simply happens at the new hour
+ * (errata 7). The store must call this instead of writing the setting.
+ */
+export function changeResetHour(save: SaveFile, newHour: number, now: number, opts?: TimeOptions): ActionResult {
+  if (!Number.isInteger(newHour) || newHour < 0 || newHour > 23) return refuse(save, 'reset hour must be a whole hour from 0 to 23');
+  const oldHour = save.settings.resetHour;
+  if (newHour === oldHour) return ok(save, []);
+  const delta = gameDayIndex(now, newHour, opts?.tz) - gameDayIndex(now, oldHour, opts?.tz);
+  const draft = clone(save);
+  draft.settings.resetHour = newHour;
+  if (delta === 0) return ok(draft, []);
+
+  const shift = (d: number | null): number | null => (d === null ? null : d + delta);
+  draft.firstPlayDay += delta;
+  draft.lastOpenDay += delta;
+  if (draft.board) {
+    const oldDay = draft.board.day;
+    draft.board.day = oldDay + delta;
+    for (const q of draft.board.quests) q.instanceId = shiftInstanceId(q.instanceId, oldDay, draft.board.day);
+    draft.board.bonusId = shiftInstanceId(draft.board.bonusId, oldDay, draft.board.day);
+  }
+  for (const h of HABIT_IDS) draft.vassals[h].lastActiveDay = shift(draft.vassals[h].lastActiveDay);
+  draft.stats.lastQuestDay = shift(draft.stats.lastQuestDay);
+  draft.stats.streakLostOnDay = shift(draft.stats.streakLostOnDay);
+  for (const c of draft.combos) c.forgedDay += delta;
+  for (const e of draft.log) e.day += delta;
+  return ok(draft, []);
 }

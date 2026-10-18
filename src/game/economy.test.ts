@@ -107,9 +107,15 @@ describe('rings', () => {
     const events = recomputeRingDraft(s);
     expect(s.player.ring).toBe(4);
     expect(events.map((e) => (e.type === 'ringUnlocked' ? e.ring : 0))).toEqual([2, 3, 4]);
+    expect(s.player.highestRing).toBe(4);
+    // The ring is sticky: losing DP never demotes, and re-crossing never re-fires (errata 15).
     s.player.domainPoints = 0;
     expect(recomputeRingDraft(s)).toEqual([]);
-    expect(s.player.ring).toBe(1);
+    expect(s.player.ring).toBe(4);
+    s.player.domainPoints = 700;
+    expect(recomputeRingDraft(s)).toEqual([]);
+    s.player.domainPoints = 1200;
+    expect(recomputeRingDraft(s).map((e) => (e.type === 'ringUnlocked' ? e.ring : 0))).toEqual([5]);
   });
 });
 

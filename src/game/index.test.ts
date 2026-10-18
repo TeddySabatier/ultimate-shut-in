@@ -16,6 +16,8 @@ describe('public API', () => {
       'incrementCount',
       'rerollQuest',
       'reRecruitVassal',
+      'setBenevolence',
+      'changeResetHour',
       'settleWave',
       'evaluateTitles',
       'forgeCombos',

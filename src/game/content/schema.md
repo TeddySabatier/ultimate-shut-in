@@ -48,7 +48,7 @@ Cross-file references:
 | `kind` | `"check" \| "timer" \| "count"` | Completion UI: single tap; optional timer; +/- counter. |
 | `durationMin` | integer, only when `kind === "timer"` | Suggested minutes. Timer is optional (honor system); running it to completion grants the +10% timed bonus. |
 | `targetCount` | integer, only when `kind === "count"` | Count needed. Completion fires when count ≥ target. |
-| `baseXp` | integer | XP before multipliers. Also the vassal XP. |
+| `baseXp` | integer | XP before multipliers. The vassal receives the final post-multiplier `xp` the player gets (GDD 6.4), not `baseXp`. |
 | `baseCoins` | integer | Settlement before multipliers. |
 | `tags` | string[] | Free-form hints: `gentle`, `quick`, `morning`, `evening`, `outdoor-friendly`, `social-friendly`, `long`, etc. Used by the generator for soft variety only (never required). |
 

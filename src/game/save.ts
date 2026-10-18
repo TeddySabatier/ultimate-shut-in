@@ -3,13 +3,23 @@
  * shape (`{name, level, xp}`, version missing or 1) and the current v2 file,
  * filling any missing v2 fields with defaults so older v2 saves keep loading.
  */
-import { habits } from './content';
-import { clamp } from './draft';
-import { LOYALTY_START, PLAYER_LEVEL_CAP, UTILITY_MAX, ringForDomainPoints } from './economy';
+import { getCombo, getQuest, habits } from './content';
+import { instanceId } from './board';
+import { MAX_LOG_ENTRIES, clamp } from './draft';
+import {
+  LOYALTY_START,
+  PLAYER_LEVEL_CAP,
+  TRUST_MAX,
+  UTILITY_MAX,
+  VASSAL_LEVEL_CAP,
+  WAVE_HISTORY_MAX,
+  ringForDomainPoints,
+} from './economy';
 import { gameDayIndex, type TimeOptions } from './time';
 import type {
   Benevolence,
   Board,
+  BoardQuest,
   ComboItem,
   Difficulty,
   EarnedTitle,
@@ -17,11 +27,15 @@ import type {
   LifetimeStats,
   LogEntry,
   Player,
+  QuestStatus,
+  RingId,
   SaveFile,
   Settings,
   Utility,
   UtilityId,
   Vassal,
+  WaveRecord,
+  WaveResult,
   WeekState,
 } from './types';
 import { HABIT_IDS, UTILITY_IDS } from './types';
@@ -87,10 +101,11 @@ export interface NewSaveOptions extends TimeOptions {
 /** A fresh save for a player opening the app for the first time at `now`. No board yet. */
 export function createNewSave(now: number, name?: string, opts?: NewSaveOptions): SaveFile {
   const settings: Settings = { ...defaultSettings(), ...(opts?.settings ?? {}) };
+  if (settings.enabledHabits.length === 0) settings.enabledHabits = defaultSettings().enabledHabits;
   const today = gameDayIndex(now, settings.resetHour, opts?.tz);
   return {
     version: SAVE_VERSION,
-    player: { name: sanitizeName(name), level: 1, xp: 0, coins: 0, domainPoints: 0, ring: 1, resurrectionMonth: null },
+    player: { name: sanitizeName(name), level: 1, xp: 0, coins: 0, domainPoints: 0, ring: 1, highestRing: 1, resurrectionMonth: null },
     settings,
     vassals: {
       move: defaultVassal('move'),
@@ -141,13 +156,17 @@ function migratePlayer(raw: unknown, base: Player): Player {
   if (!isDict(raw)) return base;
   const level = clamp(Math.floor(num(raw.level, base.level)), 1, PLAYER_LEVEL_CAP);
   const domainPoints = Math.max(0, num(raw.domainPoints, base.domainPoints));
+  // The ring is sticky (errata 15): derived from DP, but never below the highest ring ever reached.
+  const storedHighest = clamp(Math.floor(num(raw.highestRing, 1)), 1, 7) as RingId;
+  const ring = Math.max(ringForDomainPoints(domainPoints), storedHighest) as RingId;
   return {
     name: sanitizeName(raw.name ?? base.name),
     level,
     xp: Math.max(0, num(raw.xp, base.xp)),
     coins: Math.max(0, num(raw.coins, base.coins)),
     domainPoints,
-    ring: ringForDomainPoints(domainPoints),
+    ring,
+    highestRing: ring,
     resurrectionMonth: typeof raw.resurrectionMonth === 'string' ? raw.resurrectionMonth : null,
   };
 }
@@ -172,9 +191,9 @@ function migrateVassal(raw: unknown, habit: HabitId): Vassal {
   if (!isDict(raw)) return base;
   return {
     habit,
-    level: clamp(Math.floor(num(raw.level, base.level)), 1, 30),
+    level: clamp(Math.floor(num(raw.level, base.level)), 1, VASSAL_LEVEL_CAP),
     xp: Math.max(0, num(raw.xp, base.xp)),
-    trust: clamp(Math.floor(num(raw.trust, base.trust)), 0, 7),
+    trust: clamp(Math.floor(num(raw.trust, base.trust)), 0, TRUST_MAX),
     loyalty: clamp(num(raw.loyalty, base.loyalty), 0, 100),
     away: bool(raw.away, false),
     lastActiveDay: typeof raw.lastActiveDay === 'number' ? raw.lastActiveDay : null,
@@ -212,28 +231,143 @@ function migrateStats(raw: unknown): LifetimeStats {
   };
 }
 
+const QUEST_STATUSES: readonly QuestStatus[] = ['open', 'done', 'tried'];
+const WAVE_RESULTS: readonly WaveResult[] = ['decisive', 'win', 'loss', 'quiet'];
+
+function nullableNum(v: unknown): number | null {
+  return typeof v === 'number' && Number.isFinite(v) ? v : null;
+}
+
+function isHabitId(v: unknown): v is HabitId {
+  return typeof v === 'string' && (HABIT_IDS as readonly string[]).includes(v);
+}
+
+/**
+ * Normalise one stored quest; `null` drops it (unknown template, no id). A
+ * `rewards` snapshot without `utility` (pre-errata-3 saves, GDD 4 shape)
+ * gets 0 so undo never computes with `undefined` (errata 8).
+ */
+function migrateQuest(raw: unknown, day: number): BoardQuest | null {
+  if (!isDict(raw) || typeof raw.templateId !== 'string') return null;
+  const t = getQuest(raw.templateId);
+  if (!t) return null;
+  const timerRaw = isDict(raw.timer) ? raw.timer : null;
+  const r = isDict(raw.rewards) ? raw.rewards : null;
+  const status = oneOf(raw.status, QUEST_STATUSES, 'open');
+  const rewards = r ? { xp: num(r.xp, 0), coins: num(r.coins, 0), dp: num(r.dp, 0), loyalty: num(r.loyalty, 0), utility: num(r.utility, 0) } : null;
+  return {
+    instanceId: typeof raw.instanceId === 'string' && raw.instanceId.length > 0 ? raw.instanceId : instanceId(day, t.id),
+    templateId: t.id,
+    habit: t.habit,
+    kind: t.kind,
+    // A done quest needs its snapshot for undo; without one it reopens.
+    status: status === 'done' && rewards === null ? 'open' : status,
+    count: Math.max(0, Math.floor(num(raw.count, 0))),
+    timer: t.kind === 'timer' ? { startedAt: nullableNum(timerRaw?.startedAt), accumulatedMs: Math.max(0, num(timerRaw?.accumulatedMs, 0)) } : null,
+    timedBonus: bool(raw.timedBonus, false),
+    rewards: status === 'done' ? rewards : null,
+  };
+}
+
 function migrateBoard(raw: unknown): Board | null {
-  if (!isDict(raw) || !Array.isArray(raw.quests) || typeof raw.day !== 'number') return null;
-  return raw as unknown as Board;
+  if (!isDict(raw) || !Array.isArray(raw.quests) || typeof raw.day !== 'number' || !Number.isFinite(raw.day)) return null;
+  const day = Math.floor(raw.day);
+  const quests: BoardQuest[] = [];
+  for (const q of raw.quests) {
+    const m = migrateQuest(q, day);
+    if (m && !quests.some((x) => x.instanceId === m.instanceId)) quests.push(m);
+  }
+  const bonusId = typeof raw.bonusId === 'string' && quests.some((q) => q.instanceId === raw.bonusId) ? raw.bonusId : '';
+  return { day, seed: Math.floor(num(raw.seed, 0)), quests, bonusId, rerolledToday: bool(raw.rerolledToday, false) };
+}
+
+function migrateCombos(raw: unknown): ComboItem[] {
+  if (!Array.isArray(raw)) return [];
+  const out: ComboItem[] = [];
+  for (const c of raw) {
+    if (!isDict(c) || typeof c.comboId !== 'string') continue;
+    const def = getCombo(c.comboId);
+    if (!def) continue;
+    out.push({ comboId: def.id, power: num(c.power, def.power), forgedDay: Math.floor(num(c.forgedDay, 0)) });
+  }
+  return out;
+}
+
+function migrateTitles(raw: unknown): EarnedTitle[] {
+  if (!Array.isArray(raw)) return [];
+  const out: EarnedTitle[] = [];
+  for (const t of raw) {
+    if (!isDict(t) || typeof t.titleId !== 'string' || out.some((x) => x.titleId === t.titleId)) continue;
+    const entry: EarnedTitle = { titleId: t.titleId, earnedAt: num(t.earnedAt, 0) };
+    if (isHabitId(t.habit)) entry.habit = t.habit;
+    out.push(entry);
+  }
+  return out;
+}
+
+function migrateWaveRecord(raw: unknown): WaveRecord | null {
+  if (!isDict(raw) || typeof raw.index !== 'number') return null;
+  const b = isDict(raw.breakdown) ? raw.breakdown : {};
+  return {
+    index: Math.floor(num(raw.index, 0)),
+    ring: clamp(Math.floor(num(raw.ring, 1)), 1, 7),
+    attack: num(raw.attack, 0),
+    defense: num(raw.defense, 0),
+    breakdown: {
+      vassals: num(b.vassals, 0),
+      trust: num(b.trust, 0),
+      walls: num(b.walls, 0),
+      combos: num(b.combos, 0),
+      titles: num(b.titles, 0),
+      wellKept: num(b.wellKept, 0),
+    },
+    result: oneOf(raw.result, WAVE_RESULTS, 'quiet'),
+    dpAwarded: num(raw.dpAwarded, 0),
+    log: Array.isArray(raw.log) ? raw.log.filter((l): l is string => typeof l === 'string') : [],
+    settledAt: num(raw.settledAt, 0),
+  };
+}
+
+function migrateLog(raw: unknown): LogEntry[] {
+  if (!Array.isArray(raw)) return [];
+  const out: LogEntry[] = [];
+  for (const e of raw) {
+    if (!isDict(e) || typeof e.text !== 'string') continue;
+    out.push({ at: num(e.at, 0), day: Math.floor(num(e.day, 0)), kind: typeof e.kind === 'string' ? e.kind : 'note', text: e.text });
+  }
+  return out.slice(-MAX_LOG_ENTRIES);
+}
+
+/** True when `v` has the shape of a v2 SaveFile, whatever its `version` field says. */
+function looksLikeV2(v: unknown): v is Dict {
+  return isDict(v) && isDict(v.player) && isDict(v.vassals) && isDict(v.utilities) && isDict(v.settings);
 }
 
 /**
  * Accept any previously persisted shape and return a valid v2 SaveFile.
  * Unknown or corrupt input yields a fresh save (name kept when readable).
+ *
+ * A zustand/persist envelope `{ state, version }` is unwrapped; the inner
+ * save is detected structurally and its own `version` wins over the
+ * envelope's, so a v2 save persisted under an older store version is never
+ * downgraded to the legacy path (errata 8).
  */
 export function migrate(raw: unknown, now: number, opts?: TimeOptions): SaveFile {
-  // zustand/persist wraps state as { state, version }.
-  const unwrapped = isDict(raw) && isDict(raw.state) ? { ...raw.state, version: raw.version } : raw;
-  if (!isDict(unwrapped)) return createNewSave(now, undefined, opts);
+  const outer = isDict(raw) ? raw : null;
+  const inner: unknown = outer && isDict(outer.state) ? outer.state : raw;
+  if (!isDict(inner)) return createNewSave(now, undefined, opts);
 
-  const version = typeof unwrapped.version === 'number' ? unwrapped.version : 1;
-  if (version < 2 || !isDict(unwrapped.player)) {
+  const isV2 = looksLikeV2(inner);
+  const version = typeof inner.version === 'number' ? inner.version : isV2 ? SAVE_VERSION : typeof outer?.version === 'number' ? outer.version : 1;
+  if (!isV2 || version < 2) {
     // Legacy { name, level, xp }: keep the name and the progress, start everything else fresh.
-    const fresh = createNewSave(now, sanitizeName(unwrapped.name), opts);
-    fresh.player.level = clamp(Math.floor(num(unwrapped.level, 1)), 1, PLAYER_LEVEL_CAP);
-    fresh.player.xp = Math.max(0, num(unwrapped.xp, 0));
+    const legacyName = inner.name ?? (isDict(inner.player) ? inner.player.name : undefined);
+    const fresh = createNewSave(now, sanitizeName(legacyName), opts);
+    fresh.player.level = clamp(Math.floor(num(inner.level, 1)), 1, PLAYER_LEVEL_CAP);
+    fresh.player.xp = Math.max(0, num(inner.xp, 0));
     return fresh;
   }
+  const unwrapped = inner;
 
   const fresh = createNewSave(now, undefined, opts);
   const settings = migrateSettings(unwrapped.settings, fresh.settings);
@@ -244,12 +378,20 @@ export function migrate(raw: unknown, now: number, opts?: TimeOptions): SaveFile
   const utilities = {} as Record<UtilityId, Utility>;
   for (const u of UTILITY_IDS) utilities[u] = migrateUtility(utilitiesRaw[u], u);
   const weekRaw = isDict(unwrapped.week) ? unwrapped.week : {};
-  const week: WeekState = {
-    index: Math.max(0, num(weekRaw.index, 0)),
-    history: Array.isArray(weekRaw.history) ? (weekRaw.history as WeekState['history']) : [],
-  };
-  const firstPlayDay = num(unwrapped.firstPlayDay, fresh.firstPlayDay);
-  const lastOpenDay = num(unwrapped.lastOpenDay, firstPlayDay);
+  const history: WaveRecord[] = [];
+  if (Array.isArray(weekRaw.history)) {
+    for (const r of weekRaw.history) {
+      const m = migrateWaveRecord(r);
+      if (m) history.push(m);
+    }
+  }
+  const week: WeekState = { index: Math.max(0, num(weekRaw.index, 0)), history: history.slice(-WAVE_HISTORY_MAX) };
+  // `today` is measured with the migrated reset hour, like the rest of the save's day indices.
+  const today = gameDayIndex(now, settings.resetHour, opts?.tz);
+  const firstPlayDay = Math.floor(num(unwrapped.firstPlayDay, today));
+  // A missing `lastOpenDay` defaults to today, not to the first play day: a damaged
+  // save must not replay years of boundaries (errata 13).
+  const lastOpenDay = Math.floor(num(unwrapped.lastOpenDay, today));
 
   return {
     version: SAVE_VERSION,
@@ -259,10 +401,10 @@ export function migrate(raw: unknown, now: number, opts?: TimeOptions): SaveFile
     utilities,
     board: migrateBoard(unwrapped.board),
     week,
-    combos: Array.isArray(unwrapped.combos) ? (unwrapped.combos as ComboItem[]) : [],
-    titles: Array.isArray(unwrapped.titles) ? (unwrapped.titles as EarnedTitle[]) : [],
+    combos: migrateCombos(unwrapped.combos),
+    titles: migrateTitles(unwrapped.titles),
     stats: migrateStats(unwrapped.stats),
-    log: Array.isArray(unwrapped.log) ? (unwrapped.log as LogEntry[]).slice(-200) : [],
+    log: migrateLog(unwrapped.log),
     firstPlayDay,
     lastOpenDay: Math.max(firstPlayDay, lastOpenDay),
   };
