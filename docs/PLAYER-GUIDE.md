@@ -7,7 +7,7 @@ Haven Protocol turns real-life habits into a small fortress-building game. You d
 ## Contents
 
 1. [First launch](#first-launch)
-2. [The four tabs](#the-four-tabs)
+2. [The five tabs](#the-five-tabs)
 3. [The eight vassals](#the-eight-vassals)
 4. [Difficulty](#difficulty)
 5. [The board](#the-board)
@@ -15,13 +15,14 @@ Haven Protocol turns real-life habits into a small fortress-building game. You d
 7. [Utilities](#utilities)
 8. [The weekly wave](#the-weekly-wave)
 9. [Rings](#rings)
-10. [Titles](#titles)
-11. [Combos](#combos)
-12. [Resurrection token](#resurrection-token)
-13. [Benevolent and Strict modes](#benevolent-and-strict-modes)
-14. [Missing days](#missing-days)
-15. [Export and import](#export-and-import)
-16. [FAQ](#faq)
+10. [The map](#the-map)
+11. [Titles](#titles)
+12. [Combos](#combos)
+13. [Resurrection token](#resurrection-token)
+14. [Benevolent and Strict modes](#benevolent-and-strict-modes)
+15. [Missing days](#missing-days)
+16. [Export and import](#export-and-import)
+17. [FAQ](#faq)
 
 ## First launch
 
@@ -33,12 +34,13 @@ A short three-step setup opens the first time:
 
 Then your first board is issued. You can install the game to your home screen: on Android Chrome use "Install app" from the menu, on iPhone use Safari, Share, "Add to Home Screen". It then works offline.
 
-## The four tabs
+## The five tabs
 
 | Tab | What is there |
 | --- | --- |
 | **Haven** | The ring map, Domain Points progress, the three utilities, the wave countdown, your vassals and a short recent log. |
 | **Board** | Today's quests and how long until the day resets. |
+| **Map** | The city around the Haven: the seven zones, your outposts, and how far the wall has moved. |
 | **Ledger** | Level, settlement, titles, vassal details, forged combo items, wave history with replayable battle logs, lifetime stats, story vignettes and (when relevant) the Resurrection token. |
 | **Settings** | Name, difficulty, benevolence, enabled habits, reset hour, reduced motion, export/import, reset. |
 
@@ -156,6 +158,16 @@ Domain Points move you outward through seven rings. Crossing a threshold plays a
 | 7 | The City | 2,500 | +23 | Observatory (the map shows the whole city at night); Open Sky (nothing further to unlock; waves and DP continue) |
 
 Rings never go down. Even undoing a quest leaves a ring you already reached.
+
+## The map
+
+The Map tab is the city around your Haven. Seven zones sit in the seven rings, from the Room out to the City. The wall creeps outward as you earn Domain Points. Tap a zone to read it, or switch to the list. **7 days** shows the wall as it stood a week ago.
+
+An **outpost** is a real place you keep going back to: a gym, a park, a library, a friend's door. You give it a name. The game asks for no address, no photo and no location. You say how far it feels and which way, and it is marked on the map. You can mark a few: three, plus one more for each ring, and at most three in the same zone.
+
+A **visit** is you saying you were there. Tap **I was there** on the place, or, after you finish a quest, answer **Where were you?** One visit per place counts each day. Three visits and it is Scouted: swapping a related quest costs a little less settlement. Ten and it is a Corridor: those quests pay a little more settlement, and the wall draws a line out toward it. Thirty and it is a Stronghold: a small annex, and +2 defense in the weekly wave, at most +6 from all of them. The visit itself pays no XP, settlement or Domain Points. The place, kept over time, is what helps.
+
+A place that has been still for a while looks **quiet**. Nothing about it fades. The visits, the state and the perks all stay, and one visit wakes the pin. **Retiring** a place takes it off the map and keeps every visit in the Ledger. You can bring it back later, when there is room. Nothing you logged is lost because a place went quiet, or because you retired it. Forget, on a retired place only, deletes that one name and its visits. It asks you twice, and nothing else in the Haven changes.
 
 ## Titles
 

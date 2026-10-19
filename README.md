@@ -63,19 +63,19 @@ To try it on your phone over the local network, see [docs/DEPLOY.md](docs/DEPLOY
 .github/workflows/   ci.yml (every push and PR), deploy.yml (GitHub Pages on push to main)
 e2e/                 Playwright end-to-end tests
 docs/
-  design/            GDD.md (rules), GDD-errata.md (where code departs), ART.md
+  design/            GDD.md (rules), GDD-errata.md (where code departs), ART.md, CITY-MAP.md
   research/          source-analysis.md (research and IP note)
   review/            engine-review.md
   ARCHITECTURE.md  DEPLOY.md  PLAYER-GUIDE.md  ORCHESTRATION.md
 public/              favicon.svg, icons/ (PWA icons)
 scripts/             gen-icons.mjs, gen-logo.mjs
 src/
-  assets/            SVG art: habits, haven, logo, monsters, ui, vassals
+  assets/            SVG art: habits, haven, logo, monsters, outposts, ui, vassals
   components/        shared UI (AppShell, QuestCard, VassalCard, overlays/ ...)
-  game/              pure engine, no React; content/ holds the JSON data
+  game/              pure engine, no React; map.ts, mapGeometry.ts, outposts.ts; content/ holds the JSON data, including outposts.json
   hooks/             useGameTick, useNow, useInstallPrompt ...
   pwa/               service worker registration
-  screens/           Home (Haven), Quests (Board), Character (Ledger), Settings, Onboarding
+  screens/           Home (Haven), Quests (Board), Map, Character (Ledger), Settings, Onboarding
   state/             the zustand store (gameStore.ts) and the app clock
   styles/            tokens.css and global.css
   test/              vitest setup and helpers
