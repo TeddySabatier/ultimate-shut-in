@@ -19,3 +19,12 @@ Haven Protocol is an offline-first mobile PWA habit RPG (Vite, React 18, strict 
 - Everything is original content in a warm, never punitive tone. Nothing is copied from the work that inspired the game.
 
 Setup: Node 24, `npm ci`, `npx playwright install chromium` once, `npm run dev` to try it.
+
+## Cursor Cloud specific instructions
+
+- **Environment.** Node 24. Run `npm ci` first. For end-to-end tests run `npx playwright install --with-deps chromium` once per machine. To try a screen, `npm run dev`; the dev server has the debug features on, so the Games Lab is at `#/lab` (in a production build set `localStorage.setItem('haven.debug', '1')`).
+- **Commit and push early and often.** A cloud machine can stop; unpushed work is lost. Push after every milestone, not only at the end.
+- **Tests.** Run one Playwright suite at a time with `--workers=2`. Specs that need the debug clock use the helpers in `e2e/helpers.ts`.
+- **Pull requests.** After creating a PR with Cursor's tool, **check its base branch** on GitHub and correct it if it is wrong (for example `main` instead of `integration/arena`). The base is part of your brief.
+- **No secrets, no network.** There are no secrets in this project and the app makes no network calls; never add any. Do not read or write `.env` files.
+- **When blocked, keep going.** Nobody answers overnight. Decide, write the decision in your notes file under `docs/review/notes/`, and continue.
