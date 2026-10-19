@@ -43,6 +43,7 @@ export function ProposalsSection({ save, onAccept, onDismiss }: Props) {
               {summary(save, p)}
             </p>
             <p className={styles.reason}>{p.reason}</p>
+            {p.action.type === 'update' ? <p className={styles.meta}>{strings.proposals.updates}</p> : null}
             <div className={styles.actions}>
               <button type="button" className="btn" aria-label={`${strings.proposals.dismiss}: ${p.title}`} onClick={() => onDismiss(p.id)}>
                 {strings.proposals.dismiss}

@@ -249,6 +249,8 @@
   "compose": {
     "open": "Add my own quest",
     "title": "Your own quest",
+    "editTitle": "Edit your quest",
+    "editIntro": "Change anything you like and press Save changes. Edits count from the next board; what is on today's board keeps its shape.",
     "intro": "Say it or type it, in your own words. The Protocol writes it up, and nothing is saved until you press a button below.",
     "textLabel": "Your quest, in your own words",
     "textPlaceholder": "e.g. walk 30 minutes in the park every morning",
@@ -275,7 +277,8 @@
       "timeSlot": "Time of day",
       "tier": "Effort",
       "rewards": "Pays about",
-      "where": "Where does it happen?"
+      "where": "Where does it happen?",
+      "description": "Note"
     },
     "whereNone": "Nowhere in particular",
     "whereHint": "Settling it counts as a visit there, so the outpost grows on its own.",
@@ -308,12 +311,15 @@
       "board": "Add to board today",
       "recurring": "Save as recurring",
       "later": "Save for later",
+      "save": "Save changes",
       "cancel": "Cancel"
     },
     "notes": {
       "full": "Two of your own quests are already on today's board. Save it and it starts tomorrow.",
       "habitOff": "{habit} is switched off in Settings. It stays saved and will not appear until you switch it back on.",
-      "away": "{name} is away. Welcome them back from the Haven screen to put this on the board."
+      "away": "{name} is away. Welcome them back from the Haven screen to put this on the board.",
+      "locked": "You have started this one today (timer running, counted or tried), so its vassal, kind, length and effort wait until it is settled, or until tomorrow's copy. The rest is yours to change now.",
+      "duplicate": "You already have \"{title}\" in My quests."
     },
     "toasts": {
       "saved": "{title} is in My quests.",
@@ -327,6 +333,12 @@
       "addToday": "Add to today",
       "onBoard": "On today's board",
       "archive": "Archive",
+      "edit": "Edit",
+      "restore": "Restore",
+      "archivedGroup": "Archived",
+      "archivedHint": "Restoring brings a quest back with its history. It joins the board on its next turn, or press Add to today.",
+      "restoreNameTaken": "An active quest of that vassal is called \"{title}\" now. Rename or archive that one first.",
+      "restoreFull": "You keep 30 quests already. Archive one first.",
       "stats": "Issued {issued}, settled {done}, attempted {tried}",
       "archiveTitle": "Archive this quest?",
       "archiveBody": "It stops coming back. What you settled stays in the Ledger.",
@@ -342,6 +354,7 @@
     "intro": "Small ideas, only when a pattern is clear. Nothing changes unless you accept.",
     "accept": "Accept",
     "dismiss": "Not now",
+    "updates": "Updates your saved quest. No copy is made.",
     "titles": {
       "smaller": "A smaller step",
       "stepUp": "A step up",

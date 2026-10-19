@@ -66,8 +66,16 @@ export interface CleanDraft {
 
 /* ------------------------------ Validation ------------------------------ */
 
+/** Zero-width characters that whitespace matching misses: invisible in a name, so never part of one. */
+const INVISIBLE = new RegExp('[\u200B-\u200D\u2060\uFEFF]', 'g');
+
 function tidy(text: string, max: number): string {
-  return text.replace(/\s+/g, ' ').trim().slice(0, max).trim();
+  return text.normalize('NFC').replace(INVISIBLE, '').replace(/\s+/g, ' ').trim().slice(0, max).trim();
+}
+
+/** The form a name is compared in: one Unicode form, no accents, no case, no invisible characters. */
+function titleKey(text: string): string {
+  return text.normalize('NFD').replace(/\p{M}/gu, '').replace(INVISIBLE, '').replace(/\s+/g, ' ').trim().toLocaleLowerCase();
 }
 
 /** Validate and normalise a draft; the error text is player-facing and lower-case like the other refusals. */
@@ -234,8 +242,22 @@ function uniqueId(save: SaveFile, now: number, d: CleanDraft): string {
 }
 
 function sameTitle(a: string, b: string): boolean {
-  return a.toLowerCase() === b.toLowerCase();
+  return titleKey(a) === titleKey(b);
 }
+
+/**
+ * Whether an active template of the same habit already carries this title
+ * (case, accents, spacing and the way an accent is typed ignored), ignoring `exceptId`: the guard behind "add", "edit" and
+ * "restore", and the Compose sheet's live warning. The title is tidied the
+ * way `cleanDraft` tidies it.
+ */
+export function customTitleTaken(save: Pick<SaveFile, 'customTemplates'>, habit: HabitId, title: string, exceptId?: string): boolean {
+  const t = tidy(title, TITLE_MAX);
+  if (t === '') return false;
+  return activeCustomTemplates(save).some((c) => c.id !== exceptId && c.habit === habit && sameTitle(c.title, t));
+}
+
+const taken = (title: string): string => `you already have "${title}" in My quests`;
 
 /** Save a new custom template (not yet on the board). */
 export function addCustomTemplate(save: SaveFile, now: number, input: CustomDraft): CustomResult {
@@ -245,9 +267,7 @@ export function addCustomTemplate(save: SaveFile, now: number, input: CustomDraf
   if (activeCustomTemplates(save).length >= MAX_ACTIVE_CUSTOM) {
     return refuse(save, `you already keep ${MAX_ACTIVE_CUSTOM} quests of your own; archive one in the Ledger first`);
   }
-  if (activeCustomTemplates(save).some((c) => c.habit === d.habit && sameTitle(c.title, d.title))) {
-    return refuse(save, `you already have "${d.title}" in My quests`);
-  }
+  if (customTitleTaken(save, d.habit, d.title)) return refuse(save, taken(d.title));
   if (!outpostUsable(save, d.outpostId)) return refuse(save, 'unknown outpost');
   const draft = clone(save);
   const id = uniqueId(draft, now, d);
@@ -274,9 +294,34 @@ export function addCustomTemplate(save: SaveFile, now: number, input: CustomDraf
 }
 
 /**
- * Edit a custom template. A habit or kind change is refused while it sits on
- * today's board (the quest there already has its shape); the tier follows the
- * effort unless the patch sets it.
+ * Today's copy of a template that the player has started on: a timer that runs
+ * or holds time, a counter above zero, or a quest marked tried. Its shape is
+ * held until it is settled (or the board turns over); an untouched copy and a
+ * settled one are not in progress.
+ */
+export function customCopyInProgress(save: Pick<SaveFile, 'board'>, templateId: string): boolean {
+  const q = save.board?.quests.find((x) => x.templateId === templateId);
+  if (!q) return false;
+  if (q.status === 'tried') return true;
+  if (q.status !== 'open') return false;
+  return q.count > 0 || (q.timer !== null && (q.timer.startedAt !== null || q.timer.accumulatedMs > 0));
+}
+
+/**
+ * Edit a custom template: title, description, habit, kind, duration or count,
+ * tier, recurrence, pinned weekday, time slot and outpost. The tier follows
+ * the effort (and is re-capped by the same rules as a new quest) unless the
+ * patch sets it.
+ *
+ * Edits are for future boards: recurrence, placement and every new copy read
+ * the template as it is now. A copy on today's board that is settled keeps
+ * its reward snapshot (undo reverts that snapshot), so a change to habit,
+ * kind, duration, count or tier goes through; an untouched open copy takes the
+ * new shape in place (nothing was paid or started on it); a copy in progress
+ * (see `customCopyInProgress`) holds its shape until it is settled, and the
+ * change is refused meanwhile. Name, description, time slot, recurrence and
+ * outpost never change a payout and always go through. A patch that sets a
+ * recurrence without a pinned weekday clears any pin.
  */
 export function updateCustomTemplate(
   save: SaveFile,
@@ -296,21 +341,37 @@ export function updateCustomTemplate(
   if (merged.kind !== 'timer') merged.durationMin = undefined;
   if (merged.kind !== 'count') merged.targetCount = undefined;
   if (merged.recurrence !== 'weekly:1') merged.pinWeekday = undefined;
-  else if (patch.recurrence !== undefined && patch.pinWeekday === undefined && patch.recurrence !== current.recurrence) merged.pinWeekday = undefined;
+  else if (patch.recurrence !== undefined && patch.pinWeekday === undefined) merged.pinWeekday = undefined;
   const r = cleanDraft(merged);
   if ('error' in r) return refuse(save, r.error);
   const d = r.draft;
-  if (activeCustomTemplates(save).some((c) => c.id !== templateId && c.habit === d.habit && sameTitle(c.title, d.title))) {
-    return refuse(save, `you already have "${d.title}" in My quests`);
+  if (customTitleTaken(save, d.habit, d.title, templateId)) return refuse(save, taken(d.title));
+  if (!outpostUsable(save, d.outpostId)) {
+    // An outpost retired since the quest was saved is let go; a newly picked unknown one is refused.
+    if (d.outpostId !== current.outpostId) return refuse(save, 'unknown outpost');
+    delete d.outpostId;
   }
-  if (!outpostUsable(save, d.outpostId)) return refuse(save, 'unknown outpost');
-  const onBoard = save.board?.quests.some((q) => q.templateId === templateId) ?? false;
-  if (onBoard && (d.habit !== current.habit || d.kind !== current.kind)) {
-    return refuse(save, 'it is on today\'s board; change its habit or kind from tomorrow');
+  const reshaped =
+    d.habit !== current.habit || d.kind !== current.kind || d.durationMin !== current.durationMin || d.targetCount !== current.targetCount || d.tier !== current.tier;
+  if (reshaped && customCopyInProgress(save, templateId)) {
+    return refuse(save, "it is in progress on today's board; change its habit, kind, length or effort once it is settled");
+  }
+  const copy = save.board?.quests.find((q) => q.templateId === templateId && q.status === 'open');
+  if (reshaped && copy && d.habit !== current.habit) {
+    if (!isHabitEnabled(save, d.habit)) return refuse(save, 'that habit is switched off in Settings');
+    if (save.vassals[d.habit].away) return refuse(save, `${getHabit(d.habit).vassal.name} is away; welcome them back first`);
   }
   const draft = clone(save);
   const t = findCustom(draft, templateId);
   if (!t) return refuse(save, 'that quest is not in My quests');
+  // An untouched copy on the board takes the new shape in place; a settled one keeps the shape it was settled with.
+  const dq = draft.board?.quests.find((q) => q.templateId === templateId && q.status === 'open');
+  if (dq && reshaped) {
+    dq.habit = d.habit;
+    dq.kind = d.kind;
+    dq.count = 0;
+    dq.timer = d.kind === 'timer' ? { startedAt: null, accumulatedMs: 0 } : null;
+  }
   t.habit = d.habit;
   t.kind = d.kind;
   t.title = d.title;
@@ -348,6 +409,32 @@ export function archiveCustomTemplate(save: SaveFile, now: number, templateId: s
   }
   pushLog(draft, now, gameDayIndex(now, draft.settings.resetHour, opts?.tz), 'customArchived', `${t.title} archived.`);
   return { ...ok(draft, [{ type: 'customArchived', templateId }]), templateId };
+}
+
+/**
+ * Bring an archived template back into My quests: `archivedAt` is cleared and
+ * nothing else changes (history, stats and settings stay). It is not put on
+ * today's board; a recurring one is placed by the next issue, still under the
+ * two-per-board limit, and "Add to today" works as for any template. Refused
+ * when it is not archived, when an active quest of the same habit now has its
+ * name, or at 30 active quests. An outpost that has since been retired is
+ * dropped from it quietly. Events: `customUpdated` (the event union has no
+ * separate restore event).
+ */
+export function restoreCustomTemplate(save: SaveFile, now: number, templateId: string, opts?: TimeOptions): CustomResult {
+  const current = findCustom(save, templateId);
+  if (!current || current.archivedAt === undefined) return refuse(save, 'that quest is not archived');
+  if (activeCustomTemplates(save).length >= MAX_ACTIVE_CUSTOM) {
+    return refuse(save, `you already keep ${MAX_ACTIVE_CUSTOM} quests of your own; archive one in the Ledger first`);
+  }
+  if (customTitleTaken(save, current.habit, current.title)) return refuse(save, taken(current.title));
+  const draft = clone(save);
+  const t = findCustom(draft, templateId);
+  if (!t) return refuse(save, 'that quest is not archived');
+  delete t.archivedAt;
+  if (!outpostUsable(draft, t.outpostId)) delete t.outpostId;
+  pushLog(draft, now, gameDayIndex(now, draft.settings.resetHour, opts?.tz), 'customRestored', `${t.title} restored.`);
+  return { ...ok(draft, [{ type: 'customUpdated', templateId }]), templateId };
 }
 
 /** Put a saved template on today's board (max two of the player's own per board, never the Bonus). */
