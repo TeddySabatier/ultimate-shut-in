@@ -37,9 +37,19 @@ jobs:
           test -f dist/sw.js
 
   e2e:
-    name: End-to-end (Playwright)
+    name: E2E ${{ matrix.name }}
     runs-on: ubuntu-latest
-    needs: check
+    # No `needs: check`: the shards start at once and build the app themselves,
+    # so the wall time is the slowest shard, not check plus e2e.
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The mobile project is the heavier one (a11y audit, viewport sweep), so it takes two shards.
+          - { name: 'mobile 1/2', project: mobile-chromium, shard: '1/2', report: mobile-1 }
+          - { name: 'mobile 2/2', project: mobile-chromium, shard: '2/2', report: mobile-2 }
+          - { name: 'desktop', project: desktop-chromium, shard: '1/1', report: desktop }
     steps:
       - uses: actions/checkout@v4
 
@@ -50,17 +60,29 @@ jobs:
 
       - run: npm ci
 
+      - name: Cache Chromium
+        id: chromium-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
       - name: Install Chromium
+        if: steps.chromium-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
 
-      - name: Run e2e suite
-        run: npm run e2e
+      - name: Install Chromium system dependencies
+        if: steps.chromium-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - name: Run e2e shard
+        run: npx playwright test --project=${{ matrix.project }} --shard=${{ matrix.shard }}
 
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.report }}
           path: |
             playwright-report/
             test-results/

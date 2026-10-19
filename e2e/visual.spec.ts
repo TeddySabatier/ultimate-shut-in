@@ -1,25 +1,48 @@
 /**
- * Documentation screenshots of every screen and the main overlays, saved
- * under e2e/__screenshots__/<project>-<name>.png. These are not strict
- * snapshot assertions: boards are seeded per day and the opening animates,
- * so the files are reviewed by eye (see docs/review/qa-report.md).
+ * Documentation screenshots of every screen and the main overlays, saved under
+ * e2e/__screenshots__/<project>-<name>.png. These are not strict snapshot
+ * assertions: boards are seeded per day and the opening animates, so the files
+ * are reviewed by eye (see docs/review/qa-report.md).
+ *
+ * The folder is committed, so each file is kept small: a CSS-pixel capture (no
+ * device-scale duplicate), scaled down to MAX_WIDTH and written as a quantised
+ * PNG. One file per shot: the viewport capture. A `-full` file (the whole
+ * scrolling screen) is written only for the projects in FULL_PROJECTS and only
+ * when the screen is taller than the viewport, so no two files differ by height
+ * alone. scripts/screenshots-dedupe.mjs prunes what no shot writes any more;
+ * keep the shoot(page, p, 'NN-name') calls literal so it can read them.
  */
 import { expect, test, type Page } from '@playwright/test';
+import sharp from 'sharp';
 import { advanceToDay, completeAllQuests, fontsReady, freshApp, gotoTab, openCards, pinCard, settleOverlays } from './helpers';
 
 const DIR = 'e2e/__screenshots__';
+const MAX_WIDTH = 480;
+const FULL_PROJECTS = ['mobile-chromium'];
+
+/** Downscale to MAX_WIDTH (never enlarge) and write a palette PNG. */
+async function save(png: Buffer, path: string) {
+  await sharp(png)
+    .resize({ width: MAX_WIDTH, withoutEnlargement: true })
+    .png({ palette: true, quality: 80, colours: 128, effort: 10, compressionLevel: 9 })
+    .toFile(path);
+}
 
 async function shoot(page: Page, project: string, name: string, opts: { full?: boolean } = {}) {
   await fontsReady(page);
   await page.waitForTimeout(250);
-  await page.screenshot({ path: `${DIR}/${project}-${name}.png`, fullPage: false });
-  if (opts.full) {
+  await save(await page.screenshot({ scale: 'css' }), `${DIR}/${project}-${name}.png`);
+  if (opts.full && FULL_PROJECTS.includes(project)) {
+    const viewportHeight = page.viewportSize()?.height ?? 0;
     // The shell scrolls inside <main>; let the document grow so the whole screen is captured.
     const style = await page.addStyleTag({
       content: '[class*="shell"]{height:auto!important;min-height:100dvh!important;overflow:visible!important}main#main{overflow:visible!important}',
     });
-    await page.screenshot({ path: `${DIR}/${project}-${name}-full.png`, fullPage: true });
+    const full = await page.screenshot({ fullPage: true, scale: 'css' });
     await style.evaluate((el) => el.remove());
+    if (((await sharp(full).metadata()).height ?? 0) > viewportHeight * 1.05) {
+      await save(full, `${DIR}/${project}-${name}-full.png`);
+    }
   }
 }
 
@@ -28,7 +51,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('screens and overlays', async ({ page }, testInfo) => {
-  test.slow(); // a week of play, every screen, the overlays and the Map
+  test.setTimeout(120_000); // a week of play, every screen, the overlays and the Map
   const p = testInfo.project.name;
 
   await shoot(page, p, '01-onboarding-opening');

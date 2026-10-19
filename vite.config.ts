@@ -86,5 +86,7 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     css: { modules: { classNameStrategy: 'non-scoped' } },
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    pool: 'threads',
+    isolate: false,
   },
 });
