@@ -5,6 +5,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from '../../App';
+import { OutcomeView } from './LabGame';
 
 function at(hash: string) {
   window.location.hash = hash;
@@ -73,10 +74,33 @@ describe('Games Lab', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Bot play' }));
     expect(screen.getByTestId('lab-outcome-result')).toHaveTextContent(/^(won|lost)$/);
     await act(async () => {
-      fireEvent.click(screen.getByRole('checkbox', { name: /Starter party/ }));
+      fireEvent.change(screen.getByRole('combobox', { name: 'Party' }), { target: { value: 'starter' } });
     });
     expect(window.location.hash).toContain('party=starter');
     expect(await screen.findAllByRole('button', { name: /^Envoyer / })).toHaveLength(3);
+    await act(async () => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'Difficulty' }), { target: { value: '5' } });
+    });
+    expect(window.location.hash).toContain('difficulty=5');
+  });
+
+  it('opens with the mixed party, the hard run and a difficulty from the URL', async () => {
+    at('#/lab/sample?seed=4&lang=en&party=mixed&run=hard&difficulty=1&rm=1');
+    render(<App />);
+    expect(await screen.findByRole('button', { name: /^Send Ada/ })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Run' })).toHaveValue('hard');
+    expect(screen.getByRole('combobox', { name: 'Difficulty' })).toHaveValue('1');
+  });
+
+  it('shows an invalid outcome in red, and nothing for a valid one', () => {
+    const party = [{ id: 'move', name: 'Pell' }];
+    const { unmount } = render(<OutcomeView result={{ source: 'player', outcome: { result: 'won', score: 1500, log: [''], troopsUsed: ['ghost'] } }} party={party} locale="en" />);
+    const alert = screen.getByTestId('lab-outcome-problems');
+    expect(alert).toHaveTextContent(/score 1500 must be an integer/);
+    expect(alert).toHaveTextContent(/"ghost", which is not in the party/);
+    unmount();
+    render(<OutcomeView result={{ source: 'bot', outcome: { result: 'lost', score: 200, log: ['ok'], troopsUsed: ['move'] } }} party={party} locale="en" />);
+    expect(screen.queryByTestId('lab-outcome-problems')).toBeNull();
   });
 
   it('adds a seed to the URL when there is none', async () => {

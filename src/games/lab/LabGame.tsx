@@ -5,8 +5,9 @@ import { fitParty, fledOutcome, type GameModule, type GameScreenProps, type Outc
 import { getGame, loadScreen } from '../registry';
 import { stableStringify } from '../testing/checks';
 import { parties, runs } from '../testing/fixtures';
-import { playToEnd } from '../testing/play';
-import { browserEnv, parseLabParams, randomSeed, toSearch, type LabParams } from './labParams';
+import { DEFAULT_MAX_STEPS, playToEnd } from '../testing/play';
+import { outcomeProblems } from '../testing/validate';
+import { LAB_PARTIES, LAB_RUNS, browserEnv, labRun, parseLabParams, randomSeed, toSearch, type Difficulty, type LabParams, type LabParty, type LabRun } from './labParams';
 import styles from './Lab.module.css';
 
 type ScreenState = { id: string; Screen: ComponentType<GameScreenProps> | null; error: string | null };
@@ -27,7 +28,7 @@ function useGameScreen(id: string): ScreenState {
   return state.id === id ? state : { id, Screen: null, error: null };
 }
 
-interface LabResult {
+export interface LabResult {
   source: 'player' | 'bot' | 'exit';
   outcome: Outcome | null;
   /** Bot play: number of actions, or why it stopped. */
@@ -99,8 +100,8 @@ function LabPlayer({ game }: { game: GameModule }) {
     [params, setSearch],
   );
 
-  const party = useMemo(() => fitParty(params.party === 'starter' ? parties.starter : parties.full, manifest), [params.party, manifest]);
-  const run = params.run === 'buffed' ? runs.buffed : runs.plain;
+  const party = useMemo(() => fitParty(parties[params.party], manifest), [params.party, manifest]);
+  const run = useMemo(() => labRun(runs[params.run], params.difficulty), [params.run, params.difficulty]);
   const seed = params.seed ?? 0;
   const { Screen, error: loadError } = useGameScreen(manifest.id);
 
@@ -110,7 +111,7 @@ function LabPlayer({ game }: { game: GameModule }) {
     setNonce((n) => n + 1);
   };
   const botPlay = () => {
-    const r = playToEnd(game, seed, party, run);
+    const r = playToEnd(game, seed, party, run, DEFAULT_MAX_STEPS, { locale: params.locale });
     setPrevious(result);
     setResult({ source: 'bot', outcome: r.outcome, note: r.outcome ? `${r.steps} actions` : `stopped without an outcome (${r.stopped ?? 'unknown'}) after ${r.steps} actions` });
   };
@@ -147,7 +148,7 @@ function LabPlayer({ game }: { game: GameModule }) {
 
       <div className={styles.layout}>
         <section className={styles.stage} aria-label="Game" data-testid="lab-stage" lang={locale}>
-          <ScreenBoundary key={`${manifest.id}:${seed}:${params.party}:${params.run}:${locale}:${params.reducedMotion}:${nonce}`}>
+          <ScreenBoundary key={`${manifest.id}:${seed}:${params.party}:${params.run}:${run.difficulty}:${locale}:${params.reducedMotion}:${nonce}`}>
             {Screen ? (
               <Screen party={party} seed={seed} run={run} locale={locale} reducedMotion={params.reducedMotion} onFinish={onFinish} onExit={onExit} />
             ) : (
@@ -196,13 +197,36 @@ function LabPlayer({ game }: { game: GameModule }) {
                 <option value="fr">Français</option>
               </select>
             </label>
-            <label className={styles.toggle}>
-              <input type="checkbox" checked={params.party === 'starter'} onChange={(e) => update({ party: e.target.checked ? 'starter' : 'full' })} />
-              <span>Starter party (3 vassals, level 1)</span>
+            <label className={styles.field}>
+              <span>Party</span>
+              <select value={params.party} onChange={(e) => update({ party: e.target.value as LabParty })}>
+                {LAB_PARTIES.map((p) => (
+                  <option key={p} value={p}>
+                    {PARTY_LABELS[p]}
+                  </option>
+                ))}
+              </select>
             </label>
-            <label className={styles.toggle}>
-              <input type="checkbox" checked={params.run === 'buffed'} onChange={(e) => update({ run: e.target.checked ? 'buffed' : 'plain' })} />
-              <span>Buffed run (attack, time and hint)</span>
+            <label className={styles.field}>
+              <span>Run</span>
+              <select value={params.run} onChange={(e) => update({ run: e.target.value as LabRun })}>
+                {LAB_RUNS.map((r) => (
+                  <option key={r} value={r}>
+                    {RUN_LABELS[r]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={styles.field}>
+              <span>Difficulty</span>
+              <select value={params.difficulty ?? ''} onChange={(e) => update({ difficulty: e.target.value === '' ? null : (Number(e.target.value) as Difficulty) })}>
+                <option value="">From the run ({runs[params.run].difficulty})</option>
+                {[1, 2, 3, 4, 5].map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
             </label>
             <label className={styles.toggle}>
               <input type="checkbox" checked={params.reducedMotion} onChange={(e) => update({ reducedMotion: e.target.checked })} />
@@ -215,7 +239,21 @@ function LabPlayer({ game }: { game: GameModule }) {
   );
 }
 
-function OutcomeView({ result, party, locale }: { result: LabResult; party: { id: string; name: string }[]; locale: 'en' | 'fr' }) {
+const PARTY_LABELS: Record<LabParty, string> = {
+  full: 'Full: 8 vassals, level 12',
+  starter: 'Starter: 3 vassals, level 1',
+  single: 'Single: 1 vassal, level 5',
+  mixed: 'Mixed: a citizen and 4 vassals',
+};
+
+const RUN_LABELS: Record<LabRun, string> = {
+  plain: 'Plain: no buffs',
+  buffed: 'Buffed: attack, time and hint',
+  hard: 'Hard: room 4, no buffs',
+};
+
+/** The Outcome panel's content; invalid outcomes are listed in red. */
+export function OutcomeView({ result, party, locale }: { result: LabResult; party: { id: string; name: string }[]; locale: 'en' | 'fr' }) {
   const o = result.outcome;
   const source = { player: 'Played', bot: 'Bot play', exit: 'Left the game (onExit)' }[result.source];
   if (!o) {
@@ -226,8 +264,19 @@ function OutcomeView({ result, party, locale }: { result: LabResult; party: { id
     );
   }
   const names = o.troopsUsed.map((id) => party.find((m) => m.id === id)?.name ?? id);
+  const problems = outcomeProblems(o, party.map((m) => m.id));
   return (
     <>
+      {problems.length > 0 ? (
+        <div className={styles.problems} role="alert" data-testid="lab-outcome-problems">
+          <strong>Invalid outcome</strong>
+          <ul>
+            {problems.map((p) => (
+              <li key={p}>{p}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       <dl className={styles.facts}>
         <Fact term="Source">
           {source}
@@ -251,7 +300,7 @@ function OutcomeView({ result, party, locale }: { result: LabResult; party: { id
           </Fact>
         ))}
       </dl>
-      <ol className={styles.log} data-testid="lab-outcome-log" lang={result.source === 'player' ? locale : 'en'}>
+      <ol className={styles.log} data-testid="lab-outcome-log" lang={locale}>
         {o.log.map((line, i) => (
           <li key={i}>{line}</li>
         ))}
