@@ -310,7 +310,7 @@ function pinBody(id: string, lift: number): string {
     `<rect x="-.8" y="-16" width="1.6" height="${16 + lift}" fill="var(--post)" opacity="var(--po)"/>` +
     `<circle cy="-22" r="13" fill="none" stroke="#fff" stroke-width="1" stroke-dasharray="2 2" style="display:var(--ring,none)"/>` +
     `<path fill="var(--pf)" stroke="var(--ps)" stroke-width="var(--pw)" opacity="var(--pfo)" d="M-7 -29h14l2 2v10l-2 2h-14l-2-2v-10z"/>` +
-    `<rect x="-25" y="-47" width="50" height="${50 + lift}" fill="transparent"/>` +
+    `<rect x="-29" y="-52" width="58" height="${58 + lift}" fill="transparent"/>` +
     `</g>`
   );
 }

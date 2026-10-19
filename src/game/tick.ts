@@ -162,6 +162,17 @@ function shiftInstanceId(id: string, oldDay: number, newDay: number): string {
   return id.startsWith(prefix) ? instanceId(newDay, id.slice(prefix.length)) : id;
 }
 
+/** A visit stores the quest id it tagged (`{day}-{template}`). Shift that day with every other index. */
+function shiftVisitInstanceId(id: string | null, delta: number): string | null {
+  if (!id) return id;
+  const dash = id.indexOf('-');
+  if (dash <= 0) return id;
+  const dayText = id.slice(0, dash);
+  const day = Number(dayText);
+  if (!Number.isInteger(day) || String(day) !== dayText) return id;
+  return instanceId(day + delta, id.slice(dash + 1));
+}
+
 /**
  * Change `settings.resetHour` without moving the player's "today" (GDD 15.4:
  * the new hour "applies from the next boundary"). Every stored game-day
@@ -208,7 +219,10 @@ export function changeResetHour(save: SaveFile, newHour: number, now: number, op
       if (d !== undefined) o.stateDays[k] = d + delta;
     }
   }
-  for (const v of draft.map.visits) v.day += delta;
+  for (const v of draft.map.visits) {
+    v.day += delta;
+    v.instanceId = shiftVisitInstanceId(v.instanceId, delta);
+  }
   for (const s of draft.map.snapshots) s.day += delta;
   if (draft.map.lastSeen) draft.map.lastSeen.day += delta;
   return ok(draft, []);

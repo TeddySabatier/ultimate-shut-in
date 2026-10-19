@@ -88,6 +88,9 @@ describe('reset hour', () => {
     s = logOutpostVisit(s, 'op1', at(0, 0, 30), TZ).save; // 00:30 belongs to the previous game day with a 04:00 reset
     s = settleWave(s, 0, T0, s.lastOpenDay).save;
     s = markMapSeen(s, T0, TZ).save;
+    const tagged = s.map.visits[0]!;
+    tagged.source = 'quest';
+    tagged.instanceId = `${tagged.day}-move.walk`;
     const before = JSON.stringify(s.map);
     // Moving the reset to 23:00 at noon shifts "today" by one (the engine decides which way).
     const shifted = changeResetHour(s, 23, T0, TZ).save;
@@ -97,6 +100,7 @@ describe('reset hour', () => {
     expect(shifted.map.outposts[0]?.lastVisitDay).toBe(s.map.outposts[0]!.lastVisitDay! + delta);
     expect(shifted.map.outposts[0]?.stateDays.marked).toBe(s.map.outposts[0]!.stateDays.marked! + delta);
     expect(shifted.map.visits[0]?.day).toBe(s.map.visits[0]!.day + delta);
+    expect(shifted.map.visits[0]?.instanceId).toBe(`${s.map.visits[0]!.day + delta}-move.walk`);
     expect(shifted.map.snapshots[0]?.day).toBe(s.map.snapshots[0]!.day + delta);
     expect(shifted.map.lastSeen?.day).toBe(s.map.lastSeen!.day + delta);
     expect(JSON.stringify(s.map)).toBe(before);

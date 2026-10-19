@@ -4,6 +4,7 @@ import {
   MAX_DURATION_MIN,
   MAX_TARGET_COUNT,
   WEEKDAY_NAMES,
+  activeOutposts,
   cleanDraft,
   customSlotsLeft,
   effortTier,
@@ -13,6 +14,7 @@ import {
   parseQuestDraft,
   previewCustomRewards,
   recurrenceLabel,
+  relatedOutposts,
   resolveTier,
   strings,
   vassalName,
@@ -70,6 +72,8 @@ interface Edits {
   recurrence?: RecurrenceKey;
   timeSlot?: TimeSlot;
   tier?: Tier;
+  /** Outpost that settling it counts as a visit to; '' for none. */
+  outpostId?: string;
 }
 
 function wholeNumber(text: string): number {
@@ -138,8 +142,10 @@ function SheetBody({ titleId, onClose }: BodyProps) {
     pinWeekday,
     timeSlot,
     source: usedVoice ? 'voice' : 'text',
+    outpostId: edits.outpostId === undefined || edits.outpostId === '' ? undefined : edits.outpostId,
   };
   const checked = cleanDraft(input);
+  const outpostOptions = [...relatedOutposts(save, habit), ...activeOutposts(save).filter((o) => !o.habits.includes(habit))];
   const problem = 'error' in checked ? checked.error : null;
   const rewards = problem === null ? previewCustomRewards(save, input) : null;
 
@@ -362,6 +368,25 @@ function SheetBody({ titleId, onClose }: BodyProps) {
                 </select>
               </div>
             </div>
+
+            {outpostOptions.length > 0 ? (
+              <div className={styles.row}>
+                <div className={cx(styles.field, styles.wide)}>
+                  <label htmlFor={`${ids}-where`} className={styles.label}>
+                    {c.labels.where}
+                  </label>
+                  <select id={`${ids}-where`} value={edits.outpostId ?? ''} onChange={(e) => set({ outpostId: e.target.value })}>
+                    <option value="">{c.whereNone}</option>
+                    {outpostOptions.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className={cx('muted', styles.note)}>{c.whereHint}</p>
+                </div>
+              </div>
+            ) : null}
 
             <fieldset className={styles.group}>
               <legend className={styles.label}>{c.labels.tier}</legend>

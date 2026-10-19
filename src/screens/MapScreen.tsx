@@ -48,7 +48,7 @@ function zoneStatusText(z: ReturnType<typeof mapView>['zones'][number]): string 
 /** The City Map tab (docs/design/CITY-MAP.md 2, 5). */
 export function MapScreen() {
   const save = useSave();
-  const now = useNow(false);
+  const now = useNow(true, 60_000);
   const reduced = useReducedMotion();
   const markMapSeen = useGameStore((s) => s.markMapSeen);
   const createOutpost = useGameStore((s) => s.createOutpost);
@@ -151,7 +151,11 @@ export function MapScreen() {
                   <b>{m.hud.waveTonight}</b>
                 ) : (
                   <>
-                    <span>Next wave</span> <b>{view.nextWaveDays} days</b>
+                    <span>{m.hud.nextWave.split('{days}')[0]}</span>
+                    <b>
+                      {view.nextWaveDays}
+                      {m.hud.nextWave.split('{days}')[1]}
+                    </b>
                   </>
                 )}
               </span>
@@ -204,7 +208,8 @@ export function MapScreen() {
                 {compare ? (
                   <>
                     <i className={styles.legendGhost} aria-hidden="true" /> {m.since.legend} <i className={styles.legendNew} aria-hidden="true" /> {m.since.legendNew}
-                    <span className="srOnly">. {sinceLine}</span>
+                    {'. '}
+                    {sinceLine}
                   </>
                 ) : (
                   sinceLine

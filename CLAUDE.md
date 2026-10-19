@@ -13,6 +13,10 @@ Mobile-first offline PWA habit RPG. Live: https://teddysabatier.github.io/ultima
 ## Responsive UI (mandatory)
 Read `docs/RESPONSIVE-RULES.md` before touching any CSS or screen. Short form: grids use `minmax(0, 1fr)`; fixed-size flex children get `flex: none`; no fixed px heights on content; overlays align `flex-start` with `margin-top: auto` and scroll internally; safe-area insets applied once; breakpoints for `max-width: 359px`, `min-width: 768px` and `max-height: 500px`; tap targets 44px; check 320x568, 390x844 at 150% text, and 844x390 before calling a screen done.
 
+## When a session finishes
+
+Run a reviewer over that session's diff before calling the work done. The reviewer reads the code and does not edit it. Fix every confirmed finding, then re-run the checks the fix touches.
+
 ## Verification before any commit
 ```bash
 npm run lint && npm run typecheck && npm test && npm run build
