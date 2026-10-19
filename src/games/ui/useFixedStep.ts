@@ -7,8 +7,9 @@
  *
  *   useFixedStep(() => dispatch({ type: 'tick' }), { running: outcome === null });
  *
- * - A hidden tab pauses the game (no catch-up burst when it comes back).
+ * - A hidden tab pauses the game; coming back resumes it without a catch-up burst.
  * - A slow frame catches up at most `maxTicksPerFrame` ticks (default 5).
+ * - Unmounting, or `running` turning false, cancels the frame loop.
  * - Reduced motion changes what is drawn, never the speed of the game.
  */
 import { useEffect, useRef } from 'react';
@@ -33,7 +34,7 @@ export function useFixedStep(onTick: () => void, { running, dtMs = FIXED_DT_MS, 
     let acc = 0;
     const frame = (t: number) => {
       if (last === null || document.hidden) {
-        last = t;
+        last = document.hidden ? null : t;
       } else {
         acc += Math.min(t - last, dtMs * maxTicksPerFrame);
         last = t;
@@ -44,7 +45,16 @@ export function useFixedStep(onTick: () => void, { running, dtMs = FIXED_DT_MS, 
       }
       raf = requestAnimationFrame(frame);
     };
+    // Hidden tab: forget the last frame time, so the time spent away is not replayed.
+    const onVisibility = () => {
+      last = null;
+      acc = 0;
+    };
+    document.addEventListener('visibilitychange', onVisibility);
     raf = requestAnimationFrame(frame);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [running, dtMs, maxTicksPerFrame]);
 }
