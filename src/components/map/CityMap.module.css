@@ -86,20 +86,15 @@
   opacity: 0.08;
 }
 
-/* ---- buildings: three paths per box in the order left, right, top; windows live in the side fills ---- */
-.svg :global(.b > path) {
+/* ---- buildings: three faces live in a shared symbol; fills are --l/--r/--t on the instance ---- */
+.svg :global(.b) {
   stroke: #0f0f14;
   stroke-width: 0.7;
   stroke-linejoin: miter;
 }
-.svg :global(.b > :nth-child(3n + 1)) {
-  fill: var(--l);
-}
-.svg :global(.b > :nth-child(3n + 2)) {
-  fill: var(--r);
-}
-.svg :global(.b > :nth-child(3n)) {
-  fill: var(--t);
+.svg :global(.b.pop) {
+  animation: winOn 0.9s steps(3, end) both;
+  animation-delay: var(--dl, 0ms);
 }
 .svg :global(.f-bld),
 .svg :global(.f-shop),
@@ -229,6 +224,7 @@
 }
 .svg :global(.beacon) {
   fill: #ffb84d;
+  stroke: none;
   animation: blink 2.4s steps(1, end) infinite;
 }
 @keyframes blink {
@@ -409,37 +405,41 @@
   fill: #8a8a9e;
 }
 
-/* ---- pins ---- */
+/* ---- pins: plaque, post and focus ring are one symbol; state is custom properties ---- */
 .svg :global(.pin) {
   cursor: pointer;
   outline: none;
-}
-.svg :global(.pin .post) {
-  fill: #8a8a9e;
-}
-.svg :global(.pin .plaque) {
-  fill: #22222f;
-  stroke: #8a8a9e;
-  stroke-width: 1.2;
+  --post: #8a8a9e;
+  --po: 1;
+  --pf: #22222f;
+  --ps: #8a8a9e;
+  --pw: 1.2;
+  --pfo: 1;
+  --ring: none;
 }
 .svg :global(.pin .picon) {
   color: #d0d0dc;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linejoin: miter;
+  stroke-linecap: square;
 }
 .svg :global(.pin .halo) {
   display: none;
   fill: #ffb84d;
   opacity: 0.2;
 }
-.svg :global(.st-scouted .plaque) {
-  stroke: #ffb84d;
-  stroke-width: 1.5;
+.svg :global(.st-scouted) {
+  --ps: #ffb84d;
+  --pw: 1.5;
 }
 .svg :global(.st-scouted .picon) {
   color: #ffb84d;
 }
-.svg :global(.st-corridor .plaque) {
-  fill: #ffb84d;
-  stroke: #0f0f14;
+.svg :global(.st-corridor) {
+  --pf: #ffb84d;
+  --ps: #0f0f14;
 }
 .svg :global(.st-corridor .picon) {
   color: #0f0f14;
@@ -449,10 +449,10 @@
   display: inline;
   animation: breathe 3s ease-in-out infinite;
 }
-.svg :global(.st-stronghold .plaque) {
-  fill: #7c5cff;
-  stroke: #ffb84d;
-  stroke-width: 1.6;
+.svg :global(.st-stronghold) {
+  --pf: #7c5cff;
+  --ps: #ffb84d;
+  --pw: 1.6;
 }
 .svg :global(.st-stronghold .picon) {
   color: #fff;
@@ -471,31 +471,18 @@
   stroke: #9a9ab0;
   stroke-width: 1.1;
 }
-.svg :global(.pin.quiet .plaque),
-.svg :global(.pin.quiet .post) {
-  opacity: 0.55;
+.svg :global(.pin.quiet) {
+  --pfo: 0.55;
+  --po: 0.55;
 }
 .svg :global(.pin.quiet .picon) {
   opacity: 0.6;
 }
-.svg :global(.pin:focus-visible .plaque),
-.svg :global(.pin.sel .plaque) {
-  stroke: #fff;
-  stroke-width: 2.2;
-}
-.svg :global(.pin:focus-visible .sel-ring),
-.svg :global(.pin.sel .sel-ring) {
-  display: inline;
-}
-.svg :global(.sel-ring) {
-  display: none;
-  fill: none;
-  stroke: #fff;
-  stroke-width: 1;
-  stroke-dasharray: 2 2;
-}
-.svg :global(.pin .hit) {
-  pointer-events: all;
+.svg :global(.pin:focus-visible),
+.svg :global(.pin.sel) {
+  --ps: #fff;
+  --pw: 2.2;
+  --ring: inline;
 }
 
 /* ---- zone bands: transparent, keyboard reachable; taps go to the tiles underneath ---- */

@@ -7,7 +7,7 @@
  *
  * The markup is kept compact on purpose: the whole map must serialise under
  * 60 KB (5.4). Integer anchors, one-decimal deltas, `<use>` for ground
- * tiles, no `data-*` attributes.
+ * tiles and for shared building boxes, no `data-*` attributes.
  */
 import { ISLAND_RADIUS, ZONE_RADII, cellKind, islandCells, zoneOfCell, type CellKind } from '../../game/mapGeometry';
 import type { MapCell } from '../../game/types';
@@ -43,10 +43,6 @@ export function sp(v: number): string {
   return t.startsWith('-') ? t : ` ${t}`;
 }
 
-function M(p: [number, number]): string {
-  return `M${Math.round(p[0])}${p[1] < 0 ? '' : ' '}${Math.round(p[1])}`;
-}
-
 export function pts(a: [number, number][]): string {
   return a.map((p) => `${f1(p[0])},${f1(p[1])}`).join(' ');
 }
@@ -62,19 +58,67 @@ export function ellipseRadii(r: number): { rx: number; ry: number } {
   return { rx: f1(r * K), ry: f1((r * K) / 2) };
 }
 
-/** One box = three relative paths: left face, right face, top. Styled by position in the CSS. */
+/**
+ * One box = three faces (left, right, top) in a shared `<g>`, placed with
+ * `<use>`. Footprints snap to a screen pixel and heights to a short ladder
+ * so the whole skyline reuses a few dozen symbols (CITY-MAP 5.4). Fills are
+ * `var(--l/r/t)` so fog, dawn and windows stay on the instance.
+ */
+interface QBox {
+  W: number;
+  D: number;
+  H: number;
+}
+
+let boxReg = new Map<string, QBox>();
+
+function qLen(v: number, step: number): number {
+  return Math.max(step, Math.round(v / step) * step);
+}
+
+function quantize(w: number, d: number, h: number): QBox {
+  const Hs = h * S;
+  // Even screen pixels, and a short height ladder above the trees, so one
+  // symbol is reused across many lots. Sub-pixel at the map's fixed scale.
+  return { W: qLen(w * S, 2), D: qLen(d * S, 2), H: qLen(Hs, Hs < 12 ? 2 : 8) };
+}
+
+function boxId(q: QBox): string {
+  return q.W === q.D ? `b${q.W}h${q.H}` : `b${q.W}x${q.D}h${q.H}`;
+}
+
+function noteBox(w: number, d: number, h: number): string {
+  const q = quantize(w, d, h);
+  const id = boxId(q);
+  boxReg.set(id, q);
+  return id;
+}
+
+/** Sizes drawn under pins. Registered with every layout so the symbols exist. */
+const PIN_BOXES: readonly (readonly [number, number, number])[] = [
+  [0.56, 0.56, 0.85],
+  [0.14, 0.14, 0.16],
+  [0.44, 0.44, 0.45],
+];
+
+function boxSymbol(id: string, q: QBox): string {
+  const { W, D, H } = q;
+  const left = `M0 0l${n(W)}${sp(W / 2)}v${n(-H)}l${n(-W)}${sp(-W / 2)}z`;
+  const right = `M${n(W + D)}${sp((W - D) / 2)}l${n(-D)}${sp(D / 2)}v${n(-H)}l${n(D)}${sp(-D / 2)}z`;
+  const top = `M${n(D)}${sp(-D / 2 - H)}l${n(W)}${sp(W / 2)}l${n(-D)}${sp(D / 2)}l${n(-W)}${sp(-W / 2)}z`;
+  return `<g id="${id}"><path fill="var(--l)" d="${left}"/><path fill="var(--r)" d="${right}"/><path fill="var(--t)" d="${top}"/></g>`;
+}
+
+function boxDefs(): string {
+  let s = '';
+  for (const [id, q] of boxReg) s += boxSymbol(id, q);
+  return s;
+}
+
 export function box(x0: number, y0: number, w: number, d: number, z0: number, h: number): string {
-  const x1 = x0 + w;
-  const y1 = y0 + d;
-  const z1 = z0 + h;
-  const W = w * S;
-  const D = d * S;
-  const H = h * S;
-  return (
-    `<path d="${M(project(x0, y1, z0))}l${n(W)}${sp(W / 2)}v${n(-H)}l${n(-W)}${sp(-W / 2)}z"/>` +
-    `<path d="${M(project(x1, y0, z0))}l${n(-D)}${sp(D / 2)}v${n(-H)}l${n(D)}${sp(-D / 2)}z"/>` +
-    `<path d="${M(project(x0, y0, z1))}l${n(W)}${sp(W / 2)}l${n(-D)}${sp(D / 2)}l${n(-W)}${sp(-W / 2)}z"/>`
-  );
+  const id = noteBox(w, d, h);
+  const anchor = project(x0, y0 + d, z0);
+  return `<use href="#${id}" x="${Math.round(anchor[0])}" y="${Math.round(anchor[1])}"/>`;
 }
 
 export function tree(x: number, y: number, sz: number): string {
@@ -221,28 +265,54 @@ function buildingFor(t: Tile): Building | null {
 
 function noisePattern(id: string, bg: string, seed: number, dots: number): string {
   const rnd = mulberry32(seed);
-  let s = `<pattern id="${id}" patternUnits="userSpaceOnUse" width="9" height="9"><rect width="9" height="9" fill="${bg}"/>`;
+  const dark: string[] = [];
+  const lite: string[] = [];
   for (let i = 0; i < dots; i++) {
-    s += `<rect x="${Math.floor(rnd() * 9)}" y="${Math.floor(rnd() * 9)}" width="1" height="1" fill="${rnd() < 0.3 ? '#4a4a5c' : '#2b2b3a'}"/>`;
+    const x = Math.floor(rnd() * 9);
+    const y = Math.floor(rnd() * 9);
+    (rnd() < 0.3 ? lite : dark).push(`M${x} ${y}h1v1H${x}z`);
   }
+  let s = `<pattern id="${id}" patternUnits="userSpaceOnUse" width="9" height="9"><rect width="9" height="9" fill="${bg}"/>`;
+  if (dark.length) s += `<path d="${dark.join('')}" fill="#2b2b3a"/>`;
+  if (lite.length) s += `<path d="${lite.join('')}" fill="#4a4a5c"/>`;
   return `${s}</pattern>`;
 }
 
-/** Windows as a pattern inside a side fill, with the face colour as background. */
-function winPattern(id: string, side: 'l' | 'r', bg: string, cells: (string | null)[]): string {
-  const m = side === 'l' ? `matrix(${S},${S / 2},0,${-S},${CX},${CY})` : `matrix(${-S},${S / 2},0,${-S},${CX},${CY})`;
-  let s = `<pattern id="${id}" patternUnits="userSpaceOnUse" width="0.5" height="0.62" patternTransform="${m}"><rect width="0.5" height="0.62" fill="${bg}"/>`;
+/** Four window cells, shared by the left and right face patterns. */
+function winBits(id: string, cells: (string | null)[]): string {
   const pos = [
-    [0.07, 0.1],
-    [0.3, 0.1],
-    [0.07, 0.41],
-    [0.3, 0.41],
+    ['.07', '.1'],
+    ['.3', '.1'],
+    ['.07', '.41'],
+    ['.3', '.41'],
   ] as const;
+  let s = `<g id="${id}">`;
   cells.forEach((c, i) => {
     const p = pos[i];
-    if (c && p) s += `<rect x="${p[0]}" y="${p[1]}" width="0.13" height="0.17" fill="${c}"/>`;
+    if (c && p) s += `<rect x="${p[0]}" y="${p[1]}" width=".13" height=".17" fill="${c}"/>`;
   });
-  return `${s}</pattern>`;
+  return `${s}</g>`;
+}
+
+/**
+ * Windows as a pattern inside a side fill. The matrix is local to the box
+ * symbol (no city-centre translation): instances are translated by `<use>`.
+ */
+function winPattern(id: string, side: 'l' | 'r', bg: string, bits: string): string {
+  const m = side === 'l' ? `matrix(${S},${S / 2},0,${-S},0,0)` : `matrix(${-S},${S / 2},0,${-S},0,0)`;
+  return `<pattern id="${id}" patternUnits="userSpaceOnUse" width=".5" height=".62" patternTransform="${m}"><rect width=".5" height=".62" fill="${bg}"/><use href="#${bits}"/></pattern>`;
+}
+
+function pinBody(id: string, lift: number): string {
+  return (
+    `<g id="${id}">` +
+    `<ellipse rx="5.5" ry="2.2" cy="${lift}" fill="#000" opacity=".45"/>` +
+    `<rect x="-.8" y="-16" width="1.6" height="${16 + lift}" fill="var(--post)" opacity="var(--po)"/>` +
+    `<circle cy="-22" r="13" fill="none" stroke="#fff" stroke-width="1" stroke-dasharray="2 2" style="display:var(--ring,none)"/>` +
+    `<path fill="var(--pf)" stroke="var(--ps)" stroke-width="var(--pw)" opacity="var(--pfo)" d="M-7 -29h14l2 2v10l-2 2h-14l-2-2v-10z"/>` +
+    `<rect x="-25" y="-47" width="50" height="${50 + lift}" fill="transparent"/>` +
+    `</g>`
+  );
 }
 
 function buildDefs(): string {
@@ -253,12 +323,19 @@ function buildDefs(): string {
   const v2 = '#6a4fe0';
   const H = '#efeaff';
   const Dm = '#2c2c3c';
+  const edge = ' stroke="#0f0f14" stroke-width=".6" stroke-linejoin="miter"';
+  const sx = n(-S);
+  const sy = n(S / 2);
+  const ex = n(S);
   return (
     '<rect id="ss" width="1.4" height="1.4" class="star" opacity=".45"/><rect id="sb" width="2" height="2" class="star" opacity=".7"/>' +
     '<g id="lp"><circle r="3.2" style="fill:var(--lh,#ffb84d);opacity:var(--lo,.22)"/><rect x="-.8" y="-.8" width="1.6" height="1.6" style="fill:var(--lc,#ffcf87)"/></g>' +
-    `<path id="tt" d="M0 0l${n(S)}${sp(S / 2)}l${n(-S)}${sp(S / 2)}l${n(-S)}${sp(-S / 2)}z"/>` +
-    `<path id="sl" d="M0 0l${n(S)}${sp(S / 2)}v${n(0.3 * S)}l${n(-S)}${sp(-S / 2)}z"/>` +
-    `<path id="sr" d="M0 0l${n(-S)}${sp(S / 2)}v${n(0.3 * S)}l${n(S)}${sp(-S / 2)}z"/>` +
+    `<path id="tt"${edge} d="M0 0l${n(S)}${sp(S / 2)}l${n(-S)}${sp(S / 2)}l${n(-S)}${sp(-S / 2)}z"/>` +
+    `<path id="sl"${edge} d="M0 0l${n(S)}${sp(S / 2)}v${n(0.3 * S)}l${n(-S)}${sp(-S / 2)}z"/>` +
+    `<path id="sr"${edge} d="M0 0l${n(-S)}${sp(S / 2)}v${n(0.3 * S)}l${n(S)}${sp(-S / 2)}z"/>` +
+    `<g id="ts"><use href="#tt" fill="var(--gt)"/><use href="#sl" fill="var(--gs)" x="${sx}" y="${sy}"/></g>` +
+    `<g id="te"><use href="#tt" fill="var(--gt)"/><use href="#sr" fill="var(--gs)" x="${ex}" y="${sy}"/></g>` +
+    `<g id="tb"><use href="#tt" fill="var(--gt)"/><use href="#sl" fill="var(--gs)" x="${sx}" y="${sy}"/><use href="#sr" fill="var(--gs)" x="${ex}" y="${sy}"/></g>` +
     '<radialGradient id="cm-glow"><stop offset="0" stop-color="#7c5cff" stop-opacity=".55"/><stop offset="1" stop-color="#7c5cff" stop-opacity="0"/></radialGradient>' +
     '<pattern id="hatch" patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(30)"><rect width="1.2" height="4" fill="#ffb84d" opacity=".55"/></pattern>' +
     noisePattern('fT', '#1a1a23', 3, 7) +
@@ -266,16 +343,26 @@ function buildDefs(): string {
     noisePattern('fR', '#101016', 9, 6) +
     noisePattern('fG', '#121218', 13, 6) +
     noisePattern('fW', '#121a28', 17, 6) +
-    winPattern('bLa', 'l', '#2a2a3d', [A, A, o, a]) +
-    winPattern('bRa', 'r', '#1f1f2d', [A, A, o, a]) +
-    winPattern('bLb', 'l', '#2a2a3d', [a, o, A, A]) +
-    winPattern('bRb', 'r', '#1f1f2d', [a, o, A, A]) +
-    winPattern('hL', 'l', '#3c3079', [V, v2, V, V]) +
-    winPattern('hR', 'r', '#2c235b', [V, v2, V, V]) +
-    winPattern('vL', 'l', '#7c5cff', [H, H, V, H]) +
-    winPattern('vR', 'r', '#4a36a8', [H, H, V, H]) +
-    winPattern('dL', 'l', '#222230', [Dm, a, Dm, Dm]) +
-    winPattern('dR', 'r', '#191925', [Dm, Dm, a, Dm])
+    winBits('wA', [A, A, o, a]) +
+    winBits('wB', [a, o, A, A]) +
+    winBits('wH', [V, v2, V, V]) +
+    winBits('wV', [H, H, V, H]) +
+    winBits('wD', [Dm, a, Dm, Dm]) +
+    winBits('wE', [Dm, Dm, a, Dm]) +
+    winPattern('bLa', 'l', '#2a2a3d', 'wA') +
+    winPattern('bRa', 'r', '#1f1f2d', 'wA') +
+    winPattern('bLb', 'l', '#2a2a3d', 'wB') +
+    winPattern('bRb', 'r', '#1f1f2d', 'wB') +
+    winPattern('hL', 'l', '#3c3079', 'wH') +
+    winPattern('hR', 'r', '#2c235b', 'wH') +
+    winPattern('vL', 'l', '#7c5cff', 'wV') +
+    winPattern('vR', 'r', '#4a36a8', 'wV') +
+    winPattern('dL', 'l', '#222230', 'wD') +
+    winPattern('dR', 'r', '#191925', 'wE') +
+    '<g id="sc"><ellipse rx="9" ry="3.8" fill="#3a1a1e" opacity=".55"/><ellipse rx="7" ry="2.9" fill="#050507" opacity=".9"/><ellipse rx="3.8" ry="1.5" cx="1.5" cy="-.3" fill="#1a0c0e"/><path d="M-7 0l-4 1.5M6 -1l5 -1.5M2 2l2.5 2.5M-3 -2l-1.5 -2" stroke="#5a2a30" stroke-width=".9"/></g>' +
+    pinBody('p0', 0) +
+    pinBody('p8', 8) +
+    pinBody('p14', 14)
   );
 }
 
@@ -304,6 +391,7 @@ const cache = new Map<number, CityLayout>();
 export function buildLayout(seed: number): CityLayout {
   const hit = cache.get(seed);
   if (hit) return hit;
+  boxReg = new Map();
   const tiles: Tile[] = islandCells().map((cell, index) => {
     const d = Math.hypot(cell.x, cell.y);
     const z = zoneOfCell(cell);
@@ -313,14 +401,11 @@ export function buildLayout(seed: number): CityLayout {
   for (const t of tiles) {
     const x0 = t.cell.x - 0.5;
     const y0 = t.cell.y - 0.5;
-    const x1 = t.cell.x + 0.5;
-    const y1 = t.cell.y + 0.5;
     const pt = project(x0, y0);
-    const pl = project(x0, y1);
-    const pr = project(x1, y0);
-    let inner = `<use href="#tt" x="${n(pt[0])}" y="${n(pt[1])}"/>`;
-    if (!tileAt.has(`${t.cell.x},${t.cell.y + 1}`)) inner += `<use href="#sl" x="${n(pl[0])}" y="${n(pl[1])}"/>`;
-    if (!tileAt.has(`${t.cell.x + 1},${t.cell.y}`)) inner += `<use href="#sr" x="${n(pr[0])}" y="${n(pr[1])}"/>`;
+    const south = !tileAt.has(`${t.cell.x},${t.cell.y + 1}`);
+    const east = !tileAt.has(`${t.cell.x + 1},${t.cell.y}`);
+    const gid = south && east ? 'tb' : south ? 'ts' : east ? 'te' : 'tt';
+    let inner = `<use href="#${gid}" x="${n(pt[0])}" y="${n(pt[1])}"/>`;
     if ((t.kind === 'road' || t.kind === 'bridge') && (t.cell.x + t.cell.y) % 2 === 0) {
       const c = project(t.cell.x, t.cell.y);
       inner += `<use class="lp" href="#lp" x="${n(c[0])}" y="${n(c[1])}"/>`;
@@ -342,11 +427,12 @@ export function buildLayout(seed: number): CityLayout {
     t.sparks.push(markup);
     sparks.push({ tile: t.index, markup });
   }
+  for (const [w, d, h] of PIN_BOXES) noteBox(w, d, h);
   const guides = ZONE_RADII.slice(0, 6)
     .map((r) => `<path class="zguide" d="${ellipsePath(r)}"/>`)
     .join('');
   const bands = ZONE_RADII.map((r, i) => ellipsePath(r) + (i > 0 ? ellipsePath(ZONE_RADII[i - 1]!) : ''));
-  const layout: CityLayout = { seed, tiles, buildingTiles, sparks, defs: buildDefs(), sky: buildSky(), guides, bands, tileAt };
+  const layout: CityLayout = { seed, tiles, buildingTiles, sparks, defs: buildDefs() + boxDefs(), sky: buildSky(), guides, bands, tileAt };
   cache.set(seed, layout);
   return layout;
 }
@@ -470,9 +556,7 @@ export function residueMarkup(residue: ResidueLike[]): { scorch: string; flags: 
       const x = f1(c[0]);
       const y = f1(c[1]);
       scorch +=
-        `<g class="scorch" opacity="${op}" transform="translate(${x} ${y})">` +
-        '<ellipse rx="9" ry="3.8" fill="#3a1a1e" opacity=".55"/><ellipse rx="7" ry="2.9" fill="#050507" opacity=".9"/><ellipse rx="3.8" ry="1.5" cx="1.5" cy="-.3" fill="#1a0c0e"/>' +
-        '<path d="M-7 0l-4 1.5M6 -1l5 -1.5M2 2l2.5 2.5M-3 -2l-1.5 -2" stroke="#5a2a30" stroke-width=".9"/>' +
+        `<g class="scorch" opacity="${op}" transform="translate(${x} ${y})"><use href="#sc"/>` +
         (w.age < 7
           ? '<rect class="em" x="-3" y="-1.5" width="1.5" height="1.5" fill="#ff6b85"/><rect class="em" x="2" y=".2" width="1.5" height="1.5" fill="#ffb84d"/><rect class="em" x="-.5" y="1" width="1" height="1" fill="#ffb84d"/>'
           : '') +

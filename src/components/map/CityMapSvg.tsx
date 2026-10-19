@@ -54,7 +54,14 @@ const RAW_ICONS: Record<string, string> = {
 function toSymbol(id: string, raw: string): string {
   const m = /<svg\b([^>]*)>([\s\S]*)<\/svg>/.exec(raw);
   if (!m) return '';
-  const attrs = (m[1] ?? '').replace(/\s*xmlns="[^"]*"/, '');
+  // Stroke and fill live on `.picon` so every symbol does not repeat them.
+  const attrs = (m[1] ?? '')
+    .replace(/\s*xmlns="[^"]*"/, '')
+    .replace(/\s*fill="none"/, '')
+    .replace(/\s*stroke="currentColor"/, '')
+    .replace(/\s*stroke-width="2\.5"/, '')
+    .replace(/\s*stroke-linejoin="miter"/, '')
+    .replace(/\s*stroke-linecap="square"/, '');
   const body = (m[2] ?? '')
     .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/\s+/g, ' ')
@@ -181,6 +188,10 @@ export function CityMapSvg({ seed, ring, wallR, prevWallR, prevRing, compareWall
   const nextZoneEdge = ring < 7 ? ellipsePath([0.62, 1.62, 2.62, 3.82, 5.02, 6.52, 8.25][ring]!) : '';
   const marks = useMemo(() => residueMarkup(residue), [residue]);
   const corridors = useMemo(() => corridorMarkup(pins, wallR, shapes), [pins, wallR, shapes]);
+  const sparkHtml = useMemo(
+    () => layout.sparks.map((s) => s.markup.replace('<rect ', `<rect class="${states[s.tile] === 'f' ? 'spark' : 'spark off'}" `)).join(''),
+    [layout, states],
+  );
   const wallStyle = { rx: `${wall.rx}px`, ry: `${wall.ry}px` } as CSSProperties;
   const glowStyle = { rx: `${glow.rx}px`, ry: `${glow.ry}px` } as CSSProperties;
 
@@ -225,11 +236,7 @@ export function CityMapSvg({ seed, ring, wallR, prevWallR, prevRing, compareWall
           return <TileGroup key={t.index} className={buildingClass(t, states[t.index]!, dl >= 0)} style={style} markup={t.building!.markup} />;
         })}
       </g>
-      <g aria-hidden="true">
-        {layout.sparks.map((s, i) => (
-          <g key={i} className={states[s.tile] === 'f' ? 'spark' : 'spark off'} dangerouslySetInnerHTML={{ __html: s.markup }} />
-        ))}
-      </g>
+      <g aria-hidden="true" dangerouslySetInnerHTML={{ __html: sparkHtml }} />
       <g aria-hidden="true" dangerouslySetInnerHTML={{ __html: marks.scorch }} />
       <g aria-hidden="true" dangerouslySetInnerHTML={{ __html: layout.guides }} />
       <g aria-hidden="true">
@@ -277,15 +284,11 @@ export function CityMapSvg({ seed, ring, wallR, prevWallR, prevRing, compareWall
                   if (activate(e)) onPin(p.id, e.currentTarget);
                 }}
               >
-                <ellipse rx="5.5" ry="2.2" cy={lift} fill="#000" opacity=".45" />
+                <use href={lift === 14 ? '#p14' : lift === 8 ? '#p8' : '#p0'} />
                 <circle className="halo" cy="-22" r="12" />
-                <rect className="post" x="-.8" y="-16" width="1.6" height={16 + lift} />
-                <circle className="sel-ring" cy="-22" r="13" />
-                <path className="plaque" d="M-7 -29h14l2 2v10l-2 2h-14l-2-2v-10z" />
                 <use href={`#op-${p.type}`} x="-5.5" y="-27.5" width="11" height="11" className="picon" />
                 {p.state === 'stronghold' ? <path className="crown" d="M-5 -30v-4.5l2.5 2 2.5-3 2.5 3 2.5-2v4.5z" /> : null}
                 {p.quiet ? <path className="zz" d="M9 -33h3.5l-3.5 3.5h3.5M13.5 -38h2.5l-2.5 2.5h2.5" /> : null}
-                <rect className="hit" x="-25" y="-47" width="50" height={50 + lift} fill="transparent" />
               </g>
             </g>
           );
