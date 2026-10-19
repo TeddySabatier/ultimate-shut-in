@@ -53,6 +53,29 @@ test('manifest lists the three app shortcuts with fetchable 96px icons', async (
   }
 });
 
+test('the built service worker imports the reminder tap handler', async ({ page, request }) => {
+  const swUrl = new URL('sw.js', page.url()).toString();
+  const sw = await (await request.get(swUrl)).text();
+  expect(sw).toMatch(/importScripts\([^)]*sw-notify\.js/);
+  const handlerRes = await request.get(new URL('sw-notify.js', swUrl).toString());
+  expect(handlerRes.ok()).toBe(true);
+  const handler = await handlerRes.text();
+  expect(handler).toContain("addEventListener('notificationclick'");
+  expect(handler).toContain('openWindow');
+  expect(handler).toContain('#/quests');
+});
+
+test('the Add my own quest shortcut link opens the compose sheet once', async ({ page }) => {
+  await onboard(page, { name: 'Tester' });
+  await page.goto('/#/quests?compose=1', { waitUntil: 'domcontentloaded' });
+  const sheet = page.getByRole('dialog', { name: 'Your own quest' });
+  await expect(sheet).toBeVisible();
+  await expect(page).toHaveURL(/#\/quests$/);
+  await page.reload();
+  await expect(page.getByRole('heading', { name: "Today's board" })).toBeVisible();
+  await expect(sheet).toHaveCount(0);
+});
+
 test('service worker registers and the app renders offline after the first load', async ({ page, context }) => {
   await onboard(page, { name: 'Tester' });
   const scope = await page.evaluate(async () => {
