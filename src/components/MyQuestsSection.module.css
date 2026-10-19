@@ -71,3 +71,36 @@
   font-size: var(--text-xs);
   color: var(--color-success);
 }
+
+/* Archived quests: a collapsed group under the active list. */
+.archived {
+  margin-top: var(--space-3);
+  min-width: 0;
+}
+
+.summary {
+  display: flex;
+  align-items: center;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-2);
+  font-family: var(--font-heading);
+  font-size: var(--heading-xs);
+  text-transform: uppercase;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.summary:focus-visible {
+  outline: 2px solid var(--color-accent-text);
+  outline-offset: 2px;
+}
+
+.hint {
+  margin: var(--space-2) 0 var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+
+.past {
+  border-style: dashed;
+}

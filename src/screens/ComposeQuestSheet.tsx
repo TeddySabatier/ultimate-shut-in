@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react';
 import {
+  DESCRIPTION_MAX,
   HABIT_IDS,
   MAX_DURATION_MIN,
   MAX_TARGET_COUNT,
@@ -7,6 +8,7 @@ import {
   activeOutposts,
   cleanDraft,
   customSlotsLeft,
+  customTitleTaken,
   effortTier,
   formatLine,
   getHabit,
@@ -19,6 +21,7 @@ import {
   strings,
   vassalName,
   type CustomDraft,
+  type CustomTemplate,
   type HabitId,
   type QuestKind,
   type Recurrence,
@@ -69,6 +72,7 @@ interface Edits {
   duration?: string;
   target?: string;
   title?: string;
+  description?: string;
   recurrence?: RecurrenceKey;
   timeSlot?: TimeSlot;
   tier?: Tier;
@@ -80,20 +84,45 @@ function wholeNumber(text: string): number {
   return text.trim() === '' ? Number.NaN : Number(text);
 }
 
+/** What the form shows before the player changes anything, for a saved template. */
+function seedOf(t: CustomTemplate): { habit: HabitId; kind: QuestKind; duration: string; target: string; title: string; description: string; recurrence: RecurrenceKey; timeSlot: TimeSlot } {
+  return {
+    habit: t.habit,
+    kind: t.kind,
+    duration: String(t.durationMin ?? DEFAULT_DURATION),
+    target: String(t.targetCount ?? DEFAULT_TARGET),
+    title: t.title,
+    description: t.description,
+    recurrence: keyOf(t.recurrence, t.pinWeekday),
+    timeSlot: t.timeSlot,
+  };
+}
+
+/** Edits an opened template starts with: its place on the map, and its tier only when it was chosen by hand. */
+function editsOf(t: CustomTemplate): Edits {
+  const manual = t.tier !== effortTier(t.kind, t.durationMin, t.targetCount);
+  return { outpostId: t.outpostId ?? '', ...(manual ? { tier: t.tier } : {}) };
+}
+
 interface BodyProps {
   titleId: string;
   onClose: () => void;
+  /** The saved quest being edited, or null to compose a new one. */
+  template: CustomTemplate | null;
 }
 
-function SheetBody({ titleId, onClose }: BodyProps) {
+function SheetBody({ titleId, onClose, template }: BodyProps) {
   const save = useSave();
+  const editing = template !== null;
+  const seed = template ? seedOf(template) : null;
   const composeQuest = useGameStore((s) => s.composeQuest);
+  const editCustom = useGameStore((s) => s.editCustom);
   const clearNotice = useGameStore((s) => s.clearNotice);
   const ids = useId();
   const [text, setText] = useState('');
   const [usedVoice, setUsedVoice] = useState(false);
   const [heard, setHeard] = useState(false);
-  const [edits, setEdits] = useState<Edits>({});
+  const [edits, setEdits] = useState<Edits>(() => (template ? editsOf(template) : {}));
   const [error, setError] = useState<string | null>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
   const locale = typeof navigator !== 'undefined' && navigator.language ? navigator.language : 'en-US';
@@ -111,15 +140,16 @@ function SheetBody({ titleId, onClose }: BodyProps) {
   }, [speech.status]);
 
   const parsed = useMemo(() => parseQuestDraft(text, { locale }), [text, locale]);
-  const hasText = text.trim() !== '';
+  const hasText = editing || text.trim() !== '';
 
-  const habit = edits.habit ?? parsed.habit;
-  const kind = edits.kind ?? parsed.kind;
-  const durationText = edits.duration ?? String(parsed.durationMin ?? DEFAULT_DURATION);
-  const targetText = edits.target ?? String(parsed.targetCount ?? DEFAULT_TARGET);
-  const title = edits.title ?? parsed.title;
-  const recurrenceKey = edits.recurrence ?? keyOf(parsed.recurrence, parsed.pinWeekday);
-  const timeSlot = edits.timeSlot ?? parsed.timeSlot;
+  const habit = edits.habit ?? seed?.habit ?? parsed.habit;
+  const kind = edits.kind ?? seed?.kind ?? parsed.kind;
+  const durationText = edits.duration ?? seed?.duration ?? String(parsed.durationMin ?? DEFAULT_DURATION);
+  const targetText = edits.target ?? seed?.target ?? String(parsed.targetCount ?? DEFAULT_TARGET);
+  const title = edits.title ?? seed?.title ?? parsed.title;
+  const description = edits.description ?? seed?.description ?? parsed.description;
+  const recurrenceKey = edits.recurrence ?? seed?.recurrence ?? keyOf(parsed.recurrence, parsed.pinWeekday);
+  const timeSlot = edits.timeSlot ?? seed?.timeSlot ?? parsed.timeSlot;
   const duration = wholeNumber(durationText);
   const target = wholeNumber(targetText);
   const { recurrence, pinWeekday } = fromKey(recurrenceKey);
@@ -136,27 +166,32 @@ function SheetBody({ titleId, onClose }: BodyProps) {
     durationMin: durationArg,
     targetCount: targetArg,
     title,
-    description: parsed.description,
+    description,
     tier: edits.tier,
     recurrence,
     pinWeekday,
     timeSlot,
-    source: usedVoice ? 'voice' : 'text',
+    source: template ? template.source : usedVoice ? 'voice' : 'text',
     outpostId: edits.outpostId === undefined || edits.outpostId === '' ? undefined : edits.outpostId,
   };
   const checked = cleanDraft(input);
   // Related outposts first, then the rest of the map, so a gym quest finds its gym at the top.
   const outpostOptions = [...relatedOutposts(save, habit), ...activeOutposts(save).filter((o) => !o.habits.includes(habit))];
-  const problem = 'error' in checked ? checked.error : null;
+  const invalid = 'error' in checked ? checked.error : null;
+  // A name another active quest of the same vassal already carries: said at once, before any button.
+  const duplicate = invalid === null && customTitleTaken(save, habit, title, template?.id);
+  const problem = invalid ?? (duplicate ? formatLine(c.notes.duplicate, { title: 'draft' in checked ? checked.draft.title : title }) : null);
   const rewards = problem === null ? previewCustomRewards(save, input) : null;
 
   const habitOn = save.settings.enabledHabits.includes(habit);
   const away = save.vassals[habit].away;
   const slotsLeft = customSlotsLeft(save);
   const canBoard = save.board !== null && habitOn && !away && slotsLeft > 0;
-  const askHabit = hasText && edits.habit === undefined && parsed.questions.some((q) => q.id === 'habit');
-  const askAmount = hasText && edits.duration === undefined && edits.target === undefined && edits.kind === undefined && parsed.questions.some((q) => q.id === 'amount');
-  const askTitle = hasText && edits.title === undefined && parsed.questions.some((q) => q.id === 'title');
+  // On today's board its habit, kind, length and effort change from tomorrow; the engine says the same.
+  const locked = template !== null && (save.board?.quests.some((q) => q.templateId === template.id) ?? false);
+  const askHabit = hasText && !editing && edits.habit === undefined && parsed.questions.some((q) => q.id === 'habit');
+  const askAmount = hasText && !editing && edits.duration === undefined && edits.target === undefined && edits.kind === undefined && parsed.questions.some((q) => q.id === 'amount');
+  const askTitle = hasText && !editing && edits.title === undefined && parsed.questions.some((q) => q.id === 'title');
 
   const set = (patch: Edits): void => {
     setEdits((e) => ({ ...e, ...patch }));
@@ -166,7 +201,7 @@ function SheetBody({ titleId, onClose }: BodyProps) {
   const submit = (board: boolean): void => {
     if (problem !== null || !hasText) return;
     setError(null);
-    if (composeQuest(input, { board })) {
+    if (template ? editCustom(template.id, input) : composeQuest(input, { board })) {
       onClose();
       return;
     }
@@ -197,78 +232,88 @@ function SheetBody({ titleId, onClose }: BodyProps) {
       <SystemWindow
         as="div"
         tone="accent"
-        title={<span id={titleId}>{c.title}</span>}
+        title={<span id={titleId}>{editing ? c.editTitle : c.title}</span>}
         className={styles.window}
         actions={
           <>
             <button type="button" className="btn" onClick={onClose}>
               {c.actions.cancel}
             </button>
-            <button type="button" className="btn" disabled={!hasText || problem !== null} onClick={() => submit(false)}>
-              {recurrence === 'once' ? c.actions.later : c.actions.recurring}
-            </button>
-            <button type="submit" className="btn btn--primary" disabled={!hasText || problem !== null || !canBoard}>
-              {c.actions.board}
-            </button>
+            {editing ? (
+              <button type="submit" className="btn btn--primary" disabled={problem !== null}>
+                {c.actions.save}
+              </button>
+            ) : (
+              <>
+                <button type="button" className="btn" disabled={!hasText || problem !== null} onClick={() => submit(false)}>
+                  {recurrence === 'once' ? c.actions.later : c.actions.recurring}
+                </button>
+                <button type="submit" className="btn btn--primary" disabled={!hasText || problem !== null || !canBoard}>
+                  {c.actions.board}
+                </button>
+              </>
+            )}
           </>
         }
       >
-        <p className={styles.intro}>{c.intro}</p>
+        <p className={styles.intro}>{editing ? c.editIntro : c.intro}</p>
 
-        <div className={styles.capture}>
-          <label htmlFor={`${ids}-text`} className={styles.label}>
-            {c.textLabel}
-          </label>
-          <textarea
-            id={`${ids}-text`}
-            ref={textRef}
-            className={styles.textarea}
-            rows={3}
-            maxLength={300}
-            autoFocus
-            value={text}
-            placeholder={c.textPlaceholder}
-            aria-describedby={`${ids}-voice`}
-            onChange={(e) => {
-              setText(e.target.value);
-              setHeard(false);
-            }}
-          />
-          <div className={styles.voiceRow}>
-            {speech.supported ? (
-              <button type="button" className={cx('btn', listening && styles.listening)} onClick={listening ? speech.stop : speech.start}>
-                <Icon src={uiIcons.mic} size={18} />
-                {listening ? c.stop : c.speak}
-              </button>
+        {editing ? null : (
+          <div className={styles.capture}>
+            <label htmlFor={`${ids}-text`} className={styles.label}>
+              {c.textLabel}
+            </label>
+            <textarea
+              id={`${ids}-text`}
+              ref={textRef}
+              className={styles.textarea}
+              rows={3}
+              maxLength={300}
+              autoFocus
+              value={text}
+              placeholder={c.textPlaceholder}
+              aria-describedby={`${ids}-voice`}
+              onChange={(e) => {
+                setText(e.target.value);
+                setHeard(false);
+              }}
+            />
+            <div className={styles.voiceRow}>
+              {speech.supported ? (
+                <button type="button" className={cx('btn', listening && styles.listening)} onClick={listening ? speech.stop : speech.start}>
+                  <Icon src={uiIcons.mic} size={18} />
+                  {listening ? c.stop : c.speak}
+                </button>
+              ) : null}
+              {listening ? (
+                <span className={styles.rec} role="status">
+                  <span className={styles.dot} aria-hidden="true" />
+                  {c.listening}
+                </span>
+              ) : null}
+            </div>
+            {listening && speech.interim !== '' ? (
+              <p className={styles.interim} aria-live="polite">
+                <span className="muted">{c.hearing}:</span> {speech.interim}
+              </p>
             ) : null}
-            {listening ? (
-              <span className={styles.rec} role="status">
-                <span className={styles.dot} aria-hidden="true" />
-                {c.listening}
-              </span>
+            {voiceNote !== null ? (
+              <p className={styles.alert} role="alert">
+                {voiceNote}
+              </p>
             ) : null}
+            {heard && voiceNote === null ? <p className={styles.ok}>{c.heard}</p> : null}
+            <p id={`${ids}-voice`} className={cx('muted', styles.note)}>
+              {speech.supported ? c.voicePrivacy : c.unsupported}
+            </p>
           </div>
-          {listening && speech.interim !== '' ? (
-            <p className={styles.interim} aria-live="polite">
-              <span className="muted">{c.hearing}:</span> {speech.interim}
-            </p>
-          ) : null}
-          {voiceNote !== null ? (
-            <p className={styles.alert} role="alert">
-              {voiceNote}
-            </p>
-          ) : null}
-          {heard && voiceNote === null ? <p className={styles.ok}>{c.heard}</p> : null}
-          <p id={`${ids}-voice`} className={cx('muted', styles.note)}>
-            {speech.supported ? c.voicePrivacy : c.unsupported}
-          </p>
-        </div>
+        )}
 
         {!hasText ? (
           <p className={cx('muted', styles.note)}>{c.emptyHint}</p>
         ) : (
           <div className={styles.parsed}>
-            <h3 className={styles.subhead}>{c.parsedHeading}</h3>
+            {editing ? null : <h3 className={styles.subhead}>{c.parsedHeading}</h3>}
 
             <ul className={styles.questions}>
               {askHabit ? <li>{c.questions.habit}</li> : null}
@@ -284,7 +329,7 @@ function SheetBody({ titleId, onClose }: BodyProps) {
                   const on = save.settings.enabledHabits.includes(h);
                   return (
                     <label key={h} className={cx(styles.habit, habit === h && styles.selected, !on && styles.off)} style={{ '--habit': def.color } as CSSProperties}>
-                      <input type="radio" name={`${ids}-habit`} value={h} checked={habit === h} disabled={!on} onChange={() => set({ habit: h })} />
+                      <input type="radio" name={`${ids}-habit`} value={h} checked={habit === h} disabled={!on || locked} onChange={() => set({ habit: h })} />
                       <Sprite src={vassalPortraits[h]} alt="" size={36} className={styles.portrait} />
                       <span className={styles.habitText}>
                         <span className={styles.habitName}>{vassalName(h)}</span>
@@ -303,7 +348,7 @@ function SheetBody({ titleId, onClose }: BodyProps) {
               <div className={styles.segmented}>
                 {KINDS.map((k) => (
                   <label key={k} className={cx(styles.seg, kind === k && styles.selected)}>
-                    <input type="radio" name={`${ids}-kind`} value={k} checked={kind === k} onChange={() => set({ kind: k })} />
+                    <input type="radio" name={`${ids}-kind`} value={k} checked={kind === k} disabled={locked} onChange={() => set({ kind: k })} />
                     <span>{c.kinds[k]}</span>
                   </label>
                 ))}
@@ -323,6 +368,7 @@ function SheetBody({ titleId, onClose }: BodyProps) {
                     min={1}
                     max={MAX_DURATION_MIN}
                     value={durationText}
+                    disabled={locked}
                     onChange={(e) => set({ duration: e.target.value })}
                   />
                 </div>
@@ -332,16 +378,27 @@ function SheetBody({ titleId, onClose }: BodyProps) {
                   <label htmlFor={`${ids}-target`} className={styles.label}>
                     {c.labels.target}
                   </label>
-                  <input id={`${ids}-target`} type="number" inputMode="numeric" min={1} max={MAX_TARGET_COUNT} value={targetText} onChange={(e) => set({ target: e.target.value })} />
+                  <input id={`${ids}-target`} type="number" inputMode="numeric" min={1} max={MAX_TARGET_COUNT} value={targetText} disabled={locked} onChange={(e) => set({ target: e.target.value })} />
                 </div>
               ) : null}
               <div className={cx(styles.field, styles.wide, askTitle && styles.asking)}>
                 <label htmlFor={`${ids}-name`} className={styles.label}>
                   {c.labels.name}
                 </label>
-                <input id={`${ids}-name`} type="text" maxLength={40} value={title} onChange={(e) => set({ title: e.target.value })} />
+                <input id={`${ids}-name`} type="text" maxLength={40} value={title} autoFocus={editing} onChange={(e) => set({ title: e.target.value })} />
               </div>
             </div>
+
+            {editing ? (
+              <div className={styles.row}>
+                <div className={cx(styles.field, styles.wide)}>
+                  <label htmlFor={`${ids}-note`} className={styles.label}>
+                    {c.labels.description}
+                  </label>
+                  <input id={`${ids}-note`} type="text" maxLength={DESCRIPTION_MAX} value={description} onChange={(e) => set({ description: e.target.value })} />
+                </div>
+              </div>
+            ) : null}
 
             <div className={styles.row}>
               <div className={styles.field}>
@@ -394,7 +451,7 @@ function SheetBody({ titleId, onClose }: BodyProps) {
               <div className={styles.segmented}>
                 {([1, 2, 3] as const).map((t) => (
                   <label key={t} className={cx(styles.seg, tier === t && styles.selected, t > cap && styles.off)}>
-                    <input type="radio" name={`${ids}-tier`} value={t} checked={tier === t} disabled={t > cap} onChange={() => set({ tier: t })} />
+                    <input type="radio" name={`${ids}-tier`} value={t} checked={tier === t} disabled={t > cap || locked} onChange={() => set({ tier: t })} />
                     <span>
                       {t} {c.tiers[t - 1]}
                       {t === effort ? <span className={styles.suggested}> ({c.tierSuggested})</span> : null}
@@ -405,6 +462,7 @@ function SheetBody({ titleId, onClose }: BodyProps) {
               {cap < 3 ? <p className={cx('muted', styles.note)}>{formatLine(c.tierCap, { kind: c.kinds[kind].toLowerCase(), max: cap })}</p> : null}
             </fieldset>
 
+            {locked ? <p className={cx('muted', styles.note)}>{c.notes.locked}</p> : null}
             {problem !== null ? (
               <p className={styles.alert} role="alert">
                 {problem.charAt(0).toUpperCase() + problem.slice(1)}.
@@ -416,7 +474,7 @@ function SheetBody({ titleId, onClose }: BodyProps) {
                 <RewardChips xp={rewards.xp} coins={rewards.coins} dp={rewards.dp} />
               </div>
             ) : null}
-            {slotsLeft === 0 ? <p className={cx('muted', styles.note)}>{c.notes.full}</p> : null}
+            {!editing && slotsLeft === 0 ? <p className={cx('muted', styles.note)}>{c.notes.full}</p> : null}
           </div>
         )}
 
@@ -433,15 +491,19 @@ function SheetBody({ titleId, onClose }: BodyProps) {
 interface SheetProps {
   open: boolean;
   onClose: () => void;
+  /** Edit this saved quest (prefilled, "Save changes") instead of composing a new one. */
+  template?: CustomTemplate | null;
 }
 
 /**
  * The Compose sheet: say or type one sentence, check what the on-device
  * parser made of it, then put it on today's board or keep it in My quests.
  * A native modal `<dialog>` (focus trap, Escape) that mounts its body only
- * while open, so every opening starts blank.
+ * while open, so every opening starts blank. With `template` it is the edit
+ * form for a saved quest: the same fields, validation and reward preview,
+ * prefilled, with "Save changes" in place of the board buttons.
  */
-export function ComposeQuestSheet({ open, onClose }: SheetProps) {
+export function ComposeQuestSheet({ open, onClose, template = null }: SheetProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
@@ -479,7 +541,7 @@ export function ComposeQuestSheet({ open, onClose }: SheetProps) {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      {open ? <SheetBody titleId={titleId} onClose={onClose} /> : null}
+      {open ? <SheetBody titleId={titleId} onClose={onClose} template={template} /> : null}
     </dialog>
   );
 }

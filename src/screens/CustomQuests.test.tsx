@@ -134,8 +134,9 @@ describe('Ledger: My quests', () => {
     expect(currentSave().customTemplates[0]?.archivedAt).toBeUndefined();
     fireEvent.click(screen.getByRole('button', { name: c.myQuests.archive }));
     expect(currentSave().customTemplates[0]?.archivedAt).toBeDefined();
-    expect(screen.queryByRole('heading', { name: 'Deep read' })).toBeNull();
+    // Gone from the active list; it waits under the collapsed Archived group.
     expect(screen.getByText(c.myQuests.empty, { exact: false })).toBeInTheDocument();
+    expect(screen.getByText(new RegExp('^' + c.myQuests.archivedGroup))).toBeInTheDocument();
   });
 
   it('disables "Add to today" once two of your own are on the board', () => {

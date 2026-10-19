@@ -15,6 +15,8 @@ import {
   addCustomTemplate,
   applyResurrection,
   archiveCustomTemplate,
+  restoreCustomTemplate,
+  updateCustomTemplate,
   changeResetHour,
   completeQuest,
   createOutpost,
@@ -161,6 +163,10 @@ export interface GameActions {
   composeQuest: (draft: CustomDraft, opts: { board: boolean }) => boolean;
   addCustomToBoard: (templateId: string) => void;
   archiveCustom: (templateId: string) => void;
+  /** Compose sheet in edit mode: apply every field of `draft` to a saved template (future boards). Returns false, with a notice, when refused. */
+  editCustom: (templateId: string, draft: CustomDraft) => boolean;
+  /** Bring an archived template back into My quests. */
+  restoreCustom: (templateId: string) => void;
   acceptProposal: (id: string) => void;
   dismissProposal: (id: string) => void;
   /** City Map (docs/design/CITY-MAP.md). Refusals become warm notices; each returns whether it was applied. */
@@ -373,6 +379,12 @@ export const useGameStore = create<GameStore>()(
         },
         addCustomToBoard: (templateId) => void withSave((save, now) => addCustomQuestToBoard(save, now, templateId)),
         archiveCustom: (templateId) => void withSave((save, now) => archiveCustomTemplate(save, now, templateId)),
+        editCustom: (templateId, draft) =>
+          withSave((save, now) => {
+            const { source: _source, ...patch } = draft;
+            return updateCustomTemplate(save, now, templateId, { ...patch, outpostId: draft.outpostId ?? null });
+          }),
+        restoreCustom: (templateId) => void withSave((save, now) => restoreCustomTemplate(save, now, templateId)),
         acceptProposal: (id) =>
           void withSave((save, now) => {
             const r = acceptProposal(save, now, id);

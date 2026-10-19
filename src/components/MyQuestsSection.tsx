@@ -1,8 +1,10 @@
 import { useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import {
+  MAX_ACTIVE_CUSTOM,
   activeCustomTemplates,
   customSlotsLeft,
+  customTitleTaken,
   findOutpost,
   formatLine,
   getHabit,
@@ -13,6 +15,8 @@ import {
   type SaveFile,
 } from '../game';
 import { habitIcons } from '../assets';
+import { ComposeQuestSheet } from '../screens/ComposeQuestSheet';
+import { useGameStore } from '../state/gameStore';
 import { effortLabel } from '../utils/format';
 import { ConfirmDialog } from './ConfirmDialog';
 import { Icon } from './Icon';
@@ -27,10 +31,39 @@ interface Props {
 
 const c = strings.compose;
 
-/** The Ledger's "My quests": every active custom template with its stats, and the way to archive it. */
+/** The facts of one template, shared by an active and an archived row. */
+function Facts({ save, t }: { save: SaveFile; t: CustomTemplate }) {
+  const habit = getHabit(t.habit);
+  const outpost = t.outpostId ? findOutpost(save, t.outpostId) : undefined;
+  return (
+    <>
+      <div className={styles.head}>
+        <Icon src={habitIcons[t.habit]} size={24} className={styles.icon} label={habit.label} />
+        <div className={styles.name}>
+          <h3 className={styles.title}>{t.title}</h3>
+          <p className={styles.meta}>
+            {vassalName(t.habit)} · {effortLabel(t.kind, t.durationMin, t.targetCount)} · {recurrenceLabel(t.recurrence, t.pinWeekday)} · Tier {t.tier}
+            {outpost ? ` · ${formatLine(c.whereAt, { name: outpost.name })}` : ''}
+          </p>
+        </div>
+        <span className={styles.source}>{c.myQuests.sources[t.source]}</span>
+      </div>
+      <p className={styles.stats}>{formatLine(c.myQuests.stats, { issued: t.stats.issued, done: t.stats.done, tried: t.stats.tried })}</p>
+    </>
+  );
+}
+
+/**
+ * The Ledger's "My quests": every active custom template with its stats and
+ * the ways to add it to today, edit it (the Compose sheet, prefilled) or
+ * archive it; archived ones wait under a collapsed group with Restore.
+ */
 export function MyQuestsSection({ save, onAddToday, onArchive }: Props) {
+  const restoreCustom = useGameStore((s) => s.restoreCustom);
   const [pending, setPending] = useState<CustomTemplate | null>(null);
+  const [editing, setEditing] = useState<CustomTemplate | null>(null);
   const templates = activeCustomTemplates(save);
+  const archived = save.customTemplates.filter((t) => t.archivedAt !== undefined).sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0));
   const slots = customSlotsLeft(save);
   const onBoardIds = new Set(save.board?.quests.map((q) => q.templateId) ?? []);
 
@@ -44,23 +77,11 @@ export function MyQuestsSection({ save, onAddToday, onArchive }: Props) {
         ) : (
           <ul className={styles.list}>
             {templates.map((t) => {
-              const habit = getHabit(t.habit);
               const onBoard = onBoardIds.has(t.id);
               const canAdd = !onBoard && slots > 0 && save.board !== null && save.settings.enabledHabits.includes(t.habit) && !save.vassals[t.habit].away;
               return (
-                <li key={t.id} className={styles.item} style={{ '--habit': habit.color } as CSSProperties}>
-                  <div className={styles.head}>
-                    <Icon src={habitIcons[t.habit]} size={24} className={styles.icon} label={habit.label} />
-                    <div className={styles.name}>
-                      <h3 className={styles.title}>{t.title}</h3>
-                      <p className={styles.meta}>
-                        {vassalName(t.habit)} · {effortLabel(t.kind, t.durationMin, t.targetCount)} · {recurrenceLabel(t.recurrence, t.pinWeekday)} · Tier {t.tier}
-                        {t.outpostId && findOutpost(save, t.outpostId) ? ` · ${formatLine(c.whereAt, { name: findOutpost(save, t.outpostId)!.name })}` : ''}
-                      </p>
-                    </div>
-                    <span className={styles.source}>{c.myQuests.sources[t.source]}</span>
-                  </div>
-                  <p className={styles.stats}>{formatLine(c.myQuests.stats, { issued: t.stats.issued, done: t.stats.done, tried: t.stats.tried })}</p>
+                <li key={t.id} className={styles.item} style={{ '--habit': getHabit(t.habit).color } as CSSProperties}>
+                  <Facts save={save} t={t} />
                   <div className={styles.actions}>
                     {onBoard ? <span className={styles.onBoard}>{c.myQuests.onBoard}</span> : null}
                     {!onBoard ? (
@@ -68,6 +89,9 @@ export function MyQuestsSection({ save, onAddToday, onArchive }: Props) {
                         {c.myQuests.addToday}
                       </button>
                     ) : null}
+                    <button type="button" className="btn btn--sm" aria-label={`${c.myQuests.edit}: ${t.title}`} onClick={() => setEditing(t)}>
+                      {c.myQuests.edit}
+                    </button>
                     <button type="button" className="btn btn--sm" aria-label={`${c.myQuests.archive}: ${t.title}`} onClick={() => setPending(t)}>
                       {c.myQuests.archive}
                     </button>
@@ -77,7 +101,36 @@ export function MyQuestsSection({ save, onAddToday, onArchive }: Props) {
             })}
           </ul>
         )}
+
+        {archived.length > 0 ? (
+          <details className={styles.archived}>
+            <summary className={styles.summary}>
+              {c.myQuests.archivedGroup} ({archived.length})
+            </summary>
+            <p className={styles.hint}>{c.myQuests.archivedHint}</p>
+            <ul className={styles.list} aria-label={c.myQuests.archivedGroup}>
+              {archived.map((t) => {
+                const nameTaken = customTitleTaken(save, t.habit, t.title);
+                const full = templates.length >= MAX_ACTIVE_CUSTOM;
+                const why = nameTaken ? c.myQuests.restoreNameTaken : full ? c.myQuests.restoreFull : null;
+                return (
+                  <li key={t.id} className={`${styles.item} ${styles.past}`} style={{ '--habit': getHabit(t.habit).color } as CSSProperties}>
+                    <Facts save={save} t={t} />
+                    {why ? <p className={styles.stats}>{why}</p> : null}
+                    <div className={styles.actions}>
+                      <button type="button" className="btn btn--sm" disabled={why !== null} aria-label={`${c.myQuests.restore}: ${t.title}`} onClick={() => restoreCustom(t.id)}>
+                        {c.myQuests.restore}
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </details>
+        ) : null}
       </SystemWindow>
+
+      <ComposeQuestSheet open={editing !== null} template={editing} onClose={() => setEditing(null)} />
 
       <ConfirmDialog
         open={pending !== null}
