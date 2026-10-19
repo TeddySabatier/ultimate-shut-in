@@ -1,7 +1,9 @@
+import { Component, lazy, Suspense, type ReactNode } from 'react';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AppShell } from './components/AppShell';
 import { useGameTick } from './hooks/useGameTick';
 import { useReducedMotionAttribute } from './hooks/useReducedMotion';
+import { debugEnabled } from './state/debug';
 import { useGameStore } from './state/gameStore';
 import { CharacterScreen } from './screens/CharacterScreen';
 import { HomeScreen } from './screens/HomeScreen';
@@ -27,8 +29,50 @@ function GameRoutes() {
   );
 }
 
+// The Games Lab (src/games/lab): a dev tool, in its own chunk, loaded only when allowed.
+const GamesLab = lazy(() => import('./games/lab/LabRoutes'));
+
+/** A chunk that fails to load (offline, a deploy in between) shows a retry instead of a blank page. */
+class LabLoadBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  override state: { error: Error | null } = { error: null };
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+  override render() {
+    if (!this.state.error) return this.props.children;
+    return (
+      <main role="alert" style={{ padding: 'var(--space-4)' }}>
+        <h1>The Games Lab did not load</h1>
+        <p className="muted">{this.state.error.message}</p>
+        <button type="button" className="btn btn--primary" onClick={() => window.location.reload()}>
+          Retry
+        </button>
+      </main>
+    );
+  }
+}
+
+/** `#/lab/*`: dev builds, or `localStorage['haven.debug'] === '1'` (the e2e helpers set it); otherwise back to the Haven. */
+function LabGate() {
+  if (!debugEnabled()) return <Navigate to="/" replace />;
+  return (
+    <LabLoadBoundary>
+      <Suspense fallback={<p className="muted">Loading the Games Lab...</p>}>
+        <GamesLab />
+      </Suspense>
+    </LabLoadBoundary>
+  );
+}
+
 export default function App() {
   useReducedMotionAttribute();
   const onboarded = useGameStore((s) => s.onboarded);
-  return <HashRouter>{onboarded ? <GameRoutes /> : <OnboardingScreen />}</HashRouter>;
+  return (
+    <HashRouter>
+      <Routes>
+        <Route path="lab/*" element={<LabGate />} />
+        <Route path="*" element={onboarded ? <GameRoutes /> : <OnboardingScreen />} />
+      </Routes>
+    </HashRouter>
+  );
 }

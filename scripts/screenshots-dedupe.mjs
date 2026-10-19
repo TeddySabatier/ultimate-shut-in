@@ -16,6 +16,12 @@
  * A spec that mentions the screenshot folder in a way this script cannot read
  * is reported as a warning so the table above gets extended.
  *
+ * Out of scope, on purpose:
+ *   - Mini-game specs (e2e/games/*.spec.ts) are not scanned. Games write their
+ *     screenshots with shootGame to docs/games/img/<id>-<name>.png, which this
+ *     script never reads or deletes (src/games/registry.test.ts budgets them).
+ *   - Sub-folders of e2e/__screenshots__ are left alone.
+ *
  * Usage:
  *   node scripts/screenshots-dedupe.mjs            delete stale files
  *   node scripts/screenshots-dedupe.mjs --dry-run  list them only
@@ -56,7 +62,8 @@ const { projects, runs } = readProjects();
 const expected = new Set();
 const warnings = [];
 
-for (const file of readdirSync(specDir).filter((f) => f.endsWith('.spec.ts'))) {
+// Top-level specs only: e2e/games/ (mini games) is out of scope, see above.
+for (const file of readdirSync(specDir).filter((f) => f.endsWith('.spec.ts') && statSync(join(specDir, f)).isFile())) {
   const text = read(join(specDir, file));
   const base = file.replace(/\.spec\.ts$/, '');
   const active = projects.filter((p) => runs(p, base));
@@ -100,7 +107,7 @@ if (expected.size === 0) {
 
 let stale = [];
 try {
-  stale = readdirSync(shots).filter((f) => !f.startsWith('.') && !expected.has(f));
+  stale = readdirSync(shots).filter((f) => !f.startsWith('.') && statSync(join(shots, f)).isFile() && !expected.has(f));
 } catch {
   console.log('screenshots-dedupe: no screenshot folder, nothing to do.');
   process.exit(0);
