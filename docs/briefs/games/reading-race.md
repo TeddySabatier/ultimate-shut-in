@@ -26,7 +26,7 @@ A short original passage is shown one word (or a small phrase) at a time at a pa
 
 ## Engine
 
-Time is explicit (`tick` of 20 ms). The passage reveal state machine, the pace, the question phase and scoring are pure and deterministic. The bot reads at a configured pace and answers with a comprehension probability that falls as the pace rises (seeded), which is also used to assert the scoring shape.
+Time is explicit (the standard 50 ms `tick`). The passage reveal state machine, the pace, the question phase and scoring are pure and deterministic. The bot reads at a configured pace and answers with a comprehension probability that falls as the pace rises (seeded), which is also used to assert the scoring shape.
 
 ## Party and buffs
 

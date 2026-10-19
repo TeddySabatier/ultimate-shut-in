@@ -23,7 +23,7 @@ The popular lane-runner with maths gates, made fair and original. A **squad** ru
 
 ## Engine
 
-Pure, fixed 20 ms `tick`, integer positions, no `Math.random`. State: squad count, lane x, position along the level, enemies, gates, boss HP, time. `botPlay` follows the solver's best path, with a seeded error rate by difficulty. The solver and the generator live in `engine.ts` or a sibling file and are unit-tested.
+Pure, fixed 50 ms `tick` (`FIXED_DT_MS`, interpolate positions in the Screen with `onFrame(alpha)` so 60 fps looks smooth), integer positions, no `Math.random`. State: squad count, lane x, position along the level, enemies, gates, boss HP, time. `botPlay` follows the solver's best path, with a seeded error rate by difficulty. The solver and the generator live in `engine.ts` or a sibling file and are unit-tested.
 
 ## Party and buffs
 
