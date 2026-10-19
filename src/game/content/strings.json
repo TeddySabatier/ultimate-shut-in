@@ -571,5 +571,37 @@
     },
     "chip": "Map",
     "seeOnMap": "See it on the map"
+  },
+  "reminders": {
+    "title": "SYSTEM",
+    "board": [
+      "Today's board is issued. Pick one small thing and start there.",
+      "A new board is online. The Haven is ready when you are.",
+      "Fresh board, no rush. Go gently."
+    ],
+    "wave": [
+      "A wave reaches the walls tomorrow. One more quest tonight would help.",
+      "Wave inbound at dawn. The walls hold; a little more would not hurt.",
+      "Wave tomorrow. Nothing to fear, only a little to tend."
+    ],
+    "timer": [
+      "{quest}: the time is up. Come and log it.",
+      "The timer on {quest} has run out. Well done, come and claim it.",
+      "{quest} is complete on the clock. The Haven is waiting."
+    ],
+    "ui": {
+      "window": "Reminders",
+      "master": "Send me reminders",
+      "intro": "Opt-in and local: this app schedules them on your device. There is no server and no push service.",
+      "honesty": "They only arrive while Haven Protocol is open, in a tab or as an installed app. When the app is closed nothing fires, and missed reminders are not sent later. If your browser can schedule notifications itself they may also arrive while it is closed; most cannot.",
+      "denied": "Notifications are blocked for this site. Allow them in your browser's site settings, then switch this on again.",
+      "dismissed": "Permission was not granted, so reminders stay off. Nothing was sent.",
+      "unsupported": "This browser cannot show notifications here, so reminders are unavailable. Everything else works as usual.",
+      "quiet": "Quiet hours: nothing is sent between {from} and {to} (set under Hours).",
+      "board": { "label": "Board issued", "help": "When the day's board is ready. Never before the day starts." },
+      "wave": { "label": "Wave tomorrow", "help": "The evening before a wave settles." },
+      "timer": { "label": "Timer finished", "help": "When a running timer quest reaches its time." },
+      "timeSuffix": "time"
+    }
   }
 }
