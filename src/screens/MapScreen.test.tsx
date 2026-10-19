@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useGameStore } from '../state/gameStore';
 import { currentSave, renderWithRouter, seedStore } from '../test/storeUtils';
@@ -34,7 +34,9 @@ describe('MapScreen', () => {
   it('opens the zone sheet from a band, closes on Escape, and the list view opens the same sheets', () => {
     seedStore();
     renderWithRouter(<MapScreen />);
-    fireEvent.keyDown(screen.getByRole('button', { name: /^Zone 2,/ }), { key: 'Enter' });
+    const band = screen.getByRole('button', { name: /^Zone 2,/ });
+    band.focus();
+    fireEvent.keyDown(band, { key: 'Enter' });
     const dialog = screen.getByRole('dialog', { name: 'The Flat' });
     expect(dialog).toHaveTextContent('Zone 2 of 7');
     expect(dialog).toHaveTextContent('120 DP to go');
@@ -42,6 +44,7 @@ describe('MapScreen', () => {
     expect(dialog).toHaveTextContent('The Protocol has not written this page yet');
     fireEvent(dialog, new Event('cancel', { cancelable: true }));
     expect(screen.queryByRole('dialog', { name: 'The Flat' })).toBeNull();
+    expect(document.activeElement).toBe(band);
 
     fireEvent.click(screen.getByRole('button', { name: 'Show the map as a list' }));
     expect(screen.queryByRole('group', { name: /city map/i })).toBeNull();
@@ -62,6 +65,8 @@ describe('MapScreen', () => {
     renderWithRouter(<MapScreen />);
     fireEvent.click(screen.getByRole('button', { name: /Mark an outpost/ }));
     const form = screen.getByRole('dialog', { name: 'Mark a place' });
+    expect(within(form).getByText(/Amber dots are free cells/)).toBeInTheDocument();
+    expect(form.querySelector('[data-place-cell]')).not.toBeNull();
     fireEvent.click(within(form).getByRole('button', { name: 'Mark outpost' }));
     expect(within(form).getByRole('alert')).toHaveTextContent(/give it a name/i);
     fireEvent.change(within(form).getByLabelText('Name'), { target: { value: 'Hollow Park' } });
@@ -79,7 +84,7 @@ describe('MapScreen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'I was there: log a visit to Hollow Park' }));
     expect(currentSave().map.outposts[0]?.visits).toBe(1);
     expect(screen.getByRole('button', { name: 'Visit to Hollow Park logged today' })).toBeDisabled();
-    expect(screen.getByText('Outposts', { selector: 'span' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /^Outposts/ })).toBeInTheDocument();
 
     // The outpost sheet from the row.
     fireEvent.click(screen.getByRole('button', { name: /^Hollow Park, Marked/ }));
@@ -105,16 +110,34 @@ describe('MapScreen', () => {
     expect(currentSave().map.outposts[0]?.name).toBe('Riverside Gym');
     const sheet = screen.getByRole('dialog', { name: 'Riverside Gym' });
     fireEvent.click(within(sheet).getByRole('button', { name: 'Retire' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Retire', exact: true }));
+    const retire = screen.getByRole('dialog', { name: /Retire Riverside Gym/ });
+    fireEvent.click(within(retire).getByRole('button', { name: 'Retire' }));
     expect(currentSave().map.outposts[0]?.retired).toBe(true);
     expect(screen.getByText(/No outposts yet/)).toBeInTheDocument();
 
-    mark('B', { x: 2, y: 1 });
-    mark('C', { x: -2, y: 1 });
-    mark('D', { x: 1, y: -3 });
-    mark('E', { x: -3, y: -3 });
+    act(() => {
+      mark('B', { x: 2, y: 1 });
+      mark('C', { x: -2, y: 1 });
+      mark('D', { x: 1, y: -3 });
+      mark('E', { x: -3, y: -3 });
+    });
     expect(screen.getByRole('button', { name: /Mark an outpost/ })).toBeDisabled();
     expect(screen.getByText('The Ledger holds 4 outposts at The Room. Each new ring makes room for one more.')).toBeInTheDocument();
+  });
+
+  it('lets a tap on a free-cell amber dot set the outpost cell', () => {
+    seedStore();
+    renderWithRouter(<MapScreen />);
+    fireEvent.click(screen.getByRole('button', { name: /Mark an outpost/ }));
+    const form = screen.getByRole('dialog', { name: 'Mark a place' });
+    fireEvent.change(within(form).getByLabelText('Name'), { target: { value: 'The bench' } });
+    const dot = form.querySelector('[data-place-cell]');
+    expect(dot).not.toBeNull();
+    const [x, y] = (dot!.getAttribute('data-place-cell') ?? '0,0').split(',').map(Number);
+    fireEvent.click(dot!);
+    fireEvent.click(within(form).getByRole('button', { name: 'Mark outpost' }));
+    expect(screen.queryByRole('dialog', { name: 'Mark a place' })).toBeNull();
+    expect(currentSave().map.outposts[0]?.cell).toEqual({ x, y });
   });
 
   it('records the look when it unmounts', () => {

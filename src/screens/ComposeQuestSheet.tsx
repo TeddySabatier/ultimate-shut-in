@@ -4,6 +4,7 @@ import {
   MAX_DURATION_MIN,
   MAX_TARGET_COUNT,
   WEEKDAY_NAMES,
+  activeOutposts,
   cleanDraft,
   customSlotsLeft,
   effortTier,
@@ -90,7 +91,9 @@ function SheetBody({ titleId, onClose }: BodyProps) {
   const [usedVoice, setUsedVoice] = useState(false);
   const [heard, setHeard] = useState(false);
   const [edits, setEdits] = useState<Edits>({});
+  const [outpostId, setOutpostId] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const outposts = activeOutposts(save);
   const textRef = useRef<HTMLTextAreaElement>(null);
   const locale = typeof navigator !== 'undefined' && navigator.language ? navigator.language : 'en-US';
 
@@ -138,6 +141,7 @@ function SheetBody({ titleId, onClose }: BodyProps) {
     pinWeekday,
     timeSlot,
     source: usedVoice ? 'voice' : 'text',
+    ...(outpostId !== '' ? { outpostId } : {}),
   };
   const checked = cleanDraft(input);
   const problem = 'error' in checked ? checked.error : null;
@@ -378,6 +382,23 @@ function SheetBody({ titleId, onClose }: BodyProps) {
               </div>
               {cap < 3 ? <p className={cx('muted', styles.note)}>{formatLine(c.tierCap, { kind: c.kinds[kind].toLowerCase(), max: cap })}</p> : null}
             </fieldset>
+
+            {outposts.length > 0 ? (
+              <div className={styles.field}>
+                <label htmlFor={`${ids}-outpost`} className={styles.label}>
+                  {c.labels.outpost}
+                </label>
+                <select id={`${ids}-outpost`} value={outpostId} onChange={(e) => setOutpostId(e.target.value)}>
+                  <option value="">{c.outpostNone}</option>
+                  {outposts.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.name}
+                    </option>
+                  ))}
+                </select>
+                <p className={cx('muted', styles.note)}>{c.outpostHint}</p>
+              </div>
+            ) : null}
 
             {problem !== null ? (
               <p className={styles.alert} role="alert">

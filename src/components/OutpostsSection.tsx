@@ -30,7 +30,10 @@ export function OutpostsSection({ save, onRestore, onForget }: Props) {
       <SystemWindow title={m.ledgerTitle}>
         {active.length === 0 ? (
           <p className="muted">
-            {m.ledgerEmpty} <Link to="/map">Open the Map</Link>
+            {m.ledgerEmpty}{' '}
+            <Link to="/map" className={styles.mapLink}>
+              {m.ledgerLink}
+            </Link>
           </p>
         ) : (
           <ul className={styles.list}>

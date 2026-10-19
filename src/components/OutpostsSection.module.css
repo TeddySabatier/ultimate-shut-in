@@ -49,3 +49,9 @@
   margin: var(--space-4) 0 var(--space-2);
   color: var(--color-muted);
 }
+
+.mapLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target);
+}

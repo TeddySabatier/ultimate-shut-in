@@ -9,6 +9,13 @@
   max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 1.5rem);
   overflow-y: auto;
   overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  /* Scrolling overlay: align from the start, push the sheet down (RESPONSIVE-RULES 10). */
+  margin-top: auto;
+  margin-bottom: 0;
+  margin-inline: auto;
 }
 
 .dialog::backdrop {
@@ -16,7 +23,7 @@
 }
 
 .dialog .window {
-  margin: 0;
+  margin: auto 0 0;
   /* Opaque: the Board underneath must not show through the form. */
   background: var(--color-panel);
 }

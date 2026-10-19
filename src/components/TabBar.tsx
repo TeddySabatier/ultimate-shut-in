@@ -26,6 +26,7 @@ export function TabBar() {
           key={tab.to}
           to={tab.to}
           end={tab.to === '/'}
+          aria-label={tab.label}
           className={({ isActive }) => (isActive ? `${styles.tab} ${styles.active}` : styles.tab)}
         >
           <Icon src={tab.icon} size="1.375rem" className={styles.icon} />

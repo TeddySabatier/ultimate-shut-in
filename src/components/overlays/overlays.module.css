@@ -292,7 +292,9 @@
 }
 
 .whereRow > button {
+  flex: none;
   min-width: 0;
+  min-height: var(--touch-target);
   max-width: 100%;
   overflow-wrap: anywhere;
 }
