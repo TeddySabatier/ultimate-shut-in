@@ -1,5 +1,7 @@
 # Contributing
 
+Working on a brief with other agents or people in parallel? Read [`AGENTS.md`](AGENTS.md) and [`docs/PARALLEL-WORK.md`](docs/PARALLEL-WORK.md) first: they define branches, pull requests, stacking and which files each task may touch.
+
 Thanks for helping with Haven Protocol. Please read the [non-affiliation note](README.md#non-affiliation) first: all names, text and art must be original, and nothing from the source work that inspired the project may be copied in.
 
 ## Setup

@@ -91,6 +91,7 @@ src/
 - [Art guide](docs/design/ART.md): palette, geometry and asset inventory.
 - [City map and outposts](docs/design/CITY-MAP.md) and [custom quests](docs/design/CUSTOM-QUESTS.md): the two features added after v0.1.
 - [Responsive rules](docs/RESPONSIVE-RULES.md): the layout rules every screen follows.
+- [Team playbook](docs/PARALLEL-WORK.md) and [briefs](docs/briefs/): how parallel work, pull requests and stacking are managed, and what is next.
 - [Architecture](docs/ARCHITECTURE.md): layers, save format, time model, PWA and testing strategy.
 - [Engine README](src/game/README.md) and [content schema](src/game/content/schema.md).
 - [Deploy](docs/DEPLOY.md) and [Contributing](CONTRIBUTING.md).

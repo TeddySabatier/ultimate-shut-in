@@ -1,0 +1,1 @@
+Per-brief notes for the current wave. One file per brief id (E.md, F.md, ...): departures from the brief, open questions, and requests for files the brief does not own. Never edit another brief file. Moved to docs/review/archive/wave-N/ at the end of the wave.

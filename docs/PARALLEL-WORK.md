@@ -1,97 +1,205 @@
-# Parallel work briefs (wave 1)
+# Team playbook: parallel work on Haven Protocol
 
-Six briefs that can run at the same time without touching the same files. Each runs in its own git worktree and branch cut from `main` (brief A cuts from `wip/map-tab`). Merge order at the end.
+This is the working agreement for every agent and person who ships code or docs here. Read sections 1 and 4 before you write anything. Your own task is in one file under `docs/briefs/`.
 
-## Rules for every brief
+- **Maintainer:** Teddy (`TeddySabatier`), with Claude acting as orchestrator and reviewer. The maintainer reviews, merges, retargets and tags. **Agents never merge, never tag, never push to `main`.**
+- **Agents:** Cursor agents and any other tool that takes a brief. One agent owns one brief and one PR.
 
-- Work only in the files listed under "Owns". If you need to change a file in another brief's scope, stop and write the need into `docs/review/merge-notes.md` under your brief letter instead of editing it. Files nobody owns in this wave and that nobody may touch: `src/game/types.ts`, `src/game/save.ts`, `src/App.tsx`, `src/components/TabBar.tsx`, `src/components/AppShell.tsx`, `src/state/gameStore.ts`, `e2e/helpers.ts` (all reserved for brief A).
-- Read `CLAUDE.md`, `docs/RESPONSIVE-RULES.md`, `src/game/README.md` first.
-- Before committing: `npm run lint && npm run typecheck && npm test && npm run build`. Run `npm run e2e` only for briefs that change UI, one Playwright suite at a time on this machine (`--workers=2` if navigations stall).
-- Commit on your branch with conventional messages ending in `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`; push the branch; do not merge into `main` and do not tag. Open a pull request with the task summary.
-- Setup: `git worktree add ../usi-<letter> -b <branch> main` from the repo, then `npm ci` in the worktree.
+## 1. The short version
 
----
+1. Read `AGENTS.md`, then `CLAUDE.md`, then your brief in `docs/briefs/`.
+2. Branch from the **latest `main`**. Name it as your brief says. Never branch from another agent's branch unless your brief says "Stacked on".
+3. Open a **draft PR against `main` after your first commit**. Mark it ready only when every acceptance item in your brief passes.
+4. Touch only the files your brief lists under "You may edit". If you need a file you do not own, **stop and ask** (section 4.4); do not edit it.
+5. Put your notes in `docs/review/notes/<ID>.md`, never in a shared file.
+6. Run `npm run lint && npm run typecheck && npm test && npm run build` before every push. UI work also runs the relevant Playwright specs and the responsive checklist.
+7. Use the PR template. A PR without a filled description is not reviewed.
+8. After review starts, fix with new commits. **Do not force-push and do not rebase.** If `main` moved, merge `main` into your branch.
+9. Never merge, close, retarget or push to another agent's PR or branch.
 
-## A. Finish the Map tab (branch `wip/map-tab`, continue it)
+## 2. Where `main` stands
 
-Owns: `src/game/map*.ts`, `src/game/outposts*.ts`, `src/game/wave.ts`, `src/game/tick.ts`, `src/game/types.ts`, `src/game/save.ts`, `src/game/economy.ts`, `src/game/board.ts`, `src/game/content/outposts.json`, `src/game/content/strings.json` (key `map` only), `src/components/map/**`, `src/components/OutpostsSection.*`, `src/components/TabBar.*`, `src/components/AppShell.*`, `src/components/RingHeader.*`, `src/components/overlays/WaveResultWindow.tsx`, `src/components/overlays/RingUnlockWindow.tsx`, `src/components/overlays/OverlayHost.*`, `src/components/overlays/eventText.ts`, `src/screens/HomeScreen.tsx`, `src/screens/CharacterScreen.tsx`, `src/screens/MapScreen.*`, `src/state/gameStore.ts`, `src/state/selectors.ts`, `src/assets/outposts/**`, `src/assets/index.ts`, `src/App.tsx`, `e2e/helpers.ts`, `e2e/map.spec.ts`, `e2e/responsive.spec.ts`, `docs/design/CITY-MAP.md` (Resolution section), `docs/PLAYER-GUIDE.md` (Map section), `docs/ARCHITECTURE.md` (map paragraph).
+Update this section in the same PR that changes it (the maintainer does it at merge time).
 
-Prompt:
+| Item | State |
+| --- | --- |
+| Latest tag | `v0.3.0` (City Map). `main` is ahead of it, see below. |
+| Merged since the tag | #2 test-suite diet, #17 Map follow-ups, #3 edit and restore custom quests, #1 local reminders and app shortcuts |
+| Live app | https://teddysabatier.github.io/ultimate-shut-in/ (deploys on every push to `main`) |
+| Save format | `SAVE_VERSION` **4**, persist envelope `STORAGE_VERSION` **3** |
+| Unit tests | 668 in 48 files (vitest) |
+| End-to-end | 98 tests in 11 files (Playwright, mobile and desktop projects) |
+| CI jobs | `Lint, typecheck, test, build`; `E2E mobile 1/2`; `E2E mobile 2/2`; `E2E desktop` (about 3.5 minutes) |
+| Runtime | Node 24 |
+| Closed, superseded | PRs #4 to #16 (a swarm of duplicate Map PRs). Their branches are kept for reference and will be deleted once nobody needs them. |
+| Unmerged work with no PR | `cursor/quest-learned-notes-40d2`: quest notes, save version 5. This is brief H. |
 
-> Continue the partially implemented City Map feature on branch `wip/map-tab` (checkout: `git worktree add ../usi-a wip/map-tab`). The spec is `docs/design/CITY-MAP.md`; the visual reference is `docs/design/prototypes/city-map.html` and its screenshots. Start by running lint, typecheck and vitest to see what the previous session left broken, and read the diff of the last commit (`git show --stat HEAD`) to learn what exists: the engine side (SaveFile v4 with MapState, outposts, wave outposts term, migration) is mostly in place; the Map screen SVG, list view, add-outpost sheet, pin and zone panels, the 7-days ghost wall, wave residue, and the e2e are not finished. Deliver the full scope of the spec: 5th tab Map in the centre, one inline SVG under 60 KB with 7 concentric zones, creeping wall (stops at 85% toward the next zone), ghost wall toggle, scorch marks fading over 14 days and a 7-day walls-held flag, pins with Marked/Scouted/Corridor/Stronghold styling, system-window panels on tap, "I was there today" (one visit per outpost per game day), add/retire/forget, list view, keyboard and screen-reader reachable, two columns from 768px, every rule in `docs/RESPONSIVE-RULES.md`. Tests: engine unit tests for every rule (states never drop, caps 3 + ring and 3 per zone and none in the Room, quiet after 14 days, +2 defense per Stronghold capped at +6, Scouted reroll discount, Corridor +10% settlement, snapshot cap 104, visit log cap 400, v3 to v4 migration), store and screen tests, `e2e/map.spec.ts` (create an outpost, visit over simulated days with the debug clock until Scouted, wall advances after a wave, list view, axe), Map added to `e2e/responsive.spec.ts`. Update the Player Guide and Architecture docs and add a Resolution section to CITY-MAP.md listing departures. Done when lint, typecheck, vitest, build and the full e2e pass, and the Map screen matches the prototype at 320, 390 and 1024 widths (look at the screenshots). Push the branch and open a PR titled "feat: Map tab with city progress and outposts".
+The code layout and the contracts are in `CLAUDE.md`, `docs/ARCHITECTURE.md` and `src/game/README.md`. The layout rules are in `docs/RESPONSIVE-RULES.md`.
 
-## B. Edit and restore custom quests
+## 3. The backlog
 
-Owns: `src/game/custom.ts`, `src/game/custom.test.ts`, `src/game/adapt.ts`, `src/game/adapt.test.ts`, `src/screens/ComposeQuestSheet.*`, `src/components/MyQuestsSection.*`, `src/components/ProposalsSection.*`, `src/components/CustomQuests.test.tsx`, `src/game/content/strings.json` (keys `compose` and `proposals` only), `e2e/compose.spec.ts`, `docs/design/CUSTOM-QUESTS.md`.
+### Wave 2: start now, all in parallel, all against `main`
 
-Prompt:
+No two briefs below edit the same lines of the same file (section 4.4 explains how the few shared files are split). Merge order does not matter.
 
-> Custom quests shipped with archive only. Add editing and restoring without any SaveFile schema change (no edits to `src/game/types.ts` or `src/game/save.ts`; `archivedAt` already exists and `CustomTemplate` already has every field you need). Engine (`src/game/custom.ts`): `updateCustomTemplate` must accept title, description, habit, kind, duration or count, tier (re-capped by the existing effort rules), recurrence, time slot and pinWeekday; edits apply to future boards only, today's issued copy keeps its reward snapshot; `restoreCustomTemplate(save, now, id)` clears `archivedAt` and respects the max-2-custom-per-board rule on the next issue; both return events (`customUpdated`, `customRestored`, add them to the existing event union only if it lives outside types.ts, otherwise reuse `customArchived`-style generic events already defined). UI: in My quests (Ledger section) each template gets Edit (opens the Compose sheet prefilled, same validation and reward preview) and, for archived ones shown under a collapsed "Archived" group, Restore. Compose sheet in edit mode shows "Save changes" instead of "Add", and a duplicate-title guard. Proposals: when rule 3 proposes making a once quest recurring, accepting must now call `updateCustomTemplate` rather than creating a copy. Tests: unit tests for every rule above, screen tests for edit and restore, extend `e2e/compose.spec.ts` with edit then verify tomorrow's board (debug clock) and restore. Update `docs/design/CUSTOM-QUESTS.md`. Done when lint, typecheck, vitest, build and `npx playwright test e2e/compose.spec.ts` pass. Push branch `feat/custom-quest-edit`, open a PR.
+| ID | Brief | File | Save version | Size | Kind |
+| --- | --- | --- | --- | --- | --- |
+| E | French localisation groundwork (catalog, `t()`, French strings, not wired) | `docs/briefs/E-i18n-groundwork.md` | none | medium | new files only |
+| F | Citizens: design and prototype | `docs/briefs/F-citizens-design.md` | plans v6 | medium | docs only |
+| G | Arena, Armory, plug-in mini games, Roguelike Chess: design and prototypes | `docs/briefs/G-arena-design.md` | plans v7 | large | docs only |
+| H | "What I learned" notes on quests (finish an existing branch) | `docs/briefs/H-quest-notes.md` | **v5** | medium | feature |
+| J | Weekly recap card (shareable image) | `docs/briefs/J-weekly-recap-card.md` | none | medium | feature |
+| K | Stop the end-to-end navigation hangs | `docs/briefs/K-e2e-stability.md` | none | small | test infrastructure |
+| L | Polish pack: import preview, calmer toasts | `docs/briefs/L-polish-pack.md` | none | small | feature |
 
-## C. Reminders and app shortcuts
+### Wave 3: do not start, they wait for merges
 
-Owns: `src/notifications/**` (new), `src/screens/SettingsScreen.*`, `src/hooks/useInstallPrompt.ts`, `vite.config.ts` (manifest `shortcuts` and workbox options only), `index.html` (meta only), `src/pwa/registerSW.ts`, `public/icons/shortcut-*.png` (new), `scripts/gen-icons.mjs`, `e2e/settings.spec.ts`, `e2e/pwa.spec.ts`, `docs/PLAYER-GUIDE.md` (Reminders section only), `docs/ARCHITECTURE.md` (notifications paragraph only).
+| ID | Brief | Waits for | Save version |
+| --- | --- | --- | --- |
+| M | i18n wiring (every screen) | E merged, and H, J, L merged or parked | next free |
+| N | Citizens build | F and M merged | **v6** |
+| O | Arena build | G and N merged | **v7** |
+| P | Roguelike Chess | O merged | none |
 
-Prompt:
+Details are in `docs/briefs/wave-3.md`. The maintainer writes each full brief when its prerequisites merge.
 
-> Add opt-in local reminders and PWA shortcuts, with no server and no push subscription. Reminders: a Settings section "Reminders" with a master toggle that requests Notification permission on tap (never on load), three reminders each with its own toggle and time: "Board issued" (default 08:30), "Wave tomorrow" (default 19:00 the day before a wave period ends), "Timer finished" (fires when a running timer quest reaches its duration). Implementation: `src/notifications/scheduler.ts` is a pure module computing the next fire times from the save and settings (unit-tested with fixed timestamps and the reset hour), `src/notifications/runtime.ts` arms them with `setTimeout` while the app is open and re-arms on visibility change, and tries the Notification Triggers API when available; when the app is closed nothing fires, and the Settings copy says so honestly. Notifications are styled as system windows in the text (title "SYSTEM" plus a warm one-liner from strings; add a `reminders` key to `src/game/content/strings.json` ONLY by appending at the end of the file, nothing else in that file). Quiet hours: never fire between lights-out and wake hour from settings. Shortcuts: add manifest `shortcuts` for "Add my own quest" (`#/quests?compose=1`), "Today's board" (`#/quests`) and "Map" (`#/map`, harmless if the route does not exist yet) with 96px icons generated by `scripts/gen-icons.mjs`. The compose deep link needs one line in `QuestsScreen`, which you do not own: write the handler as a small hook `src/notifications/useDeepLink.ts` (reads `?compose=1` from the hash, returns a boolean once, clears it) and record in `docs/review/merge-notes.md` under C the exact one-line call the merger must add to `QuestsScreen`. Tests: scheduler unit tests, Settings screen tests with a mocked Notification API (granted, denied, unsupported), e2e: shortcuts present in the built manifest, Settings toggles persist, denied state shows the explanation. Done when lint, typecheck, vitest, build and `npx playwright test e2e/settings.spec.ts e2e/pwa.spec.ts` pass. Push branch `feat/reminders-shortcuts`, open a PR.
+```
+Wave 2 (parallel, base main):   E   F   G   H   J   K   L
+                                |   |   |
+Wave 3 (sequential, base main): +---+---+--> M --> N --> O --> P
+                                    (E)  (F)     (G)
+```
 
-## D. Test-suite diet
+Later ideas, not briefs yet: shop registration, a sun-crow familiar, optional cloud sync (`docs/design/GDD.md`, "Out of v1"), editing Map outposts from quests.
 
-Owns: `playwright.config.ts`, `.github/workflows/ci.yml`, `e2e/visual.spec.ts`, `e2e/a11y.spec.ts`, `e2e/__screenshots__/**`, `scripts/**` (new scripts only), `package.json` scripts section, `.gitignore`, `docs/review/qa-report.md` (new "Suite performance" section), `vite.config.ts` test block only (`test:` key).
+## 4. Rules of the road
 
-Prompt:
+### 4.1 Branches and commits
 
-> The e2e suite takes 14 minutes locally and `e2e/__screenshots__` is 9.4 MB and growing with every run. Targets: full e2e under 6 minutes in CI and under 8 locally, screenshot folder under 3 MB with no regression in what the README embeds. Do: (1) CI: shard the Playwright job across 3 runners with `--shard`, cache the Chromium download, run the mobile and desktop projects as separate shards, upload the report only on failure, keep the unit job separate. (2) Visual spec: downscale saved screenshots with sharp to a max width of 480px and quality-optimised PNG (or WebP if the README can embed it; keep PNG for the 8 images README references and update their size), stop saving full-page and viewport duplicates when they differ only by height, and write a `scripts/screenshots-dedupe.mjs` that prunes files no spec writes anymore. (3) Rewrite the a11y spec to run axe once per screen on one project only (mobile) and assert the same thresholds. (4) Mark the slowest specs with per-test timeouts instead of global ones and add `fullyParallel: true` where tests are independent (they clear localStorage per test). (5) Unit tests: vitest `pool: 'threads'` and `isolate: false` only if the suite stays green; keep the 120s pacing timeout. (6) Document before and after numbers in `docs/review/qa-report.md`. Do not edit any spec other than `visual.spec.ts` and `a11y.spec.ts`, and do not touch `e2e/helpers.ts`. Done when lint, typecheck, vitest, build and the full e2e pass locally with the measured time recorded. Push branch `chore/test-suite-diet`, open a PR.
+- Branch from the latest `main`: `git fetch origin && git checkout -b <branch> origin/main`.
+- Branch name: `<type>/<ID>-<slug>`, for example `feat/J-weekly-recap-card`. Cursor's automatic `cursor/...` names are accepted when the brief says so (brief H continues an existing one). Types: `feat`, `fix`, `docs`, `chore`, `test`.
+- Commit messages: conventional (`feat(recap): ...`), small and logical, in English, no ticket ids from other systems.
+- One brief is one PR. Split only when a change is over about 1,500 lines **and** crosses two areas; then open two PRs, each green on its own, and say so in both descriptions.
 
-## E. French localisation groundwork
+### 4.2 Pull requests
 
-Owns: `src/i18n/**` (new), `src/game/content/strings.fr.json` (new), `src/game/content/schema.md` (i18n section only), `docs/I18N.md` (new), `src/i18n/*.test.ts`.
+- **Base is `main`.** Always, unless section 4.3 applies.
+- Open a **draft** PR after your first commit. Mark it ready when the acceptance list in your brief passes.
+- **Title:** `type(scope): summary [ID]`, for example `feat(recap): shareable weekly recap card from the wave result [J]`.
+- **Description:** fill in `.github/pull_request_template.md` completely (GitHub loads it by itself). Opening a PR through an API? Paste the template's headings. Required: what and why, the brief id, base and stacking, files outside your "may edit" list (should be none), test evidence (the commands and counts), screenshots for UI changes, the save version impact, and the notes file.
+- **Labels:** `docs-only` for docs-only PRs, `wave-2` or `wave-3`, `needs-maintainer` when you are blocked on a file you do not own, `stacked` when section 4.3 applies, `blocked` when waiting for another PR.
+- Keep the PR current: when `main` moves, merge it in (4.8) and say so in a comment.
+- A reviewer's comment is answered by a commit or a reply, never by silence. Resolve a thread only when the fix is pushed.
 
-Prompt:
+### 4.3 Stacking: when a PR is based on another PR
 
-> Prepare French localisation without wiring any screen yet (screens are owned by other briefs this wave; wiring is wave 2). Deliver: `src/i18n/index.ts` exporting `t(key, params?)`, `setLocale`, `getLocale`, `detectLocale()` (navigator.language, default en, persisted later by the Settings owner under the key `haven.locale`, so read that key if present), with ICU-style `{param}` interpolation and simple plural rules for en and fr; a `useT()` React hook in `src/i18n/useT.ts` that re-renders on locale change; `src/i18n/catalog.ts` that loads `strings.json` (English, existing) and `strings.fr.json` (new) and validates at test time that both have the same key tree (missing keys fail a test, extra keys warn). Translate every string in `src/game/content/strings.json` into natural French in `strings.fr.json`, including the opening, the seven ring vignettes, all toast pools, compose and proposals copy; keep the warm, slightly dry tone; tutoiement; 'Haven' stays 'Haven', vassal names unchanged, titles get French names in a `titlesFr` map inside strings.fr.json rather than touching titles.json. Also produce `src/i18n/ui.en.json` and `ui.fr.json` holding every hard-coded UI string you can find in `src/screens` and `src/components` (read-only pass: `grep` for JSX text and aria-labels), keyed by screen, so wave 2 can replace them mechanically; include a `docs/I18N.md` with the wiring plan file by file. Tests: interpolation, plurals, key-tree parity, locale detection. Done when lint, typecheck, vitest and build pass. Push branch `feat/i18n-groundwork`, open a PR.
+**Default: do not stack.** If your work needs code that is in an unmerged PR, wait for it to merge, then branch from `main`. The wave plan above is built so that no wave 2 brief needs this.
 
-## F. Citizens design (docs only)
+Stack only when the maintainer wrote "Stacked on <brief or PR>" in your brief. Then:
 
-Owns: `docs/design/CITIZENS.md` (new), `docs/design/prototypes/citizens.html` (new), `docs/design/prototypes/citizens-*.png` (new), `docs/design/prototypes/assets/citizens/**` (new).
+1. Branch from the dependency's **branch**, not from `main`. Set your PR **base to that branch**.
+2. First line of the PR description: `Stacked on #<number>. Merge that one first.` Add the label `stacked`.
+3. Your diff must show only your own commits. If it shows the dependency's commits, your base is wrong; fix the base, not the code.
+4. Keep up with your dependency by merging its branch into yours (not rebase).
+5. **Never stack more than two deep.**
+6. The maintainer merges in dependency order with **merge commits** (never squash a branch that something is stacked on), then retargets your PR to `main` and asks you to merge `main` in. Do not retarget it yourself.
+7. Never delete a branch that has an open PR on top of it.
 
-Prompt:
+### 4.4 Who may touch what
 
-> Design the Citizens feature for Haven Protocol so engineers can build it in wave 2. Read `docs/design/GDD.md` (Vision, Core loop, Rings, Vassals, Utilities, Wave, Screens, tone and wellbeing), `docs/research/source-analysis.md` section 9 hook 9 (citizens as needs) and section 10 (IP: everything original), `docs/design/CITY-MAP.md` (so citizens fit the map and outposts), `docs/design/ART.md`, `docs/RESPONSIVE-RULES.md`, `src/game/types.ts` (SaveFile v3; the Map branch adds v4, so plan v5), `src/game/content/rings.json`. Citizens are original NPCs who move into the Haven as rings unlock (two per ring from ring 2, 12 total), each with a name, a two-line personality, a portrait description for the artist, one need tied to a habit (the kids need a tidy common room: Clean; the night nurse needs you asleep on time: Sleep; the retired runner needs company on walks: Move plus Social), and one gift when the need is met for N days (a resource, a small permanent buff, a decor piece, or a story beat). Needs are gentle: unmet needs make the citizen "waiting", never leaving, never scolding; Strict mode may let them "visit elsewhere" for a while. Specify: arrival rules and vignettes (80 to 150 words each, system-window voice), need tracking (rolling 7-day windows reusing the existing activity archive), gifts table with exact numbers consistent with the GDD economy (nothing stronger than a title), a "Residents" panel on the Haven screen and a citizen detail window, interactions with outposts (a citizen can be linked to an outpost: the doctor's clinic), SaveFile additions as TypeScript, engine functions with the existing contract, events, content JSON schema (`citizens.json`), wireframes for 390 and 768 widths, accessibility, and an ordered implementation plan with tests. Build a self-contained HTML prototype (`docs/design/prototypes/citizens.html`, inline CSS and JS, Google Fonts allowed) showing the Residents panel at three rings with waiting and content states and a detail window, screenshot it with Playwright at 320, 390 and 1024 and iterate until it reads as a finished game screen. Return the decisions you made.
+Your brief lists what you may edit. Everything else is off limits. These shared files get extra rules because several briefs need them:
 
-## G. The Arena: currency sinks and user-requested mini games (design, docs only)
+| File or area | Rule |
+| --- | --- |
+| `src/game/types.ts`, `src/game/save.ts` | Only the brief holding the reserved save version edits them (4.5). Any change to the saved shape needs a migration, a migration test and a line in `docs/ARCHITECTURE.md`. |
+| `src/state/gameStore.ts` | Add new actions next to related ones, never reorder or reformat. Briefs list when they may. |
+| `src/game/index.ts` | Additive exports only. |
+| `src/game/content/strings.json` | Own **one new top-level key** and insert it at the anchor your brief names (immediately before an existing key). Do not edit anyone else's keys. The anchors are spread out so edits do not collide. |
+| `docs/PLAYER-GUIDE.md`, `docs/ARCHITECTURE.md` | Edit only the section or anchor your brief names. `README.md` is maintainer-only. |
+| `e2e/helpers.ts` | Brief K may change existing helpers. Everyone else may only append new exports; never change a signature. |
+| `e2e/__screenshots__/**` | Regenerate only for screens **you changed**. Never commit more than 0.5 MB of images in one PR. Run `npm run screenshots:check` before pushing. |
+| `package.json`, `package-lock.json` | No new dependency unless your brief lists it. Say why in the PR if it does. |
+| `.github/**`, `playwright.config.ts`, `vite.config.ts`, `tsconfig*`, `eslint.config.js`, `CLAUDE.md`, `AGENTS.md`, `docs/PARALLEL-WORK.md`, `docs/briefs/**` | **Maintainer-only.** Propose a change in a PR comment with the label `needs-maintainer`. |
 
-Owns: `docs/design/ARENA.md` (new), `docs/design/games/CONTRACT.md` (new), `docs/design/games/roguelike-chess.md` (new), `docs/design/prototypes/arena.html` (new), `docs/design/prototypes/roguelike-chess.html` (new), `docs/design/prototypes/arena-*.png` and `roguelike-chess-*.png` (new), `docs/design/prototypes/assets/arena/**` (new).
+**If you need a file you do not own:** do not edit it. Describe the exact change in `docs/review/notes/<ID>.md`, add the label `needs-maintainer`, and comment on your PR. Keep going on everything else. The maintainer applies the change at merge time or hands it to the right brief.
 
-Decisions already made by the orchestrator (elaborate, do not re-litigate):
+### 4.5 The save file and content
 
-- Two currencies exist today: Settlement coins (earned per quest, few sinks) and Domain Points (never spent, drive rings). Coins become the Arena currency. Domain Points stay untouchable.
-- "Troops" are the vassals plus the citizens (once designed in brief F): the Arena uses the player's real roster, their levels, loyalty, titles and forged combos as the unit stats. Real-life progress is the only way to make troops stronger at the base.
-- The Armory is the permanent sink: spend coins on gear slots per vassal (three slots, tiered items, prices scaling with ring), on training (small permanent stat bumps with steep diminishing returns and a weekly cap so coins cannot replace habits), and on Haven decor (cosmetic, from the existing combo item names).
-- Mini games are plug-ins. A game is a self-contained module under `src/games/<id>/` with a manifest (id, name, description, icon, min ring, rules text, roster size, estimated minutes, supports reduced motion), a pure `engine.ts` (seeded, no DOM, testable), a React `Screen` and an optional worker. The host passes a `Party` (chosen troops with derived stats) and the current `Run`; the game returns an `Outcome` (`won | lost | fled`, score, log lines, which troops were used). Nothing in the game module may import the Haven store directly. This contract is what lets a future agent add "roguelike chess" or any other user-requested game without touching the rest of the app.
-- Runs: entering the Arena costs an entry fee in coins (scaled by ring, never more than one day of typical earnings). A run is a sequence of games chained until a loss or the player banks. Each win triggers the Lottery: a weighted draw of 3 run buffs, pick 1 (e.g. +15% attack for the next game, a troop revives once, +2 wave defense banked at run end, a coin multiplier). Buffs live in `Run.buffs` and die with the run. A loss ends the run and clears every run buff; the player keeps what was banked and the Armory gear, always. Banking converts run rewards into real things: coins, a one-period wave defense bonus, a rare Armory item, never Domain Points directly (a capped DP trickle through the wave bonus is fine).
-- Tone and wellbeing: losing a run is framed as "the troops come home"; no streak, loyalty or utility is ever touched by Arena results; daily time cap suggestion (the Arena is a reward, not the game); no real money anywhere.
-- User-requested games: a request flow in the Arena ("Ask for a game": the player describes the game they want in text or voice; the description is saved locally to `arenaRequests` with the date; the app shows "the engineers are reading" and nothing else). Fulfilment is a development act: a later agent reads the requests, builds the module against the contract, ships it in a release, and the game appears in the Arena list for everyone. Document this pipeline explicitly, including a request template an agent can turn into a module in one session.
-- First game, the reference implementation of the contract: Roguelike Chess. 6x6 board, the player's party are the pieces (each vassal maps to a piece type by habit: Move = knight, Outside = bishop, Clean = rook, Social = queen-lite, Study = king, Sleep = pawn wall, Eat = rook-lite, Hygiene = bishop-lite; levels add HP, titles add one passive each), enemies are the wave monsters with simple scripted moves, rooms are small encounters chained with a pick-one-of-three upgrade between rooms, three rooms per game, turn-based, no timer, fully keyboard-playable, under 3 minutes a game. Define exact rules, piece stats, enemy AI, upgrade list (12), win and loss conditions, and the seeded RNG so a game can be replayed.
+- A change to the shape of `SaveFile` needs a **reserved version number**. Reservations: **v5 = brief H, v6 = brief N, v7 = brief O**. Two briefs never share a number. If a brief is dropped its number is simply skipped; `migrate` accepts any older version.
+- Your PR must include: the bump in `SAVE_VERSION`, the migration in `src/game/save.ts` that fills defaults for older saves, and tests for each earlier version you support (see `src/game/save.test.ts`).
+- Content (quests, titles, strings) lives in `src/game/content/*.json` and is documented in `schema.md`. Document every new field there.
+- Original content only: no names, art, text or systems copied from the source work.
+- Tone: warm, never punitive. The Haven never falls.
 
-Prompt:
+### 4.6 Notes go in your own file
 
-> Design the Arena for Haven Protocol per the decisions above. Read `docs/design/GDD.md` (economy, titles, combos, wave, tone), `docs/design/GDD-errata.md`, `src/game/economy.ts` (actual reward numbers; your prices and payouts must sit inside that economy: show a table proving a Steady player can afford one run every 2 days and that training can never exceed 25% of what habits give), `src/game/types.ts`, `src/game/wave.ts` (monsters), `docs/design/CITY-MAP.md` and `docs/design/CITIZENS.md` if present (troops roster), `docs/design/ART.md`, `docs/RESPONSIVE-RULES.md`. Write `docs/design/ARENA.md` (3000-6000 words: fantasy, Armory catalogue with prices, run loop, lottery buff table with weights, banking table, request flow, SaveFile additions as TypeScript with migration note, engine functions with the existing pure contract, events, wireframes at 390 and 768, accessibility, implementation plan and tests), `docs/design/games/CONTRACT.md` (the plug-in contract as TypeScript interfaces plus a 10-step "how an agent adds a game" recipe with a file tree and a test checklist), `docs/design/games/roguelike-chess.md` (complete rules and content tables). Build two self-contained HTML prototypes with inline CSS and JS: `arena.html` (Armory, run screen with lottery pick and bank or continue, request form) and `roguelike-chess.html` (a fully playable game against scripted enemies using the rules you wrote, seeded, keyboard-playable, 3 rooms, under 60 KB of JS). Screenshot both with Playwright at 320, 390 and 1024 widths, look at the screenshots, iterate until they read as finished game screens, save them next to the prototypes. Return the decisions you made and anything in the economy you had to adjust.
+Do not edit `docs/review/wave-1-merge-notes.md` (it is archived). Write notes, departures from the brief, open questions and "I needed a file I do not own" requests in `docs/review/notes/<ID>.md`. One file per brief means two PRs never conflict on notes.
 
----
+### 4.7 Tests and definition of done
 
-## Merge order (wave 1 to main)
+Every PR, before marking it ready:
 
-1. D (test-suite diet): makes every later PR's CI faster. Rebase others after it lands.
-2. B (custom quest edit/restore) and E (i18n groundwork): small, no shared files.
-3. C (reminders and shortcuts): small; apply the one-line deep-link call from `docs/review/merge-notes.md` to `QuestsScreen` when merging.
-4. A (Map tab): largest; rebase on main last, re-run the full e2e, tag v0.3.0.
-5. F and G are docs only and can merge any time.
+```bash
+npm run lint && npm run typecheck && npm test && npm run build
+```
 
-## Wave 2 (after merges, sequential or re-partitioned)
+- New logic has tests that fail without it. Tests assert behaviour, not just that a function runs.
+- UI changes: run the Playwright specs your brief names (`npx playwright test e2e/<spec> --workers=2`) and add or extend one. Run **one Playwright suite at a time** on your machine.
+- UI changes follow `docs/RESPONSIVE-RULES.md`: check 320x568, 390x844 at 150% text, and 844x390, and put the screenshots in the PR description.
+- The CI jobs must be green on the PR head: `Lint, typecheck, test, build`, `E2E mobile 1/2`, `E2E mobile 2/2`, `E2E desktop`.
+- Screenshots: only screens you changed, downscaled the way `e2e/visual.spec.ts` does, within the 0.5 MB budget.
+- Nothing is done until the maintainer merges it. "CI is green" is necessary, not sufficient.
 
-- Wire `useT()` into every screen and add the locale setting (depends on E and A).
-- Weekly recap share card (needs the wave window from A).
-- Citizens implementation (needs F and A).
-- Arena: Armory and run loop, then Roguelike Chess as the first plug-in game (needs G; the troop roster needs A, and citizens as troops need F).
+### 4.8 When `main` moves (conflicts)
+
+1. `git fetch origin && git merge origin/main` into your branch. Never rebase a branch that has an open PR.
+2. Resolve conflicts by keeping both sides when both are legitimate (lists, JSON keys, docs sections).
+3. Conflict in a file you do not own, or in a hot file (4.4), and you are not sure: stop, label `needs-maintainer`, describe it in a comment. Do not guess.
+4. Re-run the checks, push, and comment "merged main at <short sha>".
+
+### 4.9 Never
+
+- Merge, close or retarget a PR; push to `main`; create or move tags.
+- Force-push after review has started; delete someone else's branch.
+- Edit `.github/**`, lockfiles or configs outside your brief.
+- Commit secrets, tokens, `.env` files, `node_modules`, `dist`, `test-results`.
+- Add network calls, analytics or third-party scripts: the app is offline-first with no backend.
+- Raise a size budget (for example the 60,000 character cap on the map SVG) to make a test pass.
+- Skip hooks or checks.
+
+## 5. How the maintainer manages the PRs
+
+So you know what to expect.
+
+1. **Triage** (within a day). Base is `main` (or a declared stack), labels set, files inside the brief's "may edit" list, size sane, template filled. Otherwise: a comment asking for the fix, and the PR waits.
+2. **CI.** All four jobs green on the head commit. Red CI is the author's to fix; flaky e2e is reported (brief K exists to remove it), not hidden.
+3. **Independent review.** A reviewer who has not seen your reasoning reads the diff against the brief and `docs/RESPONSIVE-RULES.md`, hunting real defects: purity and mutation, migrations, edge cases and dates, privacy, accessibility, responsive breakage, tests that do not test, files outside the brief. Findings come back as review comments ranked critical, major, minor. You fix criticals and majors, and minors that are cheap; anything skipped is listed in your notes file.
+4. **Merge.** Merge commit (`gh pr merge N --merge`), never squash for a branch that others stack on. Merge order: the dependency first, then the smallest or most independent. Docs-only PRs can merge any time.
+5. **After a merge.** The maintainer deletes the merged branch, updates section 2 of this file, comments on any PR that now needs `main` merged in, and retargets stacked PRs.
+6. **End of a wave.** Tag a release (`v0.4.0` after wave 2), update `README.md`, `docs/PLAYER-GUIDE.md` and the GDD errata, archive the wave's notes to `docs/review/archive/wave-N/`, and write the wave 3 briefs.
+
+## 6. Launching an agent
+
+Give the agent the repository and this single instruction (replace `X` and the file name):
+
+> You are agent X on Haven Protocol. Read `AGENTS.md`, then `docs/PARALLEL-WORK.md` sections 1 and 4, then follow `docs/briefs/<file>.md` exactly. Branch from the latest `main`, open a draft PR against `main` after your first commit using the PR template, and mark it ready only when every acceptance item in the brief passes. Do not merge anything.
+
+| Agent | Brief file | Branch to start from |
+| --- | --- | --- |
+| E | `docs/briefs/E-i18n-groundwork.md` | `main` |
+| F | `docs/briefs/F-citizens-design.md` | `main` |
+| G | `docs/briefs/G-arena-design.md` | `main` |
+| H | `docs/briefs/H-quest-notes.md` | the existing `cursor/quest-learned-notes-40d2` |
+| J | `docs/briefs/J-weekly-recap-card.md` | `main` |
+| K | `docs/briefs/K-e2e-stability.md` | `main` |
+| L | `docs/briefs/L-polish-pack.md` | `main` |
+
+Run seven agents at once if you like: that is what the plan is for. If an agent reports a collision this document did not predict, stop that agent, fix the document, then continue.
+
+## 7. Housekeeping
+
+- Merged branches are deleted by the maintainer at merge time. Local worktrees from finished work are removed (`git worktree remove`).
+- The `cursor/*` branches from the closed Map PRs stay until the maintainer says otherwise.
+- Screenshot folder budget: 3 MB (`npm run screenshots:check`).
+- Notes files live in `docs/review/notes/`; at the end of a wave they move to `docs/review/archive/wave-N/`. The wave 1 notes are already archived as `docs/review/wave-1-merge-notes.md`.
+- Optional hardening for the maintainer: protect `main` (require a PR and the four CI jobs). It is not enabled today, so the "never push to `main`" rule rests on this document.
