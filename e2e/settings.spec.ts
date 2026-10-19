@@ -160,7 +160,7 @@ test('reminders: the toggles and times persist across a reload', async ({ page }
 test('reminders: a denied permission shows the explanation and stays off', async ({ page }) => {
   await stubNotifications(page, 'default', 'denied');
   const master = page.getByRole('checkbox', { name: 'Send me reminders' });
-  await master.check();
+  await master.click();
   await expect(page.getByText(/Notifications are blocked for this site/)).toBeVisible();
   await expect(master).not.toBeChecked();
   await expect(page.getByRole('checkbox', { name: 'Board issued' })).toHaveCount(0);
