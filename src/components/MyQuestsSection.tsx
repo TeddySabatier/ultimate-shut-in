@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import {
   MAX_ACTIVE_CUSTOM,
@@ -62,6 +62,13 @@ export function MyQuestsSection({ save, onAddToday, onArchive }: Props) {
   const restoreCustom = useGameStore((s) => s.restoreCustom);
   const [pending, setPending] = useState<CustomTemplate | null>(null);
   const [editing, setEditing] = useState<CustomTemplate | null>(null);
+  // The restored row leaves the Archived group, so the keyboard follows it to its Edit button.
+  const restored = useRef<string | null>(null);
+  useEffect(() => {
+    if (restored.current === null) return;
+    document.getElementById(`my-edit-${restored.current}`)?.focus();
+    restored.current = null;
+  });
   const templates = activeCustomTemplates(save);
   const archived = save.customTemplates.filter((t) => t.archivedAt !== undefined).sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0));
   const slots = customSlotsLeft(save);
@@ -89,7 +96,7 @@ export function MyQuestsSection({ save, onAddToday, onArchive }: Props) {
                         {c.myQuests.addToday}
                       </button>
                     ) : null}
-                    <button type="button" className="btn btn--sm" aria-label={`${c.myQuests.edit}: ${t.title}`} onClick={() => setEditing(t)}>
+                    <button type="button" id={`my-edit-${t.id}`} className="btn btn--sm" aria-label={`${c.myQuests.edit}: ${t.title}`} onClick={() => setEditing(t)}>
                       {c.myQuests.edit}
                     </button>
                     <button type="button" className="btn btn--sm" aria-label={`${c.myQuests.archive}: ${t.title}`} onClick={() => setPending(t)}>
@@ -112,13 +119,17 @@ export function MyQuestsSection({ save, onAddToday, onArchive }: Props) {
               {archived.map((t) => {
                 const nameTaken = customTitleTaken(save, t.habit, t.title);
                 const full = templates.length >= MAX_ACTIVE_CUSTOM;
-                const why = nameTaken ? c.myQuests.restoreNameTaken : full ? c.myQuests.restoreFull : null;
+                const why = nameTaken ? formatLine(c.myQuests.restoreNameTaken, { title: t.title }) : full ? c.myQuests.restoreFull : null;
                 return (
                   <li key={t.id} className={`${styles.item} ${styles.past}`} style={{ '--habit': getHabit(t.habit).color } as CSSProperties}>
                     <Facts save={save} t={t} />
-                    {why ? <p className={styles.stats}>{why}</p> : null}
+                    {why ? (
+                      <p id={`why-${t.id}`} className={styles.stats}>
+                        {why}
+                      </p>
+                    ) : null}
                     <div className={styles.actions}>
-                      <button type="button" className="btn btn--sm" disabled={why !== null} aria-label={`${c.myQuests.restore}: ${t.title}`} onClick={() => restoreCustom(t.id)}>
+                      <button type="button" className="btn btn--sm" disabled={why !== null} aria-describedby={why ? `why-${t.id}` : undefined} aria-label={`${c.myQuests.restore}: ${t.title}`} onClick={() => { restoreCustom(t.id); restored.current = t.id; }}>
                         {c.myQuests.restore}
                       </button>
                     </div>

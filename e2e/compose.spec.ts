@@ -394,13 +394,29 @@ test("edit a saved quest: tomorrow's board has the new shape, and a copy on toda
   const card = cardByTitle(page, 'Long stretch');
   await expect(card).toBeVisible();
   await expect(card).toHaveAttribute('data-kind', 'timer');
-  await expect(card).toContainText('45');
+  await expect(card).toContainText('Run the full 45 min');
 
-  // Today's copy is on the board now, so its shape is held until tomorrow; its name and schedule are still yours.
+  // A daily quest is on every board, so it must stay editable: today's copy is untouched, so it takes the new length at once.
   await gotoTab(page, 'Ledger');
   await mineItem(page, 'Long stretch').getByRole('button', { name: /^Edit/ }).click();
   await expect(edit).toBeVisible();
-  await expect(edit.getByText(/change from tomorrow/)).toBeVisible();
+  await expect(edit.getByText(/wait until it is settled/)).toHaveCount(0);
+  await expect(edit.getByLabel('Name')).toBeFocused();
+  await edit.getByLabel('Minutes').fill('30');
+  await expect(edit.getByRole('radio', { name: /2 Steady/ })).toBeChecked();
+  await edit.getByRole('button', { name: 'Save changes' }).click();
+  await expect(edit).toBeHidden();
+  await settleOverlays(page);
+  save = await saveWithCustom(page);
+  expect(save.customTemplates[0]).toMatchObject({ durationMin: 30, tier: 2 });
+  await gotoTab(page, 'Board');
+  await expect(cardByTitle(page, 'Long stretch')).toContainText('Run the full 30 min');
+
+  // Once the timer is running the shape is held until it is settled; the name and schedule are still yours.
+  await cardByTitle(page, 'Long stretch').getByRole('button', { name: 'Start timer' }).click();
+  await gotoTab(page, 'Ledger');
+  await mineItem(page, 'Long stretch').getByRole('button', { name: /^Edit/ }).click();
+  await expect(edit.getByText(/wait until it is settled/)).toBeVisible();
   await expect(edit.getByLabel('Minutes')).toBeDisabled();
   await expect(edit.getByRole('radio', { name: /Light/ })).toBeDisabled();
   await edit.getByLabel('Name').fill('Long stretch (slow)');
@@ -408,9 +424,9 @@ test("edit a saved quest: tomorrow's board has the new shape, and a copy on toda
   await expect(edit).toBeHidden();
   await settleOverlays(page);
   save = await saveWithCustom(page);
-  expect(save.customTemplates[0]).toMatchObject({ title: 'Long stretch (slow)', durationMin: 45, tier: 3 });
+  expect(save.customTemplates[0]).toMatchObject({ title: 'Long stretch (slow)', durationMin: 30, tier: 2 });
   await gotoTab(page, 'Board');
-  await expect(cardByTitle(page, 'Long stretch (slow)')).toContainText('45');
+  await expect(cardByTitle(page, 'Long stretch (slow)')).toContainText('Run the full 30 min');
 });
 
 test('a duplicate name is refused in the sheet, and Cancel leaves the quest as it was', async ({ page }) => {

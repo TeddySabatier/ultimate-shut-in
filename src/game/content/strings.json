@@ -318,13 +318,13 @@
       "full": "Two of your own quests are already on today's board. Save it and it starts tomorrow.",
       "habitOff": "{habit} is switched off in Settings. It stays saved and will not appear until you switch it back on.",
       "away": "{name} is away. Welcome them back from the Haven screen to put this on the board.",
-      "locked": "It is on today's board, so its vassal, kind, length and effort change from tomorrow. The rest is yours to change now.",
+      "locked": "You have started this one today (timer running, counted or tried), so its vassal, kind, length and effort wait until it is settled, or until tomorrow's copy. The rest is yours to change now.",
       "duplicate": "You already have \"{title}\" in My quests."
     },
     "toasts": {
       "saved": "{title} is in My quests.",
       "boarded": "{title} is on today's board.",
-      "updated": "{title} is updated and in My quests.",
+      "updated": "{title} is updated.",
       "archived": "{title} is archived. Its history stays."
     },
     "myQuests": {
@@ -337,7 +337,7 @@
       "restore": "Restore",
       "archivedGroup": "Archived",
       "archivedHint": "Restoring brings a quest back with its history. It joins the board on its next turn, or press Add to today.",
-      "restoreNameTaken": "Another quest of that vassal has this name now. Rename it first.",
+      "restoreNameTaken": "An active quest of that vassal is called \"{title}\" now. Rename or archive that one first.",
       "restoreFull": "You keep 30 quests already. Archive one first.",
       "stats": "Issued {issued}, settled {done}, attempted {tried}",
       "archiveTitle": "Archive this quest?",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { completeQuest, incrementCount, markTried, rerollQuest, startTimer, undoQuest } from './board';
+import { completeQuest, incrementCount, markTried, pauseTimer, rerollQuest, startTimer, undoQuest } from './board';
 import { quests as shippedQuests, tierDefaults } from './content';
 import {
   MAX_ACTIVE_CUSTOM,
@@ -11,7 +11,9 @@ import {
   cleanDraft,
   customOnBoardCount,
   previewCustomRewards,
+  customCopyInProgress,
   customTitleTaken,
+  draftOf,
   recurrenceDue,
   restoreCustomTemplate,
   updateCustomTemplate,
@@ -22,7 +24,7 @@ import { effortTier, maxTier, resolveTemplate, resolveTier, weekdayOf } from './
 import { T0, TZ, at, deepFreeze, fresh, freshWithBoard, setBoard } from './testUtils';
 import { processBoundaries } from './tick';
 import { gameDayIndex } from './time';
-import type { CustomDraft, SaveFile } from './types';
+import type { CustomDraft, CustomTemplate, SaveFile } from './types';
 
 const DAY0 = gameDayIndex(T0, 4, TZ.tz);
 
@@ -285,12 +287,11 @@ describe('updateCustomTemplate', () => {
     const daily = updateCustomTemplate(pinned.save, T0, id, { recurrence: 'daily' }, TZ);
     expect(daily.save.customTemplates[0]?.pinWeekday).toBeUndefined();
   });
-  it('refuses unknown, archived and invalid edits and a habit change while on the board', () => {
+  it('refuses unknown, archived and invalid edits', () => {
     const { save, id } = withTemplate(freshWithBoard());
     expect(updateCustomTemplate(save, T0, 'c-nope', { title: 'x' }, TZ).error).toMatch(/not in My quests/);
     expect(updateCustomTemplate(save, T0, id, { durationMin: 999 }, TZ).error).toBeDefined();
     const onBoard = board(save, id);
-    expect(updateCustomTemplate(onBoard, T0, id, { habit: 'outside' }, TZ).error).toMatch(/from tomorrow/);
     expect(updateCustomTemplate(onBoard, T0, id, { title: 'Park lap 2' }, TZ).error).toBeUndefined();
     const archived = archiveCustomTemplate(save, T0, id, TZ).save;
     expect(updateCustomTemplate(archived, T0, id, { title: 'x' }, TZ).error).toMatch(/not in My quests/);
@@ -373,44 +374,130 @@ describe('updateCustomTemplate: the tier is re-capped by the effort rules', () =
   });
 });
 
+/** The patch the store sends from the Compose sheet: every field of the form, `outpostId` as null when empty. */
+function formPatch(t: CustomTemplate, over: Partial<CustomDraft> = {}): Partial<Omit<CustomDraft, 'source'>> {
+  const { source: _source, ...patch } = { ...draftOf(t), ...over };
+  return { ...patch, outpostId: patch.outpostId ?? null };
+}
+
+/** Move a template to the board of day 0 and return the save and the board copy's instance id. */
+function boarded(over: Partial<CustomDraft> = {}): { save: SaveFile; id: string; iid: string } {
+  const made = withTemplate(freshWithBoard(), over);
+  const save = board(made.save, made.id);
+  return { save, id: made.id, iid: save.board?.quests.at(-1)?.instanceId ?? '' };
+}
+
+function paidFor(save: SaveFile, iid: string, now = T0): { xp: number; coins: number; dp: number } | undefined {
+  const r = completeQuest(save, iid, now).save.board?.quests.find((x) => x.instanceId === iid)?.rewards;
+  return r ? { xp: r.xp, coins: r.coins, dp: r.dp } : undefined;
+}
+
 describe('updateCustomTemplate: edits are for future boards', () => {
-  it('lets the name, description, time slot and recurrence change today but not what the quest pays', () => {
-    const { save, id } = withTemplate(freshWithBoard(), { durationMin: 20 });
-    const onBoard = board(save, id);
-    const iid = onBoard.board?.quests.at(-1)?.instanceId ?? '';
-    const edited = updateCustomTemplate(onBoard, T0, id, { title: 'Park lap (slow)', description: 'Easy.', timeSlot: 'evening', recurrence: 'daily' }, TZ);
+  it('lets name, note, time slot and recurrence change whatever the copy on the board is doing', () => {
+    const { save, id, iid } = boarded({ durationMin: 20 });
+    const running = startTimer(save, iid, T0).save;
+    const edited = updateCustomTemplate(running, T0, id, { title: 'Park lap (slow)', description: 'Easy.', timeSlot: 'evening', recurrence: 'daily' }, TZ);
     expect(edited.error).toBeUndefined();
-    for (const patch of [{ habit: 'outside' as const }, { kind: 'check' as const }, { durationMin: 45 }, { tier: 1 as const }]) {
-      expect(updateCustomTemplate(onBoard, T0, id, patch, TZ).error, JSON.stringify(patch)).toMatch(/from tomorrow/);
-    }
-    // Settling today's copy pays what it was issued with, the same with or without the edit, and snapshots it.
-    const done = completeQuest(edited.save, iid, T0);
-    const paid = done.save.board?.quests.find((x) => x.instanceId === iid)?.rewards;
-    const plain = completeQuest(onBoard, iid, T0).save.board?.quests.find((x) => x.instanceId === iid)?.rewards;
-    expect(paid?.xp).toBeGreaterThan(0);
-    expect(paid).toEqual(plain);
-    // Undo reverses exactly what was paid.
-    const undone = undoQuest(done.save, iid, T0, TZ);
-    expect(undone.error).toBeUndefined();
-    expect(undone.save.player.coins).toBe(onBoard.player.coins);
-    expect(undone.save.player.domainPoints).toBe(onBoard.player.domainPoints);
+    expect(edited.save.customTemplates[0]).toMatchObject({ title: 'Park lap (slow)', timeSlot: 'evening', recurrence: 'daily', durationMin: 20 });
   });
-  it('lets the new shape through once the board has moved on, and the next copy pays it', () => {
-    const { save, id } = withTemplate(freshWithBoard(), { durationMin: 20 });
-    const onBoard = board(save, id);
-    expect(updateCustomTemplate(onBoard, T0, id, { durationMin: 45 }, TZ).error).toBeDefined();
-    const tomorrow = processBoundaries(onBoard, at(1), TZ).save;
-    expect(tomorrow.board?.quests.some((q) => q.templateId === id)).toBe(false);
-    const edited = updateCustomTemplate(tomorrow, at(1), id, { durationMin: 45 }, TZ);
+
+  it('an untouched copy on today\'s board takes the new shape in place (a daily quest can be edited any day)', () => {
+    const { save, id, iid } = boarded({ durationMin: 15, recurrence: 'daily' });
+    const before = paidFor(save, iid);
+    const edited = updateCustomTemplate(save, T0, id, { durationMin: 45 }, TZ);
     expect(edited.error).toBeUndefined();
     expect(edited.save.customTemplates[0]).toMatchObject({ durationMin: 45, tier: 3 });
-    const again = addCustomQuestToBoard(edited.save, at(1), id, TZ);
-    const iid = again.instanceId ?? '';
-    const paid = completeQuest(again.save, iid, at(1)).save.board?.quests.find((x) => x.instanceId === iid)?.rewards;
-    const old = addCustomQuestToBoard(tomorrow, at(1), id, TZ);
-    const before = completeQuest(old.save, iid, at(1)).save.board?.quests.find((x) => x.instanceId === iid)?.rewards;
-    expect(paid?.xp).toBeGreaterThan(before?.xp ?? 0);
+    const copy = edited.save.board?.quests.find((q) => q.instanceId === iid);
+    expect(copy).toMatchObject({ status: 'open', kind: 'timer', habit: 'move', timer: { startedAt: null, accumulatedMs: 0 } });
+    // It pays the new tier, which is the tier-3 formula, not the old one.
+    const after = paidFor(edited.save, iid);
+    expect(before?.dp).toBe(1);
+    expect(after?.xp).toBeGreaterThan(before?.xp ?? 0);
+    expect(after?.dp).toBe(3);
+    // Habit and kind follow too: the board copy is rebuilt to match.
+    const other = updateCustomTemplate(edited.save, T0, id, { habit: 'study', kind: 'count', targetCount: 3 }, TZ);
+    expect(other.error).toBeUndefined();
+    expect(other.save.board?.quests.find((q) => q.instanceId === iid)).toMatchObject({ habit: 'study', kind: 'count', count: 0, timer: null });
+    const done = incrementCount(other.save, iid, 3, T0);
+    expect(done.save.board?.quests.find((q) => q.instanceId === iid)?.status).toBe('done');
+    expect(done.save.board?.quests.find((q) => q.instanceId === iid)?.habit).toBe('study');
   });
+
+  it('refuses a habit change for a vassal who is away or a habit that is off, while the copy is on the board', () => {
+    const { save, id } = boarded();
+    const away = structuredClone(save);
+    away.vassals.study.away = true;
+    expect(updateCustomTemplate(away, T0, id, { habit: 'study' }, TZ).error).toMatch(/is away/);
+    const off = structuredClone(save);
+    off.settings.enabledHabits = off.settings.enabledHabits.filter((h) => h !== 'study');
+    expect(updateCustomTemplate(off, T0, id, { habit: 'study' }, TZ).error).toMatch(/switched off/);
+  });
+
+  it('holds habit, kind, length, count and tier while the copy is in progress, and says it is until settled', () => {
+    const timerShapes: Partial<CustomDraft>[] = [{ habit: 'outside' }, { kind: 'check' }, { durationMin: 45 }, { tier: 1 }];
+    const countShapes: Partial<CustomDraft>[] = [{ habit: 'outside' }, { kind: 'check' }, { targetCount: 9 }, { tier: 2 }];
+    const checkShapes: Partial<CustomDraft>[] = [{ habit: 'outside' }, { kind: 'timer', durationMin: 20 }, { tier: 2 }];
+    const check = (save: SaveFile, id: string, label: string, shapes = timerShapes): void => {
+      for (const patch of shapes) expect(updateCustomTemplate(save, T0, id, patch, TZ).error, `${label} ${JSON.stringify(patch)}`).toMatch(/in progress.*once it is settled/);
+      expect(updateCustomTemplate(save, T0, id, { title: 'Renamed' }, TZ).error, label).toBeUndefined();
+    };
+    const t = boarded({ durationMin: 20 });
+    expect(customCopyInProgress(t.save, t.id)).toBe(false);
+    const running = startTimer(t.save, t.iid, T0).save;
+    expect(customCopyInProgress(running, t.id)).toBe(true);
+    check(running, t.id, 'running timer');
+    const paused = pauseTimer(startTimer(t.save, t.iid, T0).save, t.iid, T0 + 60_000).save;
+    expect(customCopyInProgress(paused, t.id)).toBe(true);
+    check(paused, t.id, 'paused with time on it');
+    const c = boarded({ kind: 'count', durationMin: undefined, targetCount: 5, title: 'Glasses' });
+    const counted = incrementCount(c.save, c.iid, 2, T0).save;
+    check(counted, c.id, 'counter above zero', countShapes);
+    const k = boarded({ title: 'Attempt', kind: 'check', durationMin: undefined });
+    check(markTried(k.save, k.iid, T0).save, k.id, 'tried', checkShapes);
+  });
+
+  it('a settled copy keeps its reward snapshot and undo reverts it exactly; the new shape applies from the next copy', () => {
+    const { save, id, iid } = boarded({ durationMin: 20 });
+    const done = completeQuest(save, iid, T0);
+    const snap = done.save.board?.quests.find((q) => q.instanceId === iid)?.rewards;
+    expect(snap?.xp).toBeGreaterThan(0);
+    const edited = updateCustomTemplate(done.save, T0, id, { durationMin: 45 }, TZ);
+    expect(edited.error).toBeUndefined();
+    expect(edited.save.customTemplates[0]).toMatchObject({ durationMin: 45, tier: 3 });
+    const q = edited.save.board?.quests.find((x) => x.instanceId === iid);
+    expect(q?.status).toBe('done');
+    expect(q?.rewards).toEqual(snap);
+    expect(edited.save.player.coins).toBe(done.save.player.coins);
+    const undone = undoQuest(edited.save, iid, T0, TZ);
+    expect(undone.error).toBeUndefined();
+    expect(undone.save.player.coins).toBe(save.player.coins);
+    expect(undone.save.player.domainPoints).toBe(save.player.domainPoints);
+    // Tomorrow's copy is the new shape.
+    const next = addCustomQuestToBoard(processBoundaries(edited.save, at(1), TZ).save, at(1), id, TZ);
+    expect(paidFor(next.save, next.instanceId ?? '', at(1))?.dp).toBe(3);
+  });
+
+  it('a daily quest can be edited on every day, whatever the board holds', () => {
+    let s = withTemplate(freshWithBoard(), { recurrence: 'daily', durationMin: 15 }).save;
+    const id = s.customTemplates[0]?.id ?? '';
+    for (let day = 1; day <= 4; day++) {
+      s = processBoundaries(s, at(day), TZ).save;
+      expect(s.board?.quests.some((q) => q.templateId === id), `day ${day}`).toBe(true);
+      const r = updateCustomTemplate(s, at(day), id, { durationMin: 15 + day * 10 }, TZ);
+      expect(r.error, `day ${day}`).toBeUndefined();
+      expect(r.save.customTemplates[0]?.durationMin).toBe(15 + day * 10);
+      s = r.save;
+    }
+  });
+
+  it('keeps holding a copy in progress on a board that has gone stale', () => {
+    const { save, id, iid } = boarded({ durationMin: 20 });
+    const running = startTimer(save, iid, T0).save;
+    expect(updateCustomTemplate(running, at(1), id, { durationMin: 45 }, TZ).error).toMatch(/in progress/);
+    // An untouched one on a stale board may change; the next tick replaces that board anyway.
+    expect(updateCustomTemplate(save, at(1), id, { durationMin: 45 }, TZ).error).toBeUndefined();
+  });
+
   it('a recurring template changed today is placed on tomorrow\'s board as edited', () => {
     const { save, id } = withTemplate(freshWithBoard(), { recurrence: 'daily', durationMin: 10 });
     const edited = updateCustomTemplate(save, T0, id, { title: 'Evening lap', durationMin: 45, timeSlot: 'evening' }, TZ).save;
@@ -418,10 +505,31 @@ describe('updateCustomTemplate: edits are for future boards', () => {
     expect(next.board?.quests.some((q) => q.templateId === id)).toBe(true);
     expect(resolveTemplate(next, id)).toMatchObject({ title: 'Evening lap', durationMin: 45, tier: 3 });
   });
-  it('does not lock a quest whose copy sits on a board that is no longer today\'s', () => {
-    const { save, id } = withTemplate(freshWithBoard(), { durationMin: 20 });
-    const onBoard = board(save, id);
-    expect(updateCustomTemplate(onBoard, at(1), id, { durationMin: 45 }, TZ).error).toBeUndefined();
+});
+
+describe('updateCustomTemplate: the exact patch the Compose sheet sends', () => {
+  it('unpins a weekday when the form goes from "Every Wednesday" back to "Once a week"', () => {
+    const { save, id } = withTemplate(fresh(), { recurrence: 'weekly:1', pinWeekday: 3 });
+    const t = save.customTemplates[0] as CustomTemplate;
+    expect(t.pinWeekday).toBe(3);
+    const unpinned = updateCustomTemplate(save, T0, id, formPatch(t, { recurrence: 'weekly:1', pinWeekday: undefined }), TZ);
+    expect(unpinned.error).toBeUndefined();
+    expect(unpinned.save.customTemplates[0]).toMatchObject({ recurrence: 'weekly:1' });
+    expect(unpinned.save.customTemplates[0]?.pinWeekday).toBeUndefined();
+    // Another weekday, another recurrence and the same pin all still work from the full form.
+    const other = updateCustomTemplate(save, T0, id, formPatch(t, { pinWeekday: 5 }), TZ);
+    expect(other.save.customTemplates[0]?.pinWeekday).toBe(5);
+    const same = updateCustomTemplate(save, T0, id, formPatch(t), TZ);
+    expect(same.save.customTemplates[0]?.pinWeekday).toBe(3);
+    const daily = updateCustomTemplate(save, T0, id, formPatch(t, { recurrence: 'daily', pinWeekday: undefined }), TZ);
+    expect(daily.save.customTemplates[0]?.pinWeekday).toBeUndefined();
+  });
+  it('clears an outpost and keeps every other field when the form is saved untouched', () => {
+    const { save, id } = withTemplate(fresh(), { recurrence: 'weekdays', timeSlot: 'morning', description: 'x' });
+    const t = save.customTemplates[0] as CustomTemplate;
+    const same = updateCustomTemplate(save, T0, id, formPatch(t), TZ);
+    expect(same.error).toBeUndefined();
+    expect(same.save.customTemplates[0]).toEqual(t);
   });
 });
 
@@ -436,6 +544,20 @@ describe('the duplicate-title guard', () => {
     expect(customTitleTaken(b.save, 'move', '   ')).toBe(false);
     const archived = archiveCustomTemplate(b.save, T0, a.id, TZ).save;
     expect(customTitleTaken(archived, 'move', 'Alpha')).toBe(false);
+  });
+  it('treats the same name typed with a different accent encoding, case, accents or invisible characters as the same', () => {
+    const a = withTemplate(fresh(), { title: 'Caf\u00e9 walk' });
+    expect(a.save.customTemplates[0]?.title).toBe('Caf\u00e9 walk');
+    expect(customTitleTaken(a.save, 'move', 'Cafe\u0301 walk')).toBe(true);
+    expect(customTitleTaken(a.save, 'move', 'CAFE walk')).toBe(true);
+    expect(customTitleTaken(a.save, 'move', 'Caf\u00e9\u200b walk')).toBe(true);
+    expect(customTitleTaken(a.save, 'move', 'Caf\u00e9 \u00a0 walk')).toBe(true);
+    expect(customTitleTaken(a.save, 'move', 'Cafe walks')).toBe(false);
+    // The engine refuses it too, and stores a name in one Unicode form.
+    expect(addCustomTemplate(a.save, T0 + 1, draft({ title: 'Cafe\u0301 walk' })).error).toMatch(/already have/);
+    const other = withTemplate(a.save, { title: 'Ide\u0301e' });
+    expect(other.save.customTemplates[1]?.title).toBe('Id\u00e9e');
+    expect(updateCustomTemplate(other.save, T0, other.id, { title: 'Cafe\u0301  Walk' }, TZ).error).toMatch(/already have/);
   });
   it('lets an unchanged title through an edit, and refuses moving onto a taken name in another habit', () => {
     const a = withTemplate(fresh(), { title: 'Alpha' });

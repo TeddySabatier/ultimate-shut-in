@@ -14,7 +14,7 @@ import {
 } from './adapt';
 import { markTried, completeQuest } from './board';
 import { getQuest, strings } from './content';
-import { addCustomTemplate, archiveCustomTemplate, customOnBoardCount } from './custom';
+import { addCustomTemplate, archiveCustomTemplate, customOnBoardCount, updateCustomTemplate } from './custom';
 import { clone } from './draft';
 import { ACTIVITY_DAYS } from './save';
 import { weekdayOf } from './template';
@@ -421,6 +421,26 @@ describe('accepting and dismissing', () => {
     expect(refused.error).toMatch(/not in My quests/);
     expect(archived.customTemplates).toHaveLength(1);
     expect(archived.proposals.find((x) => x.id === p?.id)?.status).toBe('open');
+  });
+  it('lets an out-of-date recurrence proposal go quietly instead of undoing the player\'s own edit', () => {
+    const base = freshWithBoard();
+    const made = addCustomTemplate(base, T0, { habit: 'study', kind: 'check', title: 'Journal', description: 'd', recurrence: 'once', timeSlot: 'any', source: 'text' });
+    const s = made.save;
+    const today = gameDayIndex(T0, 4, TZ.tz);
+    s.firstPlayDay = today - 30;
+    s.activity = [{ day: today - 10, entries: HABIT_IDS.map((h) => ({ templateId: `${h}.old`, habit: h, status: 'done' as const })) }];
+    const t = s.customTemplates[0];
+    if (t) t.stats.done = 4;
+    computeProposalsDraft(s, today);
+    const p = openProposals(s).find((x) => x.rule === 'makeRecurring');
+    expect(p).toBeDefined();
+    // The player sets "every day" themselves while the card is still on the Board.
+    const edited = updateCustomTemplate(s, T0, made.templateId ?? '', { recurrence: 'daily' }, TZ).save;
+    const r = acceptProposal(edited, T0, p?.id ?? '', TZ);
+    expect(r.error).toBeUndefined();
+    expect(r.save.customTemplates[0]?.recurrence).toBe('daily');
+    expect(r.save.proposals.find((x) => x.id === p?.id)).toMatchObject({ status: 'dismissed' });
+    expect(r.events).toEqual([{ type: 'proposalResolved', id: p?.id, accepted: false }]);
   });
   it('refuses an unknown or already answered proposal and leaves the save as it was', () => {
     const s = proposed();

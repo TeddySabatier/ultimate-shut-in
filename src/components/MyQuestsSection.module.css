@@ -79,10 +79,11 @@
 }
 
 .summary {
-  display: flex;
-  align-items: center;
+  /* A list-item keeps the browser's open/closed marker, which a flex summary loses. */
+  display: list-item;
+  list-style-position: inside;
   min-height: var(--touch-target);
-  padding: 0 var(--space-2);
+  padding: var(--space-3) var(--space-2);
   font-family: var(--font-heading);
   font-size: var(--heading-xs);
   text-transform: uppercase;
