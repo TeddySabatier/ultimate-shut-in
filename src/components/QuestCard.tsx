@@ -57,6 +57,8 @@ export function QuestCard({
   const timedReady = neededMs > 0 && elapsed >= neededMs;
   const target = template.targetCount ?? 1;
   const vars = { '--habit': habit.color } as CSSProperties;
+  // The player's own quests are never swapped for a shipped one.
+  const isCustom = template.tags.includes('custom');
 
   return (
     <article
@@ -76,6 +78,7 @@ export function QuestCard({
             <span className={styles.vassal}>{habit.vassal.name}</span>
             <TierPips tier={template.tier} />
             {bonus ? <span className={styles.bonus}>Bonus x2</span> : null}
+            {isCustom ? <span className={styles.tag}>Mine</span> : null}
             {quest.status === 'tried' ? <span className={styles.tag}>Attempted</span> : null}
             {done ? <span className={cx(styles.tag, styles.settled)}>Settled</span> : null}
           </div>
@@ -154,7 +157,7 @@ export function QuestCard({
                 I tried
               </button>
             ) : null}
-            {rerollAvailable && quest.status === 'open' ? (
+            {rerollAvailable && quest.status === 'open' && !isCustom ? (
               <button type="button" className="btn btn--ghost btn--sm" onClick={() => onReroll(quest.instanceId)}>
                 {formatLine(strings.ui.reroll, { coins: rerollPrice })}
               </button>

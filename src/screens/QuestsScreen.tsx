@@ -1,11 +1,15 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { rerollPrice, strings } from '../game';
+import { uiIcons } from '../assets';
 import { useGameStore, useSave } from '../state/gameStore';
 import { anyTimerRunning, canUndoToday, msUntilReset, rewardPreview, seededLine, templateOf, todayIndex } from '../state/selectors';
 import { useNow } from '../hooks/useNow';
 import { hourLabel, roughDuration } from '../utils/format';
+import { Icon } from '../components/Icon';
+import { ProposalsSection } from '../components/ProposalsSection';
 import { QuestCard, type QuestCardActions } from '../components/QuestCard';
 import { SystemWindow } from '../components/SystemWindow';
+import { ComposeQuestSheet } from './ComposeQuestSheet';
 import styles from './QuestsScreen.module.css';
 
 export function QuestsScreen() {
@@ -17,6 +21,9 @@ export function QuestsScreen() {
   const pauseTimer = useGameStore((s) => s.pauseTimer);
   const increment = useGameStore((s) => s.increment);
   const reroll = useGameStore((s) => s.reroll);
+  const acceptProposal = useGameStore((s) => s.acceptProposal);
+  const dismissProposal = useGameStore((s) => s.dismissProposal);
+  const [composing, setComposing] = useState(false);
   const now = useNow(anyTimerRunning(save));
 
   const actions: QuestCardActions = useMemo(
@@ -58,6 +65,13 @@ export function QuestsScreen() {
         </span>
       </p>
 
+      <ProposalsSection save={save} onAccept={acceptProposal} onDismiss={dismissProposal} />
+
+      <button type="button" className={`btn btn--primary btn--block ${styles.compose}`} onClick={() => setComposing(true)}>
+        <Icon src={uiIcons.mic} size={18} />
+        <span aria-hidden="true">+</span> {strings.compose.open}
+      </button>
+
       {quests.length === 0 ? (
         <SystemWindow title="Board">
           <p>No quests are posted. The board fills at the next reset.</p>
@@ -73,7 +87,7 @@ export function QuestsScreen() {
 
       <div className={styles.list}>
         {ordered.map((q) => {
-          const t = templateOf(q);
+          const t = templateOf(save, q);
           if (!t || !board) return null;
           return (
             <QuestCard
@@ -93,6 +107,8 @@ export function QuestsScreen() {
       </div>
 
       {board && board.rerolledToday ? <p className={`muted ${styles.note}`}>One quest was swapped today. Tomorrow's board allows another.</p> : null}
+
+      <ComposeQuestSheet open={composing} onClose={() => setComposing(false)} />
     </>
   );
 }

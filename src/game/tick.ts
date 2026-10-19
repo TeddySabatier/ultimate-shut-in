@@ -5,7 +5,9 @@
  * periods, issues today's board when missing and bumps `lastOpenDay`.
  */
 import { formatLine, pickLine, strings } from './content';
+import { computeProposalsDraft, recordActivityDraft } from './adapt';
 import { generateBoard, instanceId } from './board';
+import { placeRecurringDraft } from './custom';
 import { clone, ok, pushLog, refuse } from './draft';
 import { CATCHUP_MAX_DAYS, LOYALTY_CATCHUP_CAP_DAYS, STREAK_LOSS_MIN_LENGTH, UTILITY_CATCHUP_CAP_DAYS } from './economy';
 import { fnv1a } from './rng';
@@ -56,6 +58,8 @@ export function processDayBoundaryDraft(draft: SaveFile, dayEnded: number, now: 
   const nextDay = dayEnded + 1;
 
   // 1. Expire the board: stop any running timer; the board itself is replaced when today's is issued.
+  // What was done or tried on it is archived first (the proposal rules read that history).
+  recordActivityDraft(draft, dayEnded);
   if (draft.board && draft.board.day === dayEnded) {
     for (const q of draft.board.quests) {
       if (q.timer && q.timer.startedAt !== null) {
@@ -104,6 +108,8 @@ export function processDayBoundaryDraft(draft: SaveFile, dayEnded: number, now: 
 export function issueBoardDraft(draft: SaveFile, day: number, now: number): GameEvent[] {
   if (draft.board && draft.board.day >= day) return [];
   draft.board = generateBoard(draft, day);
+  // The player's recurring quests ride along, on top of the generated ones.
+  placeRecurringDraft(draft, day, now);
   pushLog(draft, now, day, 'boardIssued', `Board issued: ${draft.board.quests.length} quests.`);
   return [{ type: 'boardIssued', day }];
 }
@@ -142,7 +148,10 @@ export function processBoundaries(save: SaveFile, now: number, opts?: TimeOption
     }
   }
 
-  events.push(...issueBoardDraft(draft, today, now));
+  const issued = issueBoardDraft(draft, today, now);
+  events.push(...issued);
+  // "The Haven notices": once per new board, never on a plain re-open.
+  if (issued.length > 0) events.push(...computeProposalsDraft(draft, today));
   return ok(draft, events);
 }
 
@@ -186,5 +195,10 @@ export function changeResetHour(save: SaveFile, newHour: number, now: number, op
   draft.stats.streakLostOnDay = shift(draft.stats.streakLostOnDay);
   for (const c of draft.combos) c.forgedDay += delta;
   for (const e of draft.log) e.day += delta;
+  for (const a of draft.activity) a.day += delta;
+  for (const p of draft.proposals) {
+    p.createdDay += delta;
+    if (p.snoozeUntil !== null) p.snoozeUntil += delta;
+  }
   return ok(draft, []);
 }

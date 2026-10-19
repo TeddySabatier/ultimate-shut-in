@@ -32,7 +32,7 @@ export const HABIT_IDS: readonly HabitId[] = [
 export const UTILITY_IDS: readonly UtilityId[] = ['power', 'water', 'gas'] as const;
 
 export interface SaveFile {
-  version: 2;
+  version: 3;
   player: Player;
   settings: Settings;
   vassals: Record<HabitId, Vassal>;
@@ -43,6 +43,15 @@ export interface SaveFile {
   titles: EarnedTitle[];
   stats: LifetimeStats;
   log: LogEntry[];
+  /** Player-authored quest templates (custom quests, `custom.ts`). */
+  customTemplates: CustomTemplate[];
+  /** Adaptive proposals, "the Haven notices" (`adapt.ts`). */
+  proposals: Proposal[];
+  /**
+   * Settled days of the last ~6 weeks, one entry per day that had a done or
+   * tried quest. Only the proposal rules read it; written at each boundary.
+   */
+  activity: ActivityDay[];
   firstPlayDay: number;
   lastOpenDay: number;
 }
@@ -192,6 +201,92 @@ export interface LogEntry {
 }
 
 /* ------------------------------------------------------------------ */
+/* Custom quests and adaptive proposals (docs/design/CUSTOM-QUESTS.md). */
+/* ------------------------------------------------------------------ */
+
+export type TimeSlot = 'any' | 'morning' | 'afternoon' | 'evening';
+export type CustomSource = 'voice' | 'text' | 'proposal';
+/** `weekly:N` is N times a week (1..6); N = 7 is stored as `daily`. */
+export type Recurrence = 'once' | 'daily' | 'weekdays' | `weekly:${number}`;
+
+export interface CustomStats {
+  /** Times the template was put on a board (by hand or by recurrence). */
+  issued: number;
+  /** Completions that currently stand (an undo takes one back). */
+  done: number;
+  /** Quests left at "tried" at the end of the day, or still tried now. */
+  tried: number;
+}
+
+export interface CustomTemplate {
+  /** `c-<fnv1a hex>`; never reused, even after archiving. */
+  id: string;
+  habit: HabitId;
+  kind: QuestKind;
+  durationMin?: number;
+  targetCount?: number;
+  title: string;
+  description: string;
+  tier: Tier;
+  recurrence: Recurrence;
+  /** 0 (Sunday) .. 6: with `weekly:1`, only that weekday. */
+  pinWeekday?: number;
+  timeSlot: TimeSlot;
+  createdAt: number;
+  archivedAt?: number;
+  source: CustomSource;
+  stats: CustomStats;
+}
+
+export type ProposalRule = 'smaller' | 'stepUp' | 'makeRecurring' | 'footInDoor' | 'pinWeekday';
+
+/** The fields a player (or a proposal) sets when creating a custom quest. */
+export interface CustomDraft {
+  habit: HabitId;
+  kind: QuestKind;
+  durationMin?: number | undefined;
+  targetCount?: number | undefined;
+  title: string;
+  description: string;
+  /** Manual tier; clamped to what the effort allows. Omit to use the derived tier. */
+  tier?: Tier | undefined;
+  recurrence: Recurrence;
+  pinWeekday?: number | undefined;
+  timeSlot: TimeSlot;
+  source: CustomSource;
+}
+
+export type ProposalAction =
+  | { type: 'create'; draft: CustomDraft; addToBoard: boolean }
+  | { type: 'update'; templateId: string; patch: Partial<Omit<CustomDraft, 'source'>> };
+
+export interface Proposal {
+  id: string;
+  rule: ProposalRule;
+  habit: HabitId;
+  status: 'open' | 'dismissed' | 'accepted';
+  createdDay: number;
+  /** For dismissed or accepted: the game day until which rule + habit stays quiet. */
+  snoozeUntil: number | null;
+  /** Short heading, e.g. "A smaller Walk in the Park". */
+  title: string;
+  /** The reason the UI shows. */
+  reason: string;
+  action: ProposalAction;
+}
+
+export interface ActivityEntry {
+  templateId: string;
+  habit: HabitId;
+  status: 'done' | 'tried';
+}
+
+export interface ActivityDay {
+  day: number;
+  entries: ActivityEntry[];
+}
+
+/* ------------------------------------------------------------------ */
 /* Events: emitted by every state transition so the UI can toast them. */
 /* ------------------------------------------------------------------ */
 
@@ -213,7 +308,13 @@ export type GameEvent =
   | { type: 'vassalLeft'; habit: HabitId }
   | { type: 'vassalReturned'; habit: HabitId }
   | { type: 'catchUp'; days: number }
-  | { type: 'resurrectionUsed'; restored: 'streak' | 'vassal'; habit?: HabitId };
+  | { type: 'resurrectionUsed'; restored: 'streak' | 'vassal'; habit?: HabitId }
+  | { type: 'customSaved'; templateId: string }
+  | { type: 'customUpdated'; templateId: string }
+  | { type: 'customArchived'; templateId: string }
+  | { type: 'customBoarded'; instanceId: string }
+  | { type: 'proposalsIssued'; count: number }
+  | { type: 'proposalResolved'; id: string; accepted: boolean };
 
 export interface ActionResult {
   save: SaveFile;

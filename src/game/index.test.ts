@@ -28,9 +28,14 @@ describe('public API', () => {
       'validateContent',
       'fnv1a',
       'mulberry32',
+      'addCustomTemplate',
+      'addCustomQuestToBoard',
+      'parseQuestDraft',
+      'evaluateProposals',
+      'acceptProposal',
     ] as const;
     for (const n of names) expect(typeof game[n], n).toBe('function');
-    expect(game.SAVE_VERSION).toBe(2);
+    expect(game.SAVE_VERSION).toBe(3);
     expect(game.HABIT_IDS).toHaveLength(8);
     expect(game.MONSTERS.some((m) => m.boss)).toBe(true);
   });

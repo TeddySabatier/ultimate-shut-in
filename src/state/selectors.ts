@@ -10,12 +10,12 @@ import {
   gameDayIndex,
   gameDayStartMs,
   getHabit,
-  getQuest,
   getRing,
   monsterForWave,
   nextRing,
   pickLine,
   questRewards,
+  resolveTemplate,
   resurrectionOffer,
   ringName,
   strings,
@@ -58,13 +58,14 @@ export function msUntilReset(save: SaveFile, now: number): number {
   return Math.max(0, gameDayStartMs(todayIndex(save, now) + 1, save.settings.resetHour) - now);
 }
 
-export function templateOf(q: BoardQuest): QuestTemplate | undefined {
-  return getQuest(q.templateId);
+/** The template behind a board quest: shipped, or one of the player's own. */
+export function templateOf(save: SaveFile, q: BoardQuest): QuestTemplate | undefined {
+  return resolveTemplate(save, q.templateId);
 }
 
 /** Rewards the quest would pay if settled now (timed bonus excluded). */
 export function rewardPreview(save: SaveFile, q: BoardQuest): QuestRewards | null {
-  const t = templateOf(q);
+  const t = templateOf(save, q);
   if (!t || !save.board) return null;
   return questRewards(t, {
     difficulty: save.settings.difficulty,

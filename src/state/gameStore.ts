@@ -10,9 +10,14 @@ import { create } from 'zustand';
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import {
+  acceptProposal,
+  addCustomQuestToBoard,
+  addCustomTemplate,
   applyResurrection,
+  archiveCustomTemplate,
   changeResetHour,
   completeQuest,
+  dismissProposal,
   createNewSave,
   gameDayIndex,
   incrementCount,
@@ -27,6 +32,7 @@ import {
   startTimer,
   undoQuest,
   type ActionResult,
+  type CustomDraft,
   type GameEvent,
   type HabitId,
   type ResurrectionChoice,
@@ -57,7 +63,22 @@ const SHOWN_EVENTS: ReadonlySet<GameEvent['type']> = new Set<GameEvent['type']>(
   'vassalReturned',
   'catchUp',
   'resurrectionUsed',
+  'customSaved',
+  'customUpdated',
+  'customArchived',
+  'customBoarded',
+  'proposalResolved',
 ]);
+
+/**
+ * An accepted proposal raises "saved", "on the board" and "resolved" together;
+ * the player needs one line, the most specific, not a stack of three toasts.
+ */
+export function oneToastFor(events: GameEvent[]): GameEvent[] {
+  const boarded = events.some((e) => e.type === 'customBoarded');
+  const changed = boarded || events.some((e) => e.type === 'customSaved' || e.type === 'customUpdated');
+  return events.filter((e) => !(e.type === 'customSaved' && boarded) && !(e.type === 'proposalResolved' && e.accepted && changed));
+}
 
 export function isShownEvent(e: GameEvent): boolean {
   return SHOWN_EVENTS.has(e.type);
@@ -85,6 +106,16 @@ export interface GameActions {
   reroll: (instanceId: string) => void;
   reRecruit: (habit: HabitId, welcomeGift?: boolean) => void;
   resurrect: (choice: ResurrectionChoice) => void;
+  /**
+   * Compose sheet: save a custom quest and, with `board`, put it on today's
+   * board. Returns false (with a notice) when the template itself was
+   * refused; true when it was saved, even if only the board step failed.
+   */
+  composeQuest: (draft: CustomDraft, opts: { board: boolean }) => boolean;
+  addCustomToBoard: (templateId: string) => void;
+  archiveCustom: (templateId: string) => void;
+  acceptProposal: (id: string) => void;
+  dismissProposal: (id: string) => void;
   /**
    * Settings changes. `resetHour` and `benevolence` go through the engine's
    * own mutators; the rest apply at once (the current board is already
@@ -239,6 +270,41 @@ export const useGameStore = create<GameStore>()(
         reRecruit: (habit, welcomeGift = false) =>
           void withSave((save, now) => reRecruitVassal(save, habit, now, todayOf(save, now), welcomeGift)),
         resurrect: (choice) => void withSave((save, now) => applyResurrection(save, choice, now, todayOf(save, now))),
+
+        composeQuest: (draft, opts) => {
+          const save = get().save;
+          if (!save) return false;
+          const at = now();
+          const created = addCustomTemplate(save, at, draft);
+          if (created.error !== undefined || created.templateId === undefined) {
+            const message = created.error ?? 'could not save that quest';
+            set((s) => {
+              s.notice = message;
+            });
+            return false;
+          }
+          if (!opts.board) return apply(created);
+          const boarded = addCustomQuestToBoard(created.save, at, created.templateId);
+          if (boarded.error === undefined) {
+            // One toast for "saved and on the board": the board one says it all.
+            return apply({ save: boarded.save, events: boarded.events });
+          }
+          const reason = boarded.error;
+          apply(created);
+          set((s) => {
+            s.pendingEvents = [];
+            s.notice = `Saved in My quests. ${reason.charAt(0).toUpperCase()}${reason.slice(1)}.`;
+          });
+          return true;
+        },
+        addCustomToBoard: (templateId) => void withSave((save, now) => addCustomQuestToBoard(save, now, templateId)),
+        archiveCustom: (templateId) => void withSave((save, now) => archiveCustomTemplate(save, now, templateId)),
+        acceptProposal: (id) =>
+          void withSave((save, now) => {
+            const r = acceptProposal(save, now, id);
+            return r.error === undefined ? { ...r, events: oneToastFor(r.events) } : r;
+          }),
+        dismissProposal: (id) => void withSave((save, now) => dismissProposal(save, now, id)),
 
         updateSettings: (partial) => {
           const { resetHour, benevolence, ...rest } = partial;

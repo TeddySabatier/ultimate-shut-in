@@ -240,6 +240,17 @@ export function validateContent(): string[] {
     if (habits.filter((h) => h.utility === u).length !== 1) errors.push(`utility ${u}: must be fed by exactly one habit`);
   }
 
+  // Proposals: a five-minute foot-in-the-door title for every habit, within the 40-character title limit.
+  for (const h of HABIT_IDS) {
+    const title = (strings.proposals.footInDoor.titles as Record<string, string | undefined>)[h];
+    if (!title) errors.push(`strings.proposals.footInDoor.titles.${h}: missing`);
+    else if (title.length > 40) errors.push(`strings.proposals.footInDoor.titles.${h}: longer than 40 characters`);
+  }
+  for (const rule of ['smaller', 'stepUp', 'makeRecurring', 'footInDoor', 'pinWeekday'] as const) {
+    if (strings.proposals.reasons[rule].length === 0) errors.push(`strings.proposals.reasons.${rule}: empty pool`);
+    if (!strings.proposals.titles[rule]) errors.push(`strings.proposals.titles.${rule}: missing`);
+  }
+
   // Rings: 7, ascending ids, strictly ascending thresholds, ring 1 at 0.
   if (rings.length !== 7) errors.push(`expected 7 rings, got ${rings.length}`);
   rings.forEach((r, i) => {

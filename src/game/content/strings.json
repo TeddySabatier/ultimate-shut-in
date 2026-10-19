@@ -229,5 +229,122 @@
     "resetHour": "Day starts at",
     "lightsOut": "Lights-out hour",
     "wakeHour": "Wake hour"
+  },
+  "compose": {
+    "open": "Add my own quest",
+    "title": "Your own quest",
+    "intro": "Say it or type it, in your own words. The Protocol writes it up, and nothing is saved until you press a button below.",
+    "textLabel": "Your quest, in your own words",
+    "textPlaceholder": "e.g. walk 30 minutes in the park every morning",
+    "speak": "Speak it",
+    "stop": "Stop",
+    "listening": "Listening...",
+    "hearing": "Hearing",
+    "voicePrivacy": "Voice typing uses your browser's speech service. In Chrome that can mean your audio is sent to its maker while you are online. Haven records no audio and keeps only the text you see here. Nothing else leaves your device.",
+    "unsupported": "This browser cannot listen. Type it instead; the result is the same.",
+    "denied": "The microphone is blocked. Type it instead, or allow it for this site in your browser settings.",
+    "noSpeech": "Nothing heard. Press Speak it to try again, or type it.",
+    "noMic": "No microphone found. Type it instead.",
+    "offline": "The speech service could not be reached. Type it instead.",
+    "heard": "Heard. Check it below, fix anything, then save.",
+    "parsedHeading": "What the Protocol made of it",
+    "emptyHint": "Type or say a sentence and it turns into a quest here.",
+    "labels": {
+      "habit": "Which vassal takes it?",
+      "kind": "Kind",
+      "duration": "Minutes",
+      "target": "How many",
+      "name": "Name",
+      "recurrence": "How often",
+      "timeSlot": "Time of day",
+      "tier": "Effort",
+      "rewards": "Pays about"
+    },
+    "kinds": { "check": "Check", "timer": "Timer", "count": "Counter" },
+    "slots": { "any": "Any time", "morning": "Morning", "afternoon": "Afternoon", "evening": "Evening" },
+    "tiers": ["Light", "Steady", "Hard"],
+    "tierSuggested": "suggested",
+    "tierCap": "A {kind} can claim tier {max} at most. A timer over 30 minutes unlocks tier 3.",
+    "questions": {
+      "habit": "Which vassal should take this one?",
+      "amount": "How long, or how many?",
+      "title": "What should it be called?",
+      "empty": "Say or type one sentence to start."
+    },
+    "actions": { "board": "Add to board today", "recurring": "Save as recurring", "later": "Save for later", "cancel": "Cancel" },
+    "notes": {
+      "full": "Two of your own quests are already on today's board. Save it and it starts tomorrow.",
+      "habitOff": "{habit} is switched off in Settings. It stays saved and will not appear until you switch it back on.",
+      "away": "{name} is away. Welcome them back from the Haven screen to put this on the board."
+    },
+    "toasts": {
+      "saved": "{title} is in My quests.",
+      "boarded": "{title} is on today's board.",
+      "updated": "{title} is updated.",
+      "archived": "{title} is archived. Its history stays."
+    },
+    "myQuests": {
+      "title": "My quests",
+      "empty": "Nothing here yet. Add your own quest from the Board and it lives here.",
+      "addToday": "Add to today",
+      "onBoard": "On today's board",
+      "archive": "Archive",
+      "stats": "Issued {issued}, settled {done}, attempted {tried}",
+      "archiveTitle": "Archive this quest?",
+      "archiveBody": "It stops coming back. What you settled stays in the Ledger.",
+      "sources": { "voice": "Spoken", "text": "Typed", "proposal": "From the Haven" }
+    }
+  },
+  "proposals": {
+    "heading": "The Haven notices",
+    "intro": "Small ideas, only when a pattern is clear. Nothing changes unless you accept.",
+    "accept": "Accept",
+    "dismiss": "Not now",
+    "titles": {
+      "smaller": "A smaller step",
+      "stepUp": "A step up",
+      "makeRecurring": "Make it a habit",
+      "footInDoor": "A foot in the door",
+      "pinWeekday": "Give it a day"
+    },
+    "reasons": {
+      "smaller": [
+        "You tried your {habit} quests {n} times this week and finished none. Trying counts, and a smaller version can be easier to finish: {quest}.",
+        "{vassal} noticed the attempts at {habit} ({n} this week). A smaller version might open the door: {quest}."
+      ],
+      "stepUp": [
+        "Your {habit} quests landed on {n} of the last 7 days. {vassal} thinks you could stretch it a little: {quest}. Only if it feels good.",
+        "{n} of 7 days on {habit}. {vassal} has a slightly bigger version ready: {quest}. Fine to say not now."
+      ],
+      "makeRecurring": [
+        "You have settled {quest} {n} times. Want it to come back on its own, {recurrence}?",
+        "{quest} keeps coming back to you ({n} times). Let the Protocol bring it back {recurrence} instead."
+      ],
+      "footInDoor": [
+        "It has been quiet on {habit} for two weeks, and that is allowed. {vassal} suggests the smallest door: {quest}. Five minutes, then stop.",
+        "{vassal} has been waiting patiently. No pressure: {quest} takes five minutes, and stopping early is allowed."
+      ],
+      "pinWeekday": [
+        "{habit} has happened on {weekday} three weeks running. Give {weekday} to it: {quest}, every {weekday}.",
+        "Three {weekday}s in a row for {habit}. Want {quest} to arrive every {weekday}?"
+      ]
+    },
+    "footInDoor": {
+      "description": "Five minutes, no more. Stopping early counts.",
+      "titles": {
+        "move": "Five Minutes of Moving",
+        "outside": "Step Outside for Five",
+        "clean": "Five-Minute Tidy",
+        "social": "Send One Small Message",
+        "study": "Five Minutes of Study",
+        "sleep": "Five-Minute Wind-Down",
+        "eat": "Eat Something at the Table",
+        "hygiene": "Five-Minute Fresh Start"
+      }
+    },
+    "toasts": {
+      "accepted": "Done. {title} is set.",
+      "dismissed": "Noted. The Haven will not bring that up for a week."
+    }
   }
 }

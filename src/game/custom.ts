@@ -1,0 +1,357 @@
+/**
+ * Custom quests: templates the player authors (by voice or text, see
+ * `compose/parse.ts`), put on today's board by hand or by recurrence.
+ *
+ * They are ordinary quests once on the board: they count for vassal trust,
+ * loyalty and utilities, and pay the shipped formula for their tier. What
+ * keeps them from out-earning built-ins is `template.maxTier` (a timer is
+ * capped by its duration, a check or counter by tier 2), a hard limit of two
+ * on any board in addition to the generated ones, and no Bonus contract.
+ * Same contract as the rest of the engine: pure, input never mutated,
+ * `{ save, events, error? }` out.
+ */
+import { boardIsCurrent, instanceId, makeBoardQuest } from './board';
+import { clone, ok, pushLog, refuse } from './draft';
+import { isHabitEnabled, questRewards, type QuestRewards } from './economy';
+import { getHabit } from './content';
+import { fnv1a } from './rng';
+import {
+  DESCRIPTION_MAX,
+  MAX_DURATION_MIN,
+  MAX_TARGET_COUNT,
+  MIN_DURATION_MIN,
+  TITLE_MAX,
+  customToTemplate,
+  findCustom,
+  isCustomId,
+  normalizeRecurrence,
+  resolveTier,
+  weeklyCount,
+  weekdayOf,
+} from './template';
+import { titleCoinMult, titleLoyaltyFlat, titleXpMult } from './titles';
+import { gameDayIndex, type TimeOptions } from './time';
+import type { ActionResult, CustomDraft, CustomTemplate, GameEvent, HabitId, QuestKind, Recurrence, SaveFile, Tier, TimeSlot } from './types';
+import { HABIT_IDS } from './types';
+
+/** Custom quests allowed on one board, in addition to the generated ones. */
+export const MAX_CUSTOM_ON_BOARD = 2;
+/** Active (not archived) custom templates a save may hold. */
+export const MAX_ACTIVE_CUSTOM = 30;
+
+const TIME_SLOTS: readonly TimeSlot[] = ['any', 'morning', 'afternoon', 'evening'];
+const KINDS: readonly QuestKind[] = ['check', 'timer', 'count'];
+
+export interface CustomResult extends ActionResult {
+  templateId?: string;
+  instanceId?: string;
+}
+
+/** A draft after validation: every field present and in range. */
+export interface CleanDraft {
+  habit: HabitId;
+  kind: QuestKind;
+  durationMin?: number;
+  targetCount?: number;
+  title: string;
+  description: string;
+  tier: Tier;
+  recurrence: CustomTemplate['recurrence'];
+  pinWeekday?: number;
+  timeSlot: TimeSlot;
+  source: CustomTemplate['source'];
+}
+
+/* ------------------------------ Validation ------------------------------ */
+
+function tidy(text: string, max: number): string {
+  return text.replace(/\s+/g, ' ').trim().slice(0, max).trim();
+}
+
+/** Validate and normalise a draft; the error text is player-facing and lower-case like the other refusals. */
+export function cleanDraft(d: CustomDraft): { draft: CleanDraft } | { error: string } {
+  if (!(HABIT_IDS as readonly string[]).includes(d.habit)) return { error: 'pick a habit for it' };
+  if (!KINDS.includes(d.kind)) return { error: 'pick check, timer or count' };
+  const title = tidy(d.title, TITLE_MAX);
+  if (title === '') return { error: `give it a name, up to ${TITLE_MAX} characters` };
+  if (!TIME_SLOTS.includes(d.timeSlot)) return { error: 'pick a time of day' };
+  const recurrence = normalizeRecurrence(d.recurrence);
+  if (!recurrence) return { error: 'pick how often it comes back' };
+
+  let durationMin: number | undefined;
+  let targetCount: number | undefined;
+  if (d.kind === 'timer') {
+    const n = Math.round(d.durationMin ?? Number.NaN);
+    if (!Number.isFinite(n) || n < MIN_DURATION_MIN || n > MAX_DURATION_MIN) return { error: `a timer runs ${MIN_DURATION_MIN} to ${MAX_DURATION_MIN} minutes` };
+    durationMin = n;
+  } else if (d.kind === 'count') {
+    const n = Math.round(d.targetCount ?? Number.NaN);
+    if (!Number.isFinite(n) || n < 1 || n > MAX_TARGET_COUNT) return { error: `a counter goes from 1 to ${MAX_TARGET_COUNT}` };
+    targetCount = n;
+  }
+  const clean: CleanDraft = {
+    habit: d.habit,
+    kind: d.kind,
+    title,
+    description: tidy(d.description, DESCRIPTION_MAX),
+    tier: resolveTier(d.kind, d.tier, durationMin, targetCount),
+    recurrence,
+    timeSlot: d.timeSlot,
+    source: d.source,
+  };
+  if (durationMin !== undefined) clean.durationMin = durationMin;
+  if (targetCount !== undefined) clean.targetCount = targetCount;
+  if (recurrence === 'weekly:1' && d.pinWeekday !== undefined && Number.isInteger(d.pinWeekday) && d.pinWeekday >= 0 && d.pinWeekday <= 6) {
+    clean.pinWeekday = d.pinWeekday;
+  }
+  return { draft: clean };
+}
+
+/** The editable fields of a stored template, as a draft. */
+export function draftOf(c: CustomTemplate): CustomDraft {
+  return {
+    habit: c.habit,
+    kind: c.kind,
+    durationMin: c.durationMin,
+    targetCount: c.targetCount,
+    title: c.title,
+    description: c.description,
+    tier: c.tier,
+    recurrence: c.recurrence,
+    pinWeekday: c.pinWeekday,
+    timeSlot: c.timeSlot,
+    source: c.source,
+  };
+}
+
+/* ------------------------------ Queries ------------------------------ */
+
+export function activeCustomTemplates(save: Pick<SaveFile, 'customTemplates'>): CustomTemplate[] {
+  return save.customTemplates.filter((c) => c.archivedAt === undefined);
+}
+
+/** Custom quests on the current board, whatever their status. */
+export function customOnBoardCount(save: Pick<SaveFile, 'board'>): number {
+  return save.board?.quests.filter((q) => isCustomId(q.templateId)).length ?? 0;
+}
+
+export function customSlotsLeft(save: Pick<SaveFile, 'board'>): number {
+  return Math.max(0, MAX_CUSTOM_ON_BOARD - customOnBoardCount(save));
+}
+
+/** What a draft would pay if settled now (timed bonus excluded), or null for an invalid draft. */
+export function previewCustomRewards(save: SaveFile, draft: CustomDraft): QuestRewards | null {
+  const r = cleanDraft(draft);
+  if ('error' in r) return null;
+  const d = r.draft;
+  const t = customToTemplate({
+    id: 'c-preview',
+    habit: d.habit,
+    kind: d.kind,
+    title: d.title,
+    description: d.description,
+    tier: d.tier,
+    recurrence: d.recurrence,
+    timeSlot: d.timeSlot,
+    createdAt: 0,
+    source: d.source,
+    stats: { issued: 0, done: 0, tried: 0 },
+  });
+  return questRewards(t, {
+    difficulty: save.settings.difficulty,
+    bonus: false,
+    timedBonus: false,
+    titleXpMult: titleXpMult(save, d.habit),
+    titleCoinMult: titleCoinMult(save),
+    titleLoyaltyFlat: titleLoyaltyFlat(save),
+  });
+}
+
+/* ------------------------------ Recurrence ------------------------------ */
+
+/**
+ * Whether an active template belongs on the board of game day `day`.
+ * `weekly:N` spreads N days over the week from a per-template offset
+ * (derived from its id, so it needs no history); `weekly:1` with a pinned
+ * weekday lands only on that weekday.
+ */
+export function recurrenceDue(t: { id: string; recurrence: Recurrence; pinWeekday?: number | undefined }, day: number): boolean {
+  const wd = weekdayOf(day);
+  if (t.recurrence === 'once') return false;
+  if (t.recurrence === 'daily') return true;
+  if (t.recurrence === 'weekdays') return wd >= 1 && wd <= 5;
+  const n = weeklyCount(t.recurrence);
+  if (n === null) return false;
+  if (n === 1 && t.pinWeekday !== undefined) return wd === t.pinWeekday;
+  const offset = fnv1a(t.id) % 7;
+  const pos = (wd - offset + 7) % 7;
+  for (let i = 0; i < n; i++) if (Math.floor((i * 7) / n) === pos) return true;
+  return false;
+}
+
+/**
+ * Place the recurring templates due on `day` onto the freshly issued board,
+ * up to the two-per-board limit. Fairest first: the template issued least so
+ * far, then the oldest. Quiet on purpose: the board's own `boardIssued`
+ * event is the only signal.
+ */
+export function placeRecurringDraft(draft: SaveFile, day: number, now: number): void {
+  const board = draft.board;
+  if (!board || board.day !== day) return;
+  let slots = customSlotsLeft(draft);
+  if (slots === 0) return;
+  const onBoard = new Set(board.quests.map((q) => q.templateId));
+  const due = activeCustomTemplates(draft)
+    .filter((t) => recurrenceDue(t, day) && !onBoard.has(t.id) && isHabitEnabled(draft, t.habit) && !draft.vassals[t.habit].away)
+    .sort((a, b) => a.stats.issued - b.stats.issued || a.createdAt - b.createdAt || (a.id < b.id ? -1 : 1));
+  for (const t of due) {
+    if (slots === 0) break;
+    board.quests.push(makeBoardQuest(day, customToTemplate(t)));
+    t.stats.issued += 1;
+    pushLog(draft, now, day, 'customBoarded', `${t.title} is on the board (your own).`);
+    slots -= 1;
+  }
+}
+
+/* ------------------------------ Actions ------------------------------ */
+
+function uniqueId(save: SaveFile, now: number, d: CleanDraft): string {
+  const seed = `${now}:${d.habit}:${d.title}`;
+  let id = `c-${fnv1a(seed).toString(16).padStart(8, '0')}`;
+  for (let n = 1; findCustom(save, id); n++) id = `c-${fnv1a(`${seed}:${n}`).toString(16).padStart(8, '0')}`;
+  return id;
+}
+
+function sameTitle(a: string, b: string): boolean {
+  return a.toLowerCase() === b.toLowerCase();
+}
+
+/** Save a new custom template (not yet on the board). */
+export function addCustomTemplate(save: SaveFile, now: number, input: CustomDraft): CustomResult {
+  const r = cleanDraft(input);
+  if ('error' in r) return refuse(save, r.error);
+  const d = r.draft;
+  if (activeCustomTemplates(save).length >= MAX_ACTIVE_CUSTOM) {
+    return refuse(save, `you already keep ${MAX_ACTIVE_CUSTOM} quests of your own; archive one in the Ledger first`);
+  }
+  if (activeCustomTemplates(save).some((c) => c.habit === d.habit && sameTitle(c.title, d.title))) {
+    return refuse(save, `you already have "${d.title}" in My quests`);
+  }
+  const draft = clone(save);
+  const id = uniqueId(draft, now, d);
+  const t: CustomTemplate = {
+    id,
+    habit: d.habit,
+    kind: d.kind,
+    title: d.title,
+    description: d.description,
+    tier: d.tier,
+    recurrence: d.recurrence,
+    timeSlot: d.timeSlot,
+    createdAt: now,
+    source: d.source,
+    stats: { issued: 0, done: 0, tried: 0 },
+  };
+  if (d.durationMin !== undefined) t.durationMin = d.durationMin;
+  if (d.targetCount !== undefined) t.targetCount = d.targetCount;
+  if (d.pinWeekday !== undefined) t.pinWeekday = d.pinWeekday;
+  draft.customTemplates.push(t);
+  pushLog(draft, now, draft.lastOpenDay, 'customSaved', `${t.title} saved in My quests.`);
+  return { ...ok(draft, [{ type: 'customSaved', templateId: id }]), templateId: id };
+}
+
+/**
+ * Edit a custom template. A habit or kind change is refused while it sits on
+ * today's board (the quest there already has its shape); the tier follows the
+ * effort unless the patch sets it.
+ */
+export function updateCustomTemplate(
+  save: SaveFile,
+  now: number,
+  templateId: string,
+  patch: Partial<Omit<CustomDraft, 'source'>>,
+  opts?: TimeOptions,
+): CustomResult {
+  const current = findCustom(save, templateId);
+  if (!current || current.archivedAt !== undefined) return refuse(save, 'that quest is not in My quests');
+  const merged: CustomDraft = { ...draftOf(current) };
+  for (const [k, v] of Object.entries(patch)) {
+    if (v !== undefined) (merged as unknown as Record<string, unknown>)[k] = v;
+  }
+  if (patch.tier === undefined && (patch.kind !== undefined || patch.durationMin !== undefined || patch.targetCount !== undefined)) merged.tier = undefined;
+  if (merged.kind !== 'timer') merged.durationMin = undefined;
+  if (merged.kind !== 'count') merged.targetCount = undefined;
+  if (merged.recurrence !== 'weekly:1') merged.pinWeekday = undefined;
+  else if (patch.recurrence !== undefined && patch.pinWeekday === undefined && patch.recurrence !== current.recurrence) merged.pinWeekday = undefined;
+  const r = cleanDraft(merged);
+  if ('error' in r) return refuse(save, r.error);
+  const d = r.draft;
+  if (activeCustomTemplates(save).some((c) => c.id !== templateId && c.habit === d.habit && sameTitle(c.title, d.title))) {
+    return refuse(save, `you already have "${d.title}" in My quests`);
+  }
+  const onBoard = save.board?.quests.some((q) => q.templateId === templateId) ?? false;
+  if (onBoard && (d.habit !== current.habit || d.kind !== current.kind)) {
+    return refuse(save, 'it is on today\'s board; change its habit or kind from tomorrow');
+  }
+  const draft = clone(save);
+  const t = findCustom(draft, templateId);
+  if (!t) return refuse(save, 'that quest is not in My quests');
+  t.habit = d.habit;
+  t.kind = d.kind;
+  t.title = d.title;
+  t.description = d.description;
+  t.tier = d.tier;
+  t.recurrence = d.recurrence;
+  t.timeSlot = d.timeSlot;
+  if (d.durationMin !== undefined) t.durationMin = d.durationMin;
+  else delete t.durationMin;
+  if (d.targetCount !== undefined) t.targetCount = d.targetCount;
+  else delete t.targetCount;
+  if (d.pinWeekday !== undefined) t.pinWeekday = d.pinWeekday;
+  else delete t.pinWeekday;
+  pushLog(draft, now, gameDayIndex(now, draft.settings.resetHour, opts?.tz), 'customUpdated', `${t.title} updated.`);
+  return { ...ok(draft, [{ type: 'customUpdated', templateId }]), templateId };
+}
+
+/**
+ * Stop a custom template from coming back. Its history stays, and a copy
+ * that was already worked on today stays on the board; an untouched one is
+ * taken off.
+ */
+export function archiveCustomTemplate(save: SaveFile, now: number, templateId: string, opts?: TimeOptions): CustomResult {
+  const current = findCustom(save, templateId);
+  if (!current || current.archivedAt !== undefined) return refuse(save, 'that quest is not in My quests');
+  const draft = clone(save);
+  const t = findCustom(draft, templateId);
+  if (!t) return refuse(save, 'that quest is not in My quests');
+  t.archivedAt = now;
+  const board = draft.board;
+  if (board) {
+    board.quests = board.quests.filter((q) => !(q.templateId === templateId && q.status === 'open' && (q.timer === null || (q.timer.startedAt === null && q.timer.accumulatedMs === 0))));
+  }
+  pushLog(draft, now, gameDayIndex(now, draft.settings.resetHour, opts?.tz), 'customArchived', `${t.title} archived.`);
+  return { ...ok(draft, [{ type: 'customArchived', templateId }]), templateId };
+}
+
+/** Put a saved template on today's board (max two of the player's own per board, never the Bonus). */
+export function addCustomQuestToBoard(save: SaveFile, now: number, templateId: string, opts?: TimeOptions): CustomResult {
+  const c = findCustom(save, templateId);
+  if (!c || c.archivedAt !== undefined) return refuse(save, 'that quest is not in My quests');
+  const board = save.board;
+  if (!board || !boardIsCurrent(save, now, opts)) return refuse(save, 'there is no board for today yet');
+  if (!isHabitEnabled(save, c.habit)) return refuse(save, 'that habit is switched off in Settings');
+  if (save.vassals[c.habit].away) return refuse(save, `${getHabit(c.habit).vassal.name} is away; welcome them back first`);
+  const id = instanceId(board.day, templateId);
+  if (board.quests.some((q) => q.instanceId === id)) return refuse(save, 'it is already on today\'s board');
+  if (customOnBoardCount(save) >= MAX_CUSTOM_ON_BOARD) {
+    return refuse(save, `two of your own quests are already on today's board; this one can start tomorrow`);
+  }
+  const draft = clone(save);
+  const dt = findCustom(draft, templateId);
+  if (!dt || !draft.board) return refuse(save, 'that quest is not in My quests');
+  draft.board.quests.push(makeBoardQuest(draft.board.day, customToTemplate(dt)));
+  dt.stats.issued += 1;
+  pushLog(draft, now, draft.board.day, 'customBoarded', `${dt.title} added to today's board.`);
+  const events: GameEvent[] = [{ type: 'customBoarded', instanceId: id }];
+  return { ...ok(draft, events), templateId, instanceId: id };
+}

@@ -46,13 +46,13 @@ test("changing the reset hour keeps today's board", async ({ page }) => {
   expect(await page.locator('article h3').allInnerTexts()).toEqual(before);
 });
 
-test('export downloads a version-2 JSON save and import restores the name', async ({ page }) => {
+test('export downloads a version-3 JSON save and import restores the name', async ({ page }) => {
   const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Export save' }).click()]);
   expect(download.suggestedFilename()).toMatch(/^haven-save-\d{4}-\d{2}-\d{2}\.json$/);
   const path = await download.path();
   const text = await readFile(path, 'utf8');
   const parsed = JSON.parse(text) as { version: number; player: { name: string } };
-  expect(parsed.version).toBe(2);
+  expect(parsed.version).toBe(3);
   expect(parsed.player.name).toBe('Tester');
 
   // Change the name, then import the file: the exported name comes back.

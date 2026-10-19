@@ -60,9 +60,17 @@ current board and its done quests until the index catches up again.
 | `combos.ts` | Forge on same-day habit pairs, unforge on undo, counted items for the wave. |
 | `resurrection.ts` | Token offer, eligibility window, `applyResurrection`. |
 | `tick.ts` | `processBoundaries(save, now)`: the single entry point on app open/focus (catch-up replay capped at 400 boundaries). `changeResetHour(save, hour, now)`. |
-| `save.ts` | `createNewSave`, `migrate` (legacy `{name, level, xp}`, v2 with or without a persist envelope; boards, combos, titles and history are normalised), `exportSave`. |
+| `save.ts` | `createNewSave`, `migrate` (legacy `{name, level, xp}`, v2 and v3 with or without a persist envelope; boards, combos, titles, history, custom templates, proposals and activity are normalised), `exportSave`. Save version 3 added `customTemplates`, `proposals` and `activity`. |
+| `template.ts` | `resolveTemplate(save, id)` (shipped or `c-` custom), `customToTemplate`, effort tiers and caps (`effortTier`, `maxTier`, `resolveTier`), recurrence and weekday helpers. |
+| `custom.ts` | Custom quests: `addCustomTemplate`, `updateCustomTemplate`, `archiveCustomTemplate`, `addCustomQuestToBoard`, `previewCustomRewards`, recurrence (`recurrenceDue`, `placeRecurringDraft`). Max two on a board, never the Bonus. |
+| `adapt.ts` | "The Haven notices": `recordActivityDraft`, `evaluateProposals` (five rules), `computeProposalsDraft` (limits, snoozes), `acceptProposal`, `dismissProposal`. |
+| `compose/` | `parseQuestDraft` (on-device, English and French, no network) and its keyword tables. |
 | `draft.ts` | Internal clone/log helpers behind the contract. |
 | `index.ts` | Public re-exports. |
+
+## Custom quests and proposals
+
+A board quest names its template by id; `template.resolveTemplate(save, id)` is the only lookup (ids starting `c-` live in `save.customTemplates`). Custom quests pay the shipped formula for their tier, with the tier capped by kind and duration, at most two per board and never the Bonus contract. `processBoundaries` archives the finished day into `save.activity`, places recurring custom quests on the new board and recomputes the (at most three) proposals. Everything is specified in `docs/design/CUSTOM-QUESTS.md`.
 
 ## How the store should use it
 

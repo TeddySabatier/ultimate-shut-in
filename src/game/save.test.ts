@@ -9,8 +9,8 @@ const DAY0 = gameDayIndex(T0, 4, TZ.tz);
 describe('createNewSave', () => {
   it('builds the GDD defaults', () => {
     const s = createNewSave(T0, undefined, TZ);
-    expect(s.version).toBe(2);
-    expect(SAVE_VERSION).toBe(2);
+    expect(s.version).toBe(3);
+    expect(SAVE_VERSION).toBe(3);
     expect(s.player).toEqual({ name: 'Absolute', level: 1, xp: 0, coins: 0, domainPoints: 0, ring: 1, highestRing: 1, resurrectionMonth: null });
     expect(s.settings).toEqual(defaultSettings());
     expect(s.settings.enabledHabits).toEqual([...HABIT_IDS]);
@@ -38,7 +38,7 @@ describe('createNewSave', () => {
 describe('migrate', () => {
   it('accepts the legacy { name, level, xp } shape with or without the persist wrapper', () => {
     const a = migrate({ name: 'Old Hand', level: 3, xp: 50 }, T0, TZ);
-    expect(a.version).toBe(2);
+    expect(a.version).toBe(3);
     expect(a.player).toMatchObject({ name: 'Old Hand', level: 3, xp: 50, coins: 0, ring: 1 });
     expect(a.firstPlayDay).toBe(DAY0);
     const b = migrate({ state: { name: 'Wrapped', level: 99, xp: -5 }, version: 1 }, T0, TZ);
@@ -104,6 +104,123 @@ describe('migrate', () => {
   it('returns a fresh save for garbage', () => {
     expect(migrate(null, T0, TZ).player.name).toBe('Absolute');
     expect(migrate('text', T0, TZ).firstPlayDay).toBe(DAY0);
-    expect(migrate([1, 2], T0, TZ).version).toBe(2);
+    expect(migrate([1, 2], T0, TZ).version).toBe(3);
+  });
+});
+
+describe('migrate: v3 (custom quests, proposals, activity)', () => {
+  const v2 = (): Record<string, unknown> => {
+    const s = createNewSave(T0, 'Old', TZ) as unknown as Record<string, unknown>;
+    delete s.customTemplates;
+    delete s.proposals;
+    delete s.activity;
+    s.version = 2;
+    return s;
+  };
+
+  it('upgrades a v2 save with empty arrays and keeps everything else', () => {
+    const old = v2();
+    const s = migrate(old, T0, TZ);
+    expect(s.version).toBe(3);
+    expect(s.customTemplates).toEqual([]);
+    expect(s.proposals).toEqual([]);
+    expect(s.activity).toEqual([]);
+    expect(s.player.name).toBe('Old');
+    expect(s.firstPlayDay).toBe(DAY0);
+    // The persist envelope of the previous store version is unwrapped the same way.
+    const wrapped = migrate({ state: { save: null }, version: 2 }, T0, TZ);
+    expect(wrapped.customTemplates).toEqual([]);
+  });
+
+  it('is idempotent and round-trips custom templates, proposals and activity', () => {
+    const s = createNewSave(T0, 'Mine', TZ);
+    s.customTemplates.push({
+      id: 'c-0123abcd',
+      habit: 'study',
+      kind: 'timer',
+      durationMin: 25,
+      title: 'Deep read',
+      description: 'Twenty-five quiet minutes.',
+      tier: 2,
+      recurrence: 'weekly:1',
+      pinWeekday: 3,
+      timeSlot: 'evening',
+      createdAt: T0,
+      archivedAt: T0 + 5,
+      source: 'voice',
+      stats: { issued: 4, done: 3, tried: 1 },
+    });
+    s.proposals.push(
+      {
+        id: 'p-00000001',
+        rule: 'smaller',
+        habit: 'move',
+        status: 'open',
+        createdDay: DAY0,
+        snoozeUntil: null,
+        title: 'A smaller step',
+        reason: 'Because.',
+        action: {
+          type: 'create',
+          addToBoard: true,
+          draft: { habit: 'move', kind: 'timer', durationMin: 10, title: 'Walk (Mini)', description: 'd', tier: 1, recurrence: 'once', timeSlot: 'any', source: 'proposal' },
+        },
+      },
+      {
+        id: 'p-00000002',
+        rule: 'pinWeekday',
+        habit: 'clean',
+        status: 'dismissed',
+        createdDay: DAY0,
+        snoozeUntil: DAY0 + 7,
+        title: 'Give it a day',
+        reason: 'Because.',
+        action: { type: 'update', templateId: 'c-0123abcd', patch: { recurrence: 'weekly:1', pinWeekday: 2 } },
+      },
+    );
+    s.activity.push({ day: DAY0 - 1, entries: [{ templateId: 'move.stretch', habit: 'move', status: 'tried' }] });
+    const once = migrate(JSON.parse(exportSave(s)), T0, TZ);
+    expect(once).toEqual(s);
+    expect(migrate(JSON.parse(exportSave(once)), T0, TZ)).toEqual(once);
+  });
+
+  it('sanitises corrupt entries instead of trusting them', () => {
+    const raw = v2();
+    raw.version = 3;
+    raw.customTemplates = [
+      'nope',
+      { id: 'x-1', habit: 'move', kind: 'check', title: 'Wrong prefix' },
+      { id: 'c-aaaaaaaa', habit: 'bogus', kind: 'check', title: 'Bad habit' },
+      { id: 'c-bbbbbbbb', habit: 'move', kind: 'check', title: '   ' },
+      { id: 'c-cccccccc', habit: 'move', kind: 'timer', durationMin: 9999, title: 'x'.repeat(90), tier: 3, recurrence: 'weekly:9', stats: { issued: -4, done: 'x' } },
+      { id: 'c-cccccccc', habit: 'move', kind: 'check', title: 'Duplicate id' },
+      { id: 'c-dddddddd', habit: 'eat', kind: 'check', title: 'Tidy check', tier: 3, recurrence: 'weekly:2', pinWeekday: 3, timeSlot: 'noon', source: 'telepathy' },
+    ];
+    raw.proposals = [
+      42,
+      { id: 'p-1', habit: 'move', action: { type: 'create', draft: { habit: 'move', kind: 'check', title: 'ok', recurrence: 'once' } }, rule: 'nonsense', status: 'weird' },
+      { id: 'p-2', habit: 'move', action: { type: 'explode' } },
+      { id: 'p-1', habit: 'move', action: { type: 'update', templateId: 'c-1', patch: { recurrence: 'daily' } } },
+    ];
+    raw.activity = [
+      { day: 'x', entries: [] },
+      { day: 5, entries: [{ templateId: 'move.stretch', habit: 'move', status: 'done' }, { templateId: 5 }, { templateId: 'a', habit: 'move', status: 'open' }] },
+      { day: 5, entries: [] },
+      ...Array.from({ length: 60 }, (_, i) => ({ day: 100 + i, entries: [] })),
+    ];
+    const s = migrate(raw, T0, TZ);
+    expect(s.customTemplates.map((c) => c.id)).toEqual(['c-cccccccc', 'c-dddddddd']);
+    const timer = s.customTemplates[0];
+    expect(timer).toMatchObject({ durationMin: 240, tier: 3, recurrence: 'once', stats: { issued: 0, done: 0, tried: 0 } });
+    expect(timer?.title).toHaveLength(40);
+    const check = s.customTemplates[1];
+    expect(check).toMatchObject({ kind: 'check', tier: 2, recurrence: 'weekly:2', timeSlot: 'any', source: 'text' });
+    expect(check?.pinWeekday).toBeUndefined();
+    expect(s.proposals).toHaveLength(1);
+    expect(s.proposals[0]).toMatchObject({ id: 'p-1', rule: 'smaller', status: 'dismissed', action: { type: 'create', draft: { title: 'ok', tier: 1 } } });
+    expect(s.activity).toHaveLength(42);
+    expect(s.activity.at(-1)?.day).toBe(159);
+    const day5 = migrate({ ...raw, activity: [raw.activity ? (raw.activity as unknown[])[1] : null] }, T0, TZ).activity;
+    expect(day5).toEqual([{ day: 5, entries: [{ templateId: 'move.stretch', habit: 'move', status: 'done' }] }]);
   });
 });

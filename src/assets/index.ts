@@ -70,6 +70,7 @@ import uiSettings from './ui/settings.svg';
 import uiHome from './ui/home.svg';
 import uiQuests from './ui/quests.svg';
 import uiCharacter from './ui/character.svg';
+import uiMic from './ui/mic.svg';
 
 // ---- logo ----
 import logoTitle from './logo/logo.svg';
@@ -186,6 +187,7 @@ export const uiIcons = {
   home: uiHome,
   quests: uiQuests,
   character: uiCharacter,
+  mic: uiMic,
 } as const satisfies Readonly<Record<string, string>>;
 export type UiIconId = keyof typeof uiIcons;
 

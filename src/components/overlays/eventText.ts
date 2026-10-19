@@ -3,7 +3,7 @@
  * `strings.json` pools (seeded so a re-render shows the same line) or from a
  * content definition; nothing here computes a number.
  */
-import { getCombo, getHabit, getQuest, getTitle, strings, TIED_HABIT, vassalName, type GameEvent, type SaveFile } from '../../game';
+import { formatLine, getCombo, getHabit, getTitle, resolveTemplate, strings, TIED_HABIT, vassalName, type GameEvent, type SaveFile } from '../../game';
 import { seededLine } from '../../state/selectors';
 import type { WindowTone } from '../SystemWindow';
 
@@ -15,8 +15,12 @@ export interface ToastCopy {
 
 function questTitle(save: SaveFile, instanceId: string): string {
   const q = save.board?.quests.find((x) => x.instanceId === instanceId);
-  const t = q ? getQuest(q.templateId) : undefined;
+  const t = q ? resolveTemplate(save, q.templateId) : undefined;
   return t?.title ?? 'the quest';
+}
+
+function customTitle(save: SaveFile, templateId: string): string {
+  return resolveTemplate(save, templateId)?.title ?? 'The quest';
 }
 
 /** Stable identity for the event at the head of the queue (resets overlay state per event). */
@@ -54,6 +58,16 @@ export function eventKey(e: GameEvent): string {
       return `${e.type}:${e.restored}:${e.habit ?? ''}`;
     case 'boardIssued':
       return `${e.type}:${e.day}`;
+    case 'customSaved':
+    case 'customUpdated':
+    case 'customArchived':
+      return `${e.type}:${e.templateId}`;
+    case 'customBoarded':
+      return `${e.type}:${e.instanceId}`;
+    case 'proposalsIssued':
+      return `${e.type}:${e.count}`;
+    case 'proposalResolved':
+      return `${e.type}:${e.id}:${e.accepted ? 'yes' : 'no'}`;
   }
 }
 
@@ -103,6 +117,23 @@ export function toastCopy(save: SaveFile, e: GameEvent): ToastCopy | null {
       return { title: 'Welcome back', line: seededLine(strings.catchUp, key, { days: e.days, name: 'Pell' }), tone: 'default' };
     case 'resurrectionUsed':
       return { title: 'Token used', line: strings.resurrection.used, tone: 'accent' };
+    case 'customSaved':
+      return { title: 'Saved', line: formatLine(strings.compose.toasts.saved, { title: customTitle(save, e.templateId) }), tone: 'success' };
+    case 'customUpdated':
+      return { title: 'Updated', line: formatLine(strings.compose.toasts.updated, { title: customTitle(save, e.templateId) }), tone: 'default' };
+    case 'customArchived':
+      return { title: 'Archived', line: formatLine(strings.compose.toasts.archived, { title: customTitle(save, e.templateId) }), tone: 'default' };
+    case 'customBoarded': {
+      const q = save.board?.quests.find((x) => x.instanceId === e.instanceId);
+      return { title: 'On the board', line: formatLine(strings.compose.toasts.boarded, { title: q ? customTitle(save, q.templateId) : 'The quest' }), tone: 'success' };
+    }
+    case 'proposalResolved': {
+      const p = save.proposals.find((x) => x.id === e.id);
+      const quest = p ? (p.action.type === 'create' ? p.action.draft.title : customTitle(save, p.action.templateId)) : 'It';
+      return e.accepted
+        ? { title: strings.proposals.heading, line: formatLine(strings.proposals.toasts.accepted, { title: quest }), tone: 'accent' }
+        : { title: strings.proposals.heading, line: strings.proposals.toasts.dismissed, tone: 'default' };
+    }
     default:
       return null;
   }

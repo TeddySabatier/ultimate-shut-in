@@ -22,6 +22,7 @@ import {
 import { fnv1a, mulberry32, rngInt, rngWeightedIndex, type Rng } from './rng';
 import { forgeCombosDraft, unforgeBrokenCombosDraft } from './combos';
 import { evaluateTitlesDraft, titleCoinMult, titleLoyaltyFlat, titleXpMult } from './titles';
+import { bumpCustomStatsDraft, isCustomId, resolveTemplate } from './template';
 import { gameDayIndex, type TimeOptions } from './time';
 import { restoreUtilityDraft, revertUtilityDraft } from './utilities';
 import { gainLoyaltyDraft, markActiveDraft, revertLoyaltyDraft } from './vassals';
@@ -87,7 +88,11 @@ function pickTemplate(rng: Rng, habitPool: QuestTemplate[], wanted: Tier, taken:
   return candidates[rngInt(rng, candidates.length)] ?? null;
 }
 
-/** Bonus contract: highest tier, then highest baseXp, then first drawn. */
+/**
+ * Bonus contract: highest tier, then highest baseXp, then first drawn.
+ * Custom quests never take it: `getQuest` only knows the shipped templates,
+ * so a `c-` quest is skipped here on purpose (docs/design/CUSTOM-QUESTS.md).
+ */
 export function chooseBonus(questsOnBoard: readonly BoardQuest[]): string {
   let best: BoardQuest | null = null;
   let bestT: QuestTemplate | null = null;
@@ -158,6 +163,8 @@ export function refillEmptyBoardDraft(draft: SaveFile, day: number, now: number)
   if (!b || b.day !== day || b.quests.length > 0) return [];
   const board = generateBoard(draft, day, b.seed);
   if (board.quests.length === 0) return [];
+  // The player's own quests on the empty board come along; nothing they added is lost.
+  board.quests.push(...b.quests.filter((q) => isCustomId(q.templateId)));
   draft.board = board;
   pushLog(draft, now, day, 'boardIssued', `Board issued: ${board.quests.length} quests.`);
   return [{ type: 'boardIssued', day }];
@@ -204,7 +211,7 @@ function actionable(save: SaveFile, id: string): { q?: BoardQuest; error?: strin
  * the day index moved backwards (clock set back, westward travel) the board
  * for `lastOpenDay` still counts as today's rather than being settled.
  */
-function boardIsCurrent(save: SaveFile, now: number, opts?: TimeOptions): boolean {
+export function boardIsCurrent(save: SaveFile, now: number, opts?: TimeOptions): boolean {
   if (!save.board) return false;
   const today = currentDay(save, now, opts);
   return save.board.day === today || (today < save.board.day && save.board.day === save.lastOpenDay);
@@ -251,7 +258,7 @@ export function incrementCount(save: SaveFile, id: string, delta: number, now: n
   const { q, error } = actionable(save, id);
   if (!q || error) return refuse(save, error ?? 'quest not on board');
   if (q.kind !== 'count') return refuse(save, 'quest is not a counter');
-  const t = getQuest(q.templateId);
+  const t = resolveTemplate(save, q.templateId);
   const target = t?.targetCount ?? 1;
   const nextCount = Math.max(0, q.count + delta);
   if (q.status === 'done') {
@@ -289,8 +296,9 @@ export function completeQuest(save: SaveFile, id: string, now: number): ActionRe
 function completeQuestOn(draft: SaveFile, id: string, now: number): ActionResult {
   const board = draft.board;
   const q = findQuest(draft, id);
-  const t = q ? getQuest(q.templateId) : undefined;
+  const t = q ? resolveTemplate(draft, q.templateId) : undefined;
   if (!board || !q || !t) return refuse(draft, 'quest not on board');
+  const wasTried = q.status === 'tried';
   const day = board.day;
   const events: GameEvent[] = [];
 
@@ -319,6 +327,8 @@ function completeQuestOn(draft: SaveFile, id: string, now: number): ActionResult
   const utility = restoreUtilityDraft(draft, q.habit, t.tier);
   q.rewards = { xp: rewards.xp, coins: rewards.coins, dp: rewards.dp, loyalty: loyaltyApplied, utility: utility.applied };
   q.status = 'done';
+  bumpCustomStatsDraft(draft, q.templateId, 'done', 1);
+  if (wasTried) bumpCustomStatsDraft(draft, q.templateId, 'tried', -1);
 
   events.push(...addPlayerXpDraft(draft, rewards.xp));
   draft.player.coins += rewards.coins;
@@ -358,8 +368,9 @@ export function markTried(save: SaveFile, id: string, now: number): ActionResult
   const dq = findQuest(draft, id);
   if (!dq) return refuse(save, 'quest not on board');
   dq.status = 'tried';
+  bumpCustomStatsDraft(draft, dq.templateId, 'tried', 1);
   markActiveDraft(draft.vassals[dq.habit], save.board.day);
-  pushLog(draft, now, save.board.day, 'questTried', `${getQuest(dq.templateId)?.title ?? dq.templateId}: attempted.`);
+  pushLog(draft, now, save.board.day, 'questTried', `${resolveTemplate(draft, dq.templateId)?.title ?? dq.templateId}: attempted.`);
   return ok(draft, [{ type: 'questTried', instanceId: id, habit: dq.habit }]);
 }
 
@@ -394,7 +405,8 @@ export function undoQuest(save: SaveFile, id: string, now: number, opts?: TimeOp
   dq.status = 'open';
   dq.rewards = null;
   dq.timedBonus = false;
-  const t = getQuest(dq.templateId);
+  bumpCustomStatsDraft(draft, dq.templateId, 'done', -1);
+  const t = resolveTemplate(draft, dq.templateId);
   if (dq.kind === 'count' && t?.targetCount !== undefined) dq.count = Math.min(dq.count, t.targetCount - 1);
 
   const stillDoneToday = draft.board?.quests.some((x) => x.status === 'done') ?? false;
@@ -421,6 +433,7 @@ export function rerollQuest(save: SaveFile, id: string, now: number): ActionResu
   if (q.status !== 'open') return refuse(save, 'only open quests can be swapped');
   const price = rerollPrice(save.player.ring);
   if (save.player.coins < price) return refuse(save, 'not enough settlement');
+  if (isCustomId(q.templateId)) return refuse(save, 'your own quests are not swapped; archive it in the Ledger instead');
   const t = getQuest(q.templateId);
   if (!t) return refuse(save, 'unknown template');
   const taken = new Set(board.quests.map((x) => x.templateId));

@@ -28,3 +28,10 @@ export function roughDuration(ms: number): string {
 export function signed(n: number): string {
   return n >= 0 ? `+${fmtNum(n)}` : `-${fmtNum(Math.abs(n))}`;
 }
+
+/** "25 min", "x8" or "Check": the effort of a quest in a few characters. */
+export function effortLabel(kind: 'check' | 'timer' | 'count', durationMin?: number, targetCount?: number): string {
+  if (kind === 'timer' && durationMin !== undefined) return `${durationMin} min`;
+  if (kind === 'count' && targetCount !== undefined) return `x${targetCount}`;
+  return 'Check';
+}

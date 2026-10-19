@@ -28,7 +28,7 @@ const EXPECTED = [
   ...[
     'panel-frame', 'xp-bar-cap', 'coin', 'domain-point', 'utility-power', 'utility-water', 'utility-gas',
     'title-badge', 'combo-weapon', 'resurrection-token', 'wave-shield', 'check', 'timer', 'lock',
-    'chevron', 'close', 'settings', 'home', 'quests', 'character',
+    'chevron', 'close', 'settings', 'home', 'quests', 'character', 'mic',
   ].map((u) => `ui/${u}.svg`),
   'logo/logo.svg',
   'logo/mark.svg',
@@ -73,7 +73,7 @@ describe('svg assets', () => {
   });
 
   it('monochrome icon sets use currentColor only', () => {
-    const mono = files.filter((f) => /[\\/](habits)[\\/]/.test(f) || /[\\/]ui[\\/](check|timer|lock|chevron|close|settings|home|quests|character|utility-\w+|wave-shield|title-badge|panel-frame|xp-bar-cap)\.svg$/.test(f));
+    const mono = files.filter((f) => /[\\/](habits)[\\/]/.test(f) || /[\\/]ui[\\/](check|timer|lock|chevron|close|settings|home|quests|character|mic|utility-\w+|wave-shield|title-badge|panel-frame|xp-bar-cap)\.svg$/.test(f));
     expect(mono.length).toBeGreaterThan(0);
     for (const f of mono) {
       const src = readFileSync(f, 'utf8');

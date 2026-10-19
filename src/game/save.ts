@@ -1,9 +1,10 @@
 /**
  * Save creation and migration. `migrate` accepts the legacy `usi.player`
- * shape (`{name, level, xp}`, version missing or 1) and the current v2 file,
- * filling any missing v2 fields with defaults so older v2 saves keep loading.
+ * shape (`{name, level, xp}`, version missing or 1), v2 files (no custom
+ * quests, proposals or activity: they get empty arrays) and the current v3
+ * file, filling any missing field with a default so older saves keep loading.
  */
-import { getCombo, getQuest, habits } from './content';
+import { getCombo, habits } from './content';
 import { instanceId } from './board';
 import { MAX_LOG_ENTRIES, clamp } from './draft';
 import {
@@ -15,22 +16,42 @@ import {
   WAVE_HISTORY_MAX,
   ringForDomainPoints,
 } from './economy';
+import {
+  DESCRIPTION_MAX,
+  MAX_DURATION_MIN,
+  MAX_TARGET_COUNT,
+  TITLE_MAX,
+  normalizeRecurrence,
+  resolveTemplate,
+  resolveTier,
+} from './template';
 import { gameDayIndex, type TimeOptions } from './time';
 import type {
+  ActivityDay,
+  ActivityEntry,
   Benevolence,
   Board,
   BoardQuest,
   ComboItem,
+  CustomDraft,
+  CustomSource,
+  CustomStats,
+  CustomTemplate,
   Difficulty,
   EarnedTitle,
   HabitId,
   LifetimeStats,
   LogEntry,
   Player,
+  Proposal,
+  ProposalAction,
+  ProposalRule,
+  QuestKind,
   QuestStatus,
   RingId,
   SaveFile,
   Settings,
+  TimeSlot,
   Utility,
   UtilityId,
   Vassal,
@@ -40,7 +61,7 @@ import type {
 } from './types';
 import { HABIT_IDS, UTILITY_IDS } from './types';
 
-export const SAVE_VERSION = 2 as const;
+export const SAVE_VERSION = 3 as const;
 export const DEFAULT_NAME = 'Absolute';
 export const DEFAULT_RESET_HOUR = 4;
 export const NAME_MAX_LENGTH = 24;
@@ -124,6 +145,9 @@ export function createNewSave(now: number, name?: string, opts?: NewSaveOptions)
     titles: [],
     stats: defaultStats(),
     log: [],
+    customTemplates: [],
+    proposals: [],
+    activity: [],
     firstPlayDay: today,
     lastOpenDay: today,
   };
@@ -247,9 +271,9 @@ function isHabitId(v: unknown): v is HabitId {
  * `rewards` snapshot without `utility` (pre-errata-3 saves, GDD 4 shape)
  * gets 0 so undo never computes with `undefined` (errata 8).
  */
-function migrateQuest(raw: unknown, day: number): BoardQuest | null {
+function migrateQuest(raw: unknown, day: number, customs: CustomTemplate[]): BoardQuest | null {
   if (!isDict(raw) || typeof raw.templateId !== 'string') return null;
-  const t = getQuest(raw.templateId);
+  const t = resolveTemplate({ customTemplates: customs }, raw.templateId);
   if (!t) return null;
   const timerRaw = isDict(raw.timer) ? raw.timer : null;
   const r = isDict(raw.rewards) ? raw.rewards : null;
@@ -269,12 +293,12 @@ function migrateQuest(raw: unknown, day: number): BoardQuest | null {
   };
 }
 
-function migrateBoard(raw: unknown): Board | null {
+function migrateBoard(raw: unknown, customs: CustomTemplate[]): Board | null {
   if (!isDict(raw) || !Array.isArray(raw.quests) || typeof raw.day !== 'number' || !Number.isFinite(raw.day)) return null;
   const day = Math.floor(raw.day);
   const quests: BoardQuest[] = [];
   for (const q of raw.quests) {
-    const m = migrateQuest(q, day);
+    const m = migrateQuest(q, day, customs);
     if (m && !quests.some((x) => x.instanceId === m.instanceId)) quests.push(m);
   }
   const bonusId = typeof raw.bonusId === 'string' && quests.some((q) => q.instanceId === raw.bonusId) ? raw.bonusId : '';
@@ -338,6 +362,142 @@ function migrateLog(raw: unknown): LogEntry[] {
   return out.slice(-MAX_LOG_ENTRIES);
 }
 
+/* ------------------- Custom quests, proposals, activity ------------------- */
+
+const QUEST_KINDS: readonly QuestKind[] = ['check', 'timer', 'count'];
+const TIME_SLOTS: readonly TimeSlot[] = ['any', 'morning', 'afternoon', 'evening'];
+const SOURCES: readonly CustomSource[] = ['voice', 'text', 'proposal'];
+const RULES: readonly ProposalRule[] = ['smaller', 'stepUp', 'makeRecurring', 'footInDoor', 'pinWeekday'];
+const PROPOSAL_STATUSES: readonly Proposal['status'][] = ['open', 'dismissed', 'accepted'];
+export const ACTIVITY_DAYS = 42;
+export const MAX_PROPOSAL_RECORDS = 60;
+
+function str(v: unknown, max: number): string {
+  return typeof v === 'string' ? v.trim().slice(0, max) : '';
+}
+
+function weekday(v: unknown): number | undefined {
+  return typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 6 ? v : undefined;
+}
+
+/** Lenient reader for a stored draft: anything unusable returns null. */
+function coerceDraft(raw: unknown): CustomDraft | null {
+  if (!isDict(raw) || !isHabitId(raw.habit)) return null;
+  const kind = oneOf(raw.kind, QUEST_KINDS, 'check');
+  const title = str(raw.title, TITLE_MAX);
+  if (title === '') return null;
+  const durationMin = kind === 'timer' ? clamp(Math.round(num(raw.durationMin, 15)), 1, MAX_DURATION_MIN) : undefined;
+  const targetCount = kind === 'count' ? clamp(Math.round(num(raw.targetCount, 1)), 1, MAX_TARGET_COUNT) : undefined;
+  const recurrence = normalizeRecurrence(raw.recurrence) ?? 'once';
+  const pin = recurrence === 'weekly:1' ? weekday(raw.pinWeekday) : undefined;
+  const manual = raw.tier === 1 || raw.tier === 2 || raw.tier === 3 ? raw.tier : undefined;
+  return {
+    habit: raw.habit,
+    kind,
+    durationMin,
+    targetCount,
+    title,
+    description: str(raw.description, DESCRIPTION_MAX),
+    tier: resolveTier(kind, manual, durationMin, targetCount),
+    recurrence,
+    pinWeekday: pin,
+    timeSlot: oneOf(raw.timeSlot, TIME_SLOTS, 'any'),
+    source: oneOf(raw.source, SOURCES, 'text'),
+  };
+}
+
+function migrateStatsOf(raw: unknown): CustomStats {
+  const r = isDict(raw) ? raw : {};
+  const n = (v: unknown): number => Math.max(0, Math.floor(num(v, 0)));
+  return { issued: n(r.issued), done: n(r.done), tried: n(r.tried) };
+}
+
+function migrateCustomTemplates(raw: unknown): CustomTemplate[] {
+  if (!Array.isArray(raw)) return [];
+  const out: CustomTemplate[] = [];
+  for (const c of raw) {
+    if (!isDict(c) || typeof c.id !== 'string' || !c.id.startsWith('c-') || out.some((x) => x.id === c.id)) continue;
+    const d = coerceDraft(c);
+    if (!d) continue;
+    const t: CustomTemplate = {
+      id: c.id,
+      habit: d.habit,
+      kind: d.kind,
+      title: d.title,
+      description: d.description,
+      tier: d.tier ?? 1,
+      recurrence: d.recurrence,
+      timeSlot: d.timeSlot,
+      createdAt: num(c.createdAt, 0),
+      source: d.source,
+      stats: migrateStatsOf(c.stats),
+    };
+    if (d.durationMin !== undefined) t.durationMin = d.durationMin;
+    if (d.targetCount !== undefined) t.targetCount = d.targetCount;
+    if (d.pinWeekday !== undefined) t.pinWeekday = d.pinWeekday;
+    if (typeof c.archivedAt === 'number' && Number.isFinite(c.archivedAt)) t.archivedAt = c.archivedAt;
+    out.push(t);
+  }
+  return out;
+}
+
+function migrateAction(raw: unknown): ProposalAction | null {
+  if (!isDict(raw)) return null;
+  if (raw.type === 'create') {
+    const draft = coerceDraft(raw.draft);
+    return draft ? { type: 'create', draft, addToBoard: bool(raw.addToBoard, false) } : null;
+  }
+  if (raw.type === 'update' && typeof raw.templateId === 'string' && isDict(raw.patch)) {
+    const patch: Extract<ProposalAction, { type: 'update' }>['patch'] = {};
+    const rec = normalizeRecurrence(raw.patch.recurrence);
+    if (rec) patch.recurrence = rec;
+    const pin = weekday(raw.patch.pinWeekday);
+    if (pin !== undefined) patch.pinWeekday = pin;
+    return { type: 'update', templateId: raw.templateId, patch };
+  }
+  return null;
+}
+
+function migrateProposals(raw: unknown): Proposal[] {
+  if (!Array.isArray(raw)) return [];
+  const out: Proposal[] = [];
+  for (const p of raw) {
+    if (!isDict(p) || typeof p.id !== 'string' || out.some((x) => x.id === p.id) || !isHabitId(p.habit)) continue;
+    const action = migrateAction(p.action);
+    if (!action) continue;
+    out.push({
+      id: p.id,
+      rule: oneOf(p.rule, RULES, 'smaller'),
+      habit: p.habit,
+      status: oneOf(p.status, PROPOSAL_STATUSES, 'dismissed'),
+      createdDay: Math.floor(num(p.createdDay, 0)),
+      snoozeUntil: nullableNum(p.snoozeUntil),
+      title: str(p.title, 80),
+      reason: str(p.reason, 300),
+      action,
+    });
+  }
+  return out.slice(-MAX_PROPOSAL_RECORDS);
+}
+
+function migrateActivity(raw: unknown): ActivityDay[] {
+  if (!Array.isArray(raw)) return [];
+  const out: ActivityDay[] = [];
+  for (const d of raw) {
+    if (!isDict(d) || typeof d.day !== 'number' || !Number.isFinite(d.day) || !Array.isArray(d.entries)) continue;
+    const day = Math.floor(d.day);
+    if (out.some((x) => x.day === day)) continue;
+    const entries: ActivityEntry[] = [];
+    for (const e of d.entries) {
+      if (!isDict(e) || typeof e.templateId !== 'string' || !isHabitId(e.habit) || (e.status !== 'done' && e.status !== 'tried')) continue;
+      entries.push({ templateId: e.templateId, habit: e.habit, status: e.status });
+    }
+    out.push({ day, entries: entries.slice(0, 40) });
+  }
+  out.sort((a, b) => a.day - b.day);
+  return out.slice(-ACTIVITY_DAYS);
+}
+
 /** True when `v` has the shape of a v2 SaveFile, whatever its `version` field says. */
 function looksLikeV2(v: unknown): v is Dict {
   return isDict(v) && isDict(v.player) && isDict(v.vassals) && isDict(v.utilities) && isDict(v.settings);
@@ -370,6 +530,7 @@ export function migrate(raw: unknown, now: number, opts?: TimeOptions): SaveFile
   const unwrapped = inner;
 
   const fresh = createNewSave(now, undefined, opts);
+  const customTemplates = migrateCustomTemplates(unwrapped.customTemplates);
   const settings = migrateSettings(unwrapped.settings, fresh.settings);
   const vassalsRaw = isDict(unwrapped.vassals) ? unwrapped.vassals : {};
   const utilitiesRaw = isDict(unwrapped.utilities) ? unwrapped.utilities : {};
@@ -399,12 +560,15 @@ export function migrate(raw: unknown, now: number, opts?: TimeOptions): SaveFile
     settings,
     vassals,
     utilities,
-    board: migrateBoard(unwrapped.board),
+    board: migrateBoard(unwrapped.board, customTemplates),
     week,
     combos: migrateCombos(unwrapped.combos),
     titles: migrateTitles(unwrapped.titles),
     stats: migrateStats(unwrapped.stats),
     log: migrateLog(unwrapped.log),
+    customTemplates,
+    proposals: migrateProposals(unwrapped.proposals),
+    activity: migrateActivity(unwrapped.activity),
     firstPlayDay,
     lastOpenDay: Math.max(firstPlayDay, lastOpenDay),
   };

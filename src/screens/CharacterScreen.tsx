@@ -24,6 +24,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { Icon } from '../components/Icon';
 import { Meter } from '../components/Meter';
 import { SystemWindow } from '../components/SystemWindow';
+import { MyQuestsSection } from '../components/MyQuestsSection';
 import { VassalCard } from '../components/VassalCard';
 import styles from './CharacterScreen.module.css';
 
@@ -76,6 +77,8 @@ export function CharacterScreen() {
   const rename = useGameStore((s) => s.rename);
   const reRecruit = useGameStore((s) => s.reRecruit);
   const resurrect = useGameStore((s) => s.resurrect);
+  const addCustomToBoard = useGameStore((s) => s.addCustomToBoard);
+  const archiveCustom = useGameStore((s) => s.archiveCustom);
   const now = useNow(false);
   const today = todayIndex(save, now);
   const xp = playerXpProgress(save);
@@ -153,6 +156,8 @@ export function CharacterScreen() {
           />
         ))}
       </SystemWindow>
+
+      <MyQuestsSection save={save} onAddToday={addCustomToBoard} onArchive={archiveCustom} />
 
       <SystemWindow title="Forged this period">
         {save.player.ring < comboRules.minRing ? (

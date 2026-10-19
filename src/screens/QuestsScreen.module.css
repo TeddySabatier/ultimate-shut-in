@@ -15,3 +15,7 @@
   font-size: var(--text-xs);
   text-align: center;
 }
+
+.compose {
+  margin-bottom: var(--space-4);
+}

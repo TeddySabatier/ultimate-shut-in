@@ -30,6 +30,40 @@ export {
   undoQuest,
   rerollQuest,
 } from './board';
+export * from './template';
+export {
+  MAX_CUSTOM_ON_BOARD,
+  MAX_ACTIVE_CUSTOM,
+  cleanDraft,
+  draftOf,
+  activeCustomTemplates,
+  customOnBoardCount,
+  customSlotsLeft,
+  previewCustomRewards,
+  recurrenceDue,
+  placeRecurringDraft,
+  addCustomTemplate,
+  updateCustomTemplate,
+  archiveCustomTemplate,
+  addCustomQuestToBoard,
+} from './custom';
+export type { CleanDraft, CustomResult } from './custom';
+export {
+  MAX_VISIBLE_PROPOSALS,
+  SNOOZE_DAYS,
+  OPEN_PROPOSAL_DAYS,
+  recordActivityDraft,
+  evaluateProposals,
+  computeProposalsDraft,
+  openProposals,
+  dismissProposal,
+  acceptProposal,
+  smallerDraft,
+  stepUpDraft,
+} from './adapt';
+export type { ProposalCandidate } from './adapt';
+export { parseQuestDraft } from './compose/parse';
+export type { ParsedQuestDraft, ComposeQuestion, FieldConfidence } from './compose/parse';
 export { vassalName, activeVassals, waitingLine, decayLoyalty } from './vassals';
 export { reRecruitVassal, setBenevolence } from './recruit';
 export {
