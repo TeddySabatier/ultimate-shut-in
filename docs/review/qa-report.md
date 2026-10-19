@@ -31,8 +31,8 @@ Engine findings from the adversarial review (16) were all fixed earlier and each
 - Toasts auto-dismiss after a fixed 3.2s with no pause on hover; overlays queue rather than stack.
 - Import replaces the save after a confirm but shows no preview of the file.
 - Install button appears only when the browser fires beforeinstallprompt; iOS gets a text hint.
-- GitHub Pages deploy is manual and needs the repo to be public or a paid plan (see docs/DEPLOY.md).
-- Out of scope for v1 by design: citizens, places/outposts, shop registration, familiars, notifications, sync.
+- GitHub Pages deploys on every push to main; the repo is public (see docs/DEPLOY.md).
+- Out of scope for v1 by design: citizens, shop registration, familiars, push notifications, sync. Outposts shipped with the Map tab (v0.3.0) and opt-in local reminders after it; the findings above predate both.
 
 ## How to reproduce
 

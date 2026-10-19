@@ -63,19 +63,21 @@ To try it on your phone over the local network, see [docs/DEPLOY.md](docs/DEPLOY
 .github/workflows/   ci.yml (every push and PR), deploy.yml (GitHub Pages on push to main)
 e2e/                 Playwright end-to-end tests
 docs/
-  design/            GDD.md (rules), GDD-errata.md (where code departs), ART.md
+  design/            GDD.md (rules), GDD-errata.md (where code departs), ART.md,
+                     CITY-MAP.md (Map tab and outposts), CUSTOM-QUESTS.md, ARENA.md (planned)
   research/          source-analysis.md (research and IP note)
-  review/            engine-review.md
-  ARCHITECTURE.md  DEPLOY.md  PLAYER-GUIDE.md  ORCHESTRATION.md
+  review/            engine, QA, responsive reviews and merge notes
+  ARCHITECTURE.md  DEPLOY.md  PLAYER-GUIDE.md  RESPONSIVE-RULES.md  PARALLEL-WORK.md  ORCHESTRATION.md
 public/              favicon.svg, icons/ (PWA icons)
-scripts/             gen-icons.mjs, gen-logo.mjs
+scripts/             gen-icons.mjs, gen-logo.mjs, screenshots-dedupe.mjs
 src/
   assets/            SVG art: habits, haven, logo, monsters, ui, vassals
   components/        shared UI (AppShell, QuestCard, VassalCard, overlays/ ...)
   game/              pure engine, no React; content/ holds the JSON data
   hooks/             useGameTick, useNow, useInstallPrompt ...
-  pwa/               service worker registration
-  screens/           Home (Haven), Quests (Board), Character (Ledger), Settings, Onboarding
+  notifications/     opt-in local reminders (scheduler, runtime, Settings section)
+  pwa/               service worker registration and notification click handler
+  screens/           Home (Haven), Quests (Board), Map (city and outposts), Character (Ledger), Settings, Onboarding
   state/             the zustand store (gameStore.ts) and the app clock
   styles/            tokens.css and global.css
   test/              vitest setup and helpers
@@ -87,6 +89,8 @@ src/
 - [Player guide](docs/PLAYER-GUIDE.md): how the game works, in plain words.
 - [Game design document](docs/design/GDD.md) and its [errata](docs/design/GDD-errata.md): the rules and where the implementation reads them.
 - [Art guide](docs/design/ART.md): palette, geometry and asset inventory.
+- [City map and outposts](docs/design/CITY-MAP.md) and [custom quests](docs/design/CUSTOM-QUESTS.md): the two features added after v0.1.
+- [Responsive rules](docs/RESPONSIVE-RULES.md): the layout rules every screen follows.
 - [Architecture](docs/ARCHITECTURE.md): layers, save format, time model, PWA and testing strategy.
 - [Engine README](src/game/README.md) and [content schema](src/game/content/schema.md).
 - [Deploy](docs/DEPLOY.md) and [Contributing](CONTRIBUTING.md).

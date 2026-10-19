@@ -131,7 +131,8 @@ Every 7 days from your first day, a wave of monsters (Dust Bunny, Doomscroll Wyr
 - your ring's wall bonus,
 - the combo items you forged this week (at most 6 count, strongest first),
 - title bonuses (flat defense, capped at +12),
-- the Well-kept Haven bonus.
+- the Well-kept Haven bonus,
+- your Stronghold outposts (+2 each, at most +6 in total).
 
 **Result** compares defense to the wave's attack (which grows with the week number up to week 52, with your ring and with difficulty):
 
