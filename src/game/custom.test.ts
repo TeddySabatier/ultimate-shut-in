@@ -11,7 +11,9 @@ import {
   cleanDraft,
   customOnBoardCount,
   previewCustomRewards,
+  customTitleTaken,
   recurrenceDue,
+  restoreCustomTemplate,
   updateCustomTemplate,
 } from './custom';
 import { questRewards } from './economy';
@@ -297,6 +299,225 @@ describe('updateCustomTemplate', () => {
     const a = withTemplate(fresh(), { title: 'Alpha' });
     const b = withTemplate(a.save, { title: 'Beta' });
     expect(updateCustomTemplate(b.save, T0, b.id, { title: 'alpha' }, TZ).error).toMatch(/already have/);
+  });
+});
+
+describe('updateCustomTemplate: every editable field', () => {
+  it('applies title, description, habit, kind, count, recurrence, pinned weekday and time slot together', () => {
+    const { save, id } = withTemplate(freshWithBoard(), { recurrence: 'daily', timeSlot: 'morning' });
+    const before = save.customTemplates[0];
+    const r = updateCustomTemplate(
+      save,
+      T0,
+      id,
+      { title: 'Read a chapter', description: 'Before bed.', habit: 'study', kind: 'count', targetCount: 3, recurrence: 'weekly:1', pinWeekday: 3, timeSlot: 'evening' },
+      TZ,
+    );
+    expect(r.error).toBeUndefined();
+    expect(r.events).toEqual([{ type: 'customUpdated', templateId: id }]);
+    const t = r.save.customTemplates[0];
+    expect(t).toMatchObject({ title: 'Read a chapter', description: 'Before bed.', habit: 'study', kind: 'count', targetCount: 3, tier: 1, recurrence: 'weekly:1', pinWeekday: 3, timeSlot: 'evening' });
+    expect(t?.durationMin).toBeUndefined();
+    // Identity, history and origin are never part of an edit.
+    expect(t).toMatchObject({ id, createdAt: before?.createdAt, source: before?.source, stats: before?.stats });
+    expect(r.save.log.at(-1)).toMatchObject({ kind: 'customUpdated' });
+  });
+  it('does not mutate its input', () => {
+    const { save, id } = withTemplate(fresh());
+    deepFreeze(save);
+    expect(updateCustomTemplate(save, T0, id, { title: 'Longer lap', durationMin: 40 }, TZ).error).toBeUndefined();
+  });
+  it('sets and clears the outpost, and refuses one that does not exist', () => {
+    const { save, id } = withTemplate(fresh());
+    expect(updateCustomTemplate(save, T0, id, { outpostId: 'o-nope' }, TZ).error).toMatch(/unknown outpost/);
+    const stale = structuredClone(save);
+    const s0 = stale.customTemplates[0];
+    if (s0) s0.outpostId = 'o-gone';
+    // An outpost retired since the quest was saved never blocks an unrelated edit; it is let go.
+    const edited = updateCustomTemplate(stale, T0, id, { title: 'Park lap 2' }, TZ);
+    expect(edited.error).toBeUndefined();
+    expect(edited.save.customTemplates[0]?.outpostId).toBeUndefined();
+    const cleared = updateCustomTemplate(stale, T0, id, { outpostId: null }, TZ);
+    expect(cleared.save.customTemplates[0]?.outpostId).toBeUndefined();
+  });
+});
+
+describe('updateCustomTemplate: the tier is re-capped by the effort rules', () => {
+  it('holds a requested tier to the cap of the new kind and duration', () => {
+    const { save, id } = withTemplate(fresh(), { kind: 'check', durationMin: undefined, tier: 2 });
+    const asked = updateCustomTemplate(save, T0, id, { tier: 3 }, TZ);
+    expect(asked.save.customTemplates[0]?.tier).toBe(2);
+    const timer = updateCustomTemplate(save, T0, id, { kind: 'timer', durationMin: 10, tier: 3 }, TZ);
+    expect(timer.save.customTemplates[0]?.tier).toBe(1);
+    const long = updateCustomTemplate(save, T0, id, { kind: 'timer', durationMin: 45, tier: 3 }, TZ);
+    expect(long.save.customTemplates[0]?.tier).toBe(3);
+  });
+  it('follows the effort when the patch changes it and sets no tier, and keeps a manual tier otherwise', () => {
+    const { save, id } = withTemplate(fresh(), { durationMin: 45 });
+    expect(save.customTemplates[0]?.tier).toBe(3);
+    const shorter = updateCustomTemplate(save, T0, id, { durationMin: 10 }, TZ);
+    expect(shorter.save.customTemplates[0]?.tier).toBe(1);
+    const lowered = updateCustomTemplate(save, T0, id, { tier: 2 }, TZ);
+    expect(lowered.save.customTemplates[0]?.tier).toBe(2);
+    const renamed = updateCustomTemplate(lowered.save, T0, id, { title: 'Long walk' }, TZ);
+    expect(renamed.save.customTemplates[0]?.tier).toBe(2);
+    const toCheck = updateCustomTemplate(save, T0, id, { kind: 'check' }, TZ);
+    expect(toCheck.save.customTemplates[0]).toMatchObject({ kind: 'check', tier: 1 });
+    expect(toCheck.save.customTemplates[0]?.durationMin).toBeUndefined();
+  });
+  it('never lets an edit pay more than a built-in of the same effort', () => {
+    const { save, id } = withTemplate(fresh(), { durationMin: 10 });
+    const pushed = updateCustomTemplate(save, T0, id, { tier: 3 }, TZ).save;
+    expect(pushed.customTemplates[0]?.tier).toBe(1);
+    expect(resolveTemplate(pushed, id)?.baseXp).toBe(tierDefaults[1].baseXp);
+  });
+});
+
+describe('updateCustomTemplate: edits are for future boards', () => {
+  it('lets the name, description, time slot and recurrence change today but not what the quest pays', () => {
+    const { save, id } = withTemplate(freshWithBoard(), { durationMin: 20 });
+    const onBoard = board(save, id);
+    const iid = onBoard.board?.quests.at(-1)?.instanceId ?? '';
+    const edited = updateCustomTemplate(onBoard, T0, id, { title: 'Park lap (slow)', description: 'Easy.', timeSlot: 'evening', recurrence: 'daily' }, TZ);
+    expect(edited.error).toBeUndefined();
+    for (const patch of [{ habit: 'outside' as const }, { kind: 'check' as const }, { durationMin: 45 }, { tier: 1 as const }]) {
+      expect(updateCustomTemplate(onBoard, T0, id, patch, TZ).error, JSON.stringify(patch)).toMatch(/from tomorrow/);
+    }
+    // Settling today's copy pays what it was issued with, the same with or without the edit, and snapshots it.
+    const done = completeQuest(edited.save, iid, T0);
+    const paid = done.save.board?.quests.find((x) => x.instanceId === iid)?.rewards;
+    const plain = completeQuest(onBoard, iid, T0).save.board?.quests.find((x) => x.instanceId === iid)?.rewards;
+    expect(paid?.xp).toBeGreaterThan(0);
+    expect(paid).toEqual(plain);
+    // Undo reverses exactly what was paid.
+    const undone = undoQuest(done.save, iid, T0, TZ);
+    expect(undone.error).toBeUndefined();
+    expect(undone.save.player.coins).toBe(onBoard.player.coins);
+    expect(undone.save.player.domainPoints).toBe(onBoard.player.domainPoints);
+  });
+  it('lets the new shape through once the board has moved on, and the next copy pays it', () => {
+    const { save, id } = withTemplate(freshWithBoard(), { durationMin: 20 });
+    const onBoard = board(save, id);
+    expect(updateCustomTemplate(onBoard, T0, id, { durationMin: 45 }, TZ).error).toBeDefined();
+    const tomorrow = processBoundaries(onBoard, at(1), TZ).save;
+    expect(tomorrow.board?.quests.some((q) => q.templateId === id)).toBe(false);
+    const edited = updateCustomTemplate(tomorrow, at(1), id, { durationMin: 45 }, TZ);
+    expect(edited.error).toBeUndefined();
+    expect(edited.save.customTemplates[0]).toMatchObject({ durationMin: 45, tier: 3 });
+    const again = addCustomQuestToBoard(edited.save, at(1), id, TZ);
+    const iid = again.instanceId ?? '';
+    const paid = completeQuest(again.save, iid, at(1)).save.board?.quests.find((x) => x.instanceId === iid)?.rewards;
+    const old = addCustomQuestToBoard(tomorrow, at(1), id, TZ);
+    const before = completeQuest(old.save, iid, at(1)).save.board?.quests.find((x) => x.instanceId === iid)?.rewards;
+    expect(paid?.xp).toBeGreaterThan(before?.xp ?? 0);
+  });
+  it('a recurring template changed today is placed on tomorrow\'s board as edited', () => {
+    const { save, id } = withTemplate(freshWithBoard(), { recurrence: 'daily', durationMin: 10 });
+    const edited = updateCustomTemplate(save, T0, id, { title: 'Evening lap', durationMin: 45, timeSlot: 'evening' }, TZ).save;
+    const next = processBoundaries(edited, at(1), TZ).save;
+    expect(next.board?.quests.some((q) => q.templateId === id)).toBe(true);
+    expect(resolveTemplate(next, id)).toMatchObject({ title: 'Evening lap', durationMin: 45, tier: 3 });
+  });
+  it('does not lock a quest whose copy sits on a board that is no longer today\'s', () => {
+    const { save, id } = withTemplate(freshWithBoard(), { durationMin: 20 });
+    const onBoard = board(save, id);
+    expect(updateCustomTemplate(onBoard, at(1), id, { durationMin: 45 }, TZ).error).toBeUndefined();
+  });
+});
+
+describe('the duplicate-title guard', () => {
+  it('compares within the habit, ignoring case and spacing, and ignoring archived quests and itself', () => {
+    const a = withTemplate(fresh(), { title: 'Alpha' });
+    const b = withTemplate(a.save, { title: 'Beta' });
+    expect(customTitleTaken(b.save, 'move', 'alpha')).toBe(true);
+    expect(customTitleTaken(b.save, 'move', '  ALPHA  ')).toBe(true);
+    expect(customTitleTaken(b.save, 'study', 'Alpha')).toBe(false);
+    expect(customTitleTaken(b.save, 'move', 'Alpha', a.id)).toBe(false);
+    expect(customTitleTaken(b.save, 'move', '   ')).toBe(false);
+    const archived = archiveCustomTemplate(b.save, T0, a.id, TZ).save;
+    expect(customTitleTaken(archived, 'move', 'Alpha')).toBe(false);
+  });
+  it('lets an unchanged title through an edit, and refuses moving onto a taken name in another habit', () => {
+    const a = withTemplate(fresh(), { title: 'Alpha' });
+    const b = withTemplate(a.save, { title: 'Alpha', habit: 'study', kind: 'check', durationMin: undefined });
+    expect(updateCustomTemplate(b.save, T0, a.id, { title: 'Alpha', description: 'x' }, TZ).error).toBeUndefined();
+    expect(updateCustomTemplate(b.save, T0, b.id, { habit: 'move' }, TZ).error).toMatch(/already have/);
+  });
+});
+
+describe('restoreCustomTemplate', () => {
+  it('clears archivedAt, keeps every other field and the history, and reports one event', () => {
+    const { save, id } = withTemplate(freshWithBoard(), { recurrence: 'daily' });
+    const archived = archiveCustomTemplate(save, T0, id, TZ).save;
+    deepFreeze(archived);
+    const r = restoreCustomTemplate(archived, T0 + 1000, id, TZ);
+    expect(r.error).toBeUndefined();
+    expect(r.templateId).toBe(id);
+    expect(r.events).toEqual([{ type: 'customUpdated', templateId: id }]);
+    const t = r.save.customTemplates[0];
+    expect(t?.archivedAt).toBeUndefined();
+    expect(t).toMatchObject({ id, title: 'Park lap', recurrence: 'daily', stats: { issued: 0, done: 0, tried: 0 } });
+    expect(activeCustomTemplates(r.save)).toHaveLength(1);
+    expect(r.save.log.at(-1)).toMatchObject({ kind: 'customRestored' });
+    // Restoring does not put it on today's board by itself.
+    expect(r.save.board?.quests.some((q) => q.templateId === id)).toBe(false);
+  });
+  it('refuses a template that is unknown or not archived', () => {
+    const { save, id } = withTemplate(fresh());
+    expect(restoreCustomTemplate(save, T0, id, TZ).error).toMatch(/not archived/);
+    expect(restoreCustomTemplate(save, T0, 'c-nope', TZ).error).toMatch(/not archived/);
+    expect(restoreCustomTemplate(save, T0, id, TZ).save).toBe(save);
+  });
+  it('refuses when an active quest of the same habit took its name meanwhile', () => {
+    const { save, id } = withTemplate(fresh());
+    const archived = archiveCustomTemplate(save, T0, id, TZ).save;
+    const again = addCustomTemplate(archived, T0 + 5, draft());
+    expect(again.error).toBeUndefined();
+    expect(restoreCustomTemplate(again.save, T0, id, TZ).error).toMatch(/already have "Park lap"/);
+    // Another habit with the same name does not clash.
+    const other = addCustomTemplate(archived, T0 + 5, draft({ habit: 'study', kind: 'check', durationMin: undefined }));
+    expect(restoreCustomTemplate(other.save, T0, id, TZ).error).toBeUndefined();
+  });
+  it('refuses at 30 active quests', () => {
+    let s = fresh();
+    const first = withTemplate(s, { title: 'Archived one' });
+    s = archiveCustomTemplate(first.save, T0, first.id, TZ).save;
+    for (let i = 0; i < MAX_ACTIVE_CUSTOM; i++) s = withTemplate(s, { title: `Filler ${i}`, habit: 'clean', kind: 'check', durationMin: undefined }, T0 + i).save;
+    expect(restoreCustomTemplate(s, T0, first.id, TZ).error).toMatch(/archive one/);
+  });
+  it('lets go of an outpost that is gone', () => {
+    const { save, id } = withTemplate(fresh());
+    const s = structuredClone(save);
+    const t = s.customTemplates[0];
+    if (t) t.outpostId = 'o-gone';
+    const archived = archiveCustomTemplate(s, T0, id, TZ).save;
+    expect(restoreCustomTemplate(archived, T0, id, TZ).save.customTemplates[0]?.outpostId).toBeUndefined();
+  });
+  it('comes back on the board when recurring, never above two of your own', () => {
+    let s = freshWithBoard();
+    const ids: string[] = [];
+    for (const title of ['One', 'Two', 'Three']) {
+      const made = withTemplate(s, { title, habit: 'clean', kind: 'check', durationMin: undefined, recurrence: 'daily' }, T0 + ids.length);
+      s = made.save;
+      ids.push(made.id);
+    }
+    const third = ids[2] ?? '';
+    s = archiveCustomTemplate(s, T0, third, TZ).save;
+    const day1 = processBoundaries(s, at(1), TZ).save;
+    expect(customOnBoardCount(day1)).toBe(2);
+    expect(day1.board?.quests.some((q) => q.templateId === third)).toBe(false);
+    // Restored, it competes for the two places like any other (fairest first), never exceeding them.
+    const back = restoreCustomTemplate(day1, at(1), third, TZ).save;
+    expect(customOnBoardCount(back)).toBe(2);
+    expect(addCustomQuestToBoard(back, at(1), third, TZ).error).toMatch(/two of your own/);
+    const day2 = processBoundaries(back, at(2), TZ).save;
+    expect(customOnBoardCount(day2)).toBe(2);
+    expect(day2.board?.quests.some((q) => q.templateId === third)).toBe(true);
+  });
+  it('can be put on today\'s board with "Add to today" once restored and there is room', () => {
+    const solo = withTemplate(freshWithBoard(), { title: 'Solo' });
+    const back = restoreCustomTemplate(archiveCustomTemplate(solo.save, T0, solo.id, TZ).save, T0, solo.id, TZ).save;
+    expect(addCustomQuestToBoard(back, T0, solo.id, TZ).error).toBeUndefined();
   });
 });
 

@@ -45,6 +45,8 @@ export {
   addCustomTemplate,
   updateCustomTemplate,
   archiveCustomTemplate,
+  restoreCustomTemplate,
+  customTitleTaken,
   addCustomQuestToBoard,
 } from './custom';
 export type { CleanDraft, CustomResult } from './custom';
