@@ -1,8 +1,8 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import type { WaveRecord } from '../../game';
+import { strings, type HabitId, type WaveRecord } from '../../game';
 import { useGameStore } from '../../state/gameStore';
-import { seedStore } from '../../test/storeUtils';
+import { currentSave, seedStore } from '../../test/storeUtils';
 import { OverlayHost } from './OverlayHost';
 
 describe('OverlayHost', () => {
@@ -132,6 +132,47 @@ describe('OverlayHost', () => {
     render(<OverlayHost />);
     expect(screen.getByRole('dialog', { name: /pell is away/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /welcome back/i })).toBeInTheDocument();
+  });
+
+  it('offers up to three related outposts on questDone and never blocks dismiss', () => {
+    const save = seedStore();
+    const q = save.board?.quests[0];
+    if (!q) throw new Error('no quest');
+    const habit = q.habit as HabitId;
+    const cells = [
+      { x: 2, y: 1 },
+      { x: -2, y: 1 },
+      { x: 1, y: -3 },
+      { x: -3, y: -3 },
+    ];
+    cells.forEach((cell, i) => {
+      useGameStore.getState().createOutpost({ name: `Place ${i + 1}`, type: 'other', habits: [habit], cell });
+    });
+    useGameStore.setState({ pendingEvents: [] });
+    useGameStore.getState().complete(q.instanceId);
+    const events = useGameStore.getState().pendingEvents.filter((e) => e.type === 'questDone');
+    useGameStore.setState({ pendingEvents: events });
+    render(<OverlayHost />);
+    expect(screen.getByText(strings.map.settlement.where)).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /^Place / })).toHaveLength(3);
+    expect(screen.getByRole('button', { name: strings.map.settlement.elsewhere })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+    expect(useGameStore.getState().pendingEvents).toHaveLength(0);
+    expect(currentSave().map.outposts[0]?.visits).toBe(0);
+  });
+
+  it('tags the quest when a related outpost is chosen', () => {
+    const save = seedStore();
+    const q = save.board?.quests[0];
+    if (!q) throw new Error('no quest');
+    useGameStore.getState().createOutpost({ name: 'Hollow Park', type: 'other', habits: [q.habit], cell: { x: 2, y: 1 } });
+    useGameStore.setState({ pendingEvents: [] });
+    useGameStore.getState().complete(q.instanceId);
+    useGameStore.setState({ pendingEvents: useGameStore.getState().pendingEvents.filter((e) => e.type === 'questDone') });
+    render(<OverlayHost />);
+    fireEvent.click(screen.getByRole('button', { name: 'Hollow Park' }));
+    expect(currentSave().map.outposts[0]?.visits).toBe(1);
+    expect(currentSave().map.visits.some((v) => v.outpostId === 'op1' && v.instanceId === q.instanceId)).toBe(true);
   });
 
   it('shows a refusal notice as a toast and clears it', () => {

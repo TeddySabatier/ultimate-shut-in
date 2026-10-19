@@ -313,6 +313,7 @@ describe('migrate: v4 (city map)', () => {
     expect(op1.peak).toBe('corridor'); // 12 visits earn Corridor, whatever the stored peak said
     expect(op1.stateDays).toEqual({ marked: op1.createdDay, corridor: DAY0 });
     expect(op1.habits).toEqual(['move', 'hygiene']);
+    expect(op1.lastVisitDay).toBe(DAY0); // rebuilt from the remaining counted visit
     // Too close to op1 for the spacing rule: kept, but retired rather than lost.
     expect(s.map.outposts[1]).toMatchObject({ id: 'op8', retired: true, visits: 1 });
     expect(s.map.outposts[2]).toMatchObject({ id: 'op9', retired: false, peak: 'stronghold' }); // a stored peak is kept; 'yes' is not a boolean
@@ -330,5 +331,33 @@ describe('migrate: v4 (city map)', () => {
     expect(s.customTemplates.map((t) => t.outpostId)).toEqual(['op1', undefined, 'op9']);
     // Idempotent: a second pass changes nothing.
     expect(migrate(JSON.parse(exportSave(s)), T0, TZ)).toEqual(s);
+  });
+
+  it('rebuilds lastVisitDay from the visit log only when a counted visit exists for the outpost', () => {
+    const raw = createNewSave(T0, 'Visits', TZ) as unknown as Record<string, unknown>;
+    raw.player = { ...(raw.player as object), ring: 3, highestRing: 3 };
+    raw.map = {
+      outposts: [
+        // Stored value disagrees with the log: the log wins.
+        { id: 'op1', name: 'Gym', type: 'gym', cell: { x: 2, y: 1 }, visits: 2, lastVisitDay: DAY0 + 5 },
+        // Old visits fell off the 400-entry cap: no counted visit left, keep the stored day (not falsely quiet).
+        { id: 'op2', name: 'Park', type: 'park', cell: { x: -2, y: 1 }, visits: 5, lastVisitDay: DAY0 - 3 },
+        // No visits at all: a stray stored day is dropped.
+        { id: 'op3', name: 'Cafe', type: 'cafe', cell: { x: -3, y: -3 }, visits: 0, lastVisitDay: DAY0 - 1 },
+      ],
+      visits: [
+        { outpostId: 'op1', day: DAY0 - 2, counted: true },
+        { outpostId: 'op1', day: DAY0, counted: true },
+        { outpostId: 'op2', day: DAY0, counted: false },
+      ],
+      snapshots: [],
+      nextSeq: 4,
+    };
+    const s = migrate(raw, T0, TZ);
+    expect(s.map.outposts.map((o) => [o.id, o.lastVisitDay])).toEqual([
+      ['op1', DAY0],
+      ['op2', DAY0 - 3],
+      ['op3', null],
+    ]);
   });
 });

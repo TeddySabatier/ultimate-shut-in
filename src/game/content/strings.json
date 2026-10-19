@@ -473,7 +473,8 @@
       "retiredSection": "Retired outposts",
       "retiredEmpty": "Nothing retired. Retired outposts rest here with their visits.",
       "ledgerTitle": "Outposts",
-      "ledgerEmpty": "No outposts yet. Mark one on the Map.",
+      "ledgerEmpty": "No outposts yet.",
+      "ledgerLink": "Mark one on the Map.",
       "lastVisitUnknown": "Visited, a while ago"
     },
     "zone": {

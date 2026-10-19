@@ -34,6 +34,8 @@ export function OutpostSheet({ view, onClose, onVisit, onUndoVisit, onEdit, onRe
   const reaching = view !== null && (view.state === 'corridor' || view.state === 'stronghold');
   const habits = op?.habits ?? [];
   const first = getHabit((habits[0] ?? 'move') as never).label;
+  // Rungs and perks follow `view.state` (the peak, which never drops), the field the engine reads, not today's visit count.
+  const peakAt = view ? outpostStates.findIndex((st) => st.id === view.state) : -1;
   return (
     <>
       <MapSheet open={view !== null} kick={`${o.kick} · ${view?.type.label ?? ''}`} title={op?.name ?? ''} titleId={titleId} onClose={onClose}>
@@ -49,8 +51,8 @@ export function OutpostSheet({ view, onClose, onVisit, onUndoVisit, onEdit, onRe
             </div>
             {op.note ? <p className={styles.noteQuote}>"{op.note}"</p> : null}
             <ol className={styles.ladder} aria-label="States">
-              {outpostStates.map((st) => (
-                <li key={st.id} className={cx(styles.rung, op.visits >= st.minVisits && styles.rungOn, st.id === view.state && styles.rungCur)}>
+              {outpostStates.map((st, i) => (
+                <li key={st.id} className={cx(styles.rung, i <= peakAt && styles.rungOn, st.id === view.state && styles.rungCur)}>
                   <b className="mono">{st.minVisits}</b>
                   {st.label}
                 </li>
@@ -76,9 +78,9 @@ export function OutpostSheet({ view, onClose, onVisit, onUndoVisit, onEdit, onRe
 
             <h3 className={styles.h4}>{o.gives}</h3>
             <ul className={styles.facs}>
-              <Perk on={op.visits >= 3} name="Scouted" text={o.perkScouted.replace('{aHabits}', `${aOrAn(first)} ${habitsText(habits, ' or ')}`).replace('{discount}', '5')} />
-              <Perk on={op.visits >= 10} name="Corridor" text={o.perkCorridor.replace('{habits}', habitsText(habits))} />
-              <Perk on={op.visits >= 30} name="Stronghold" text={o.perkStronghold} />
+              <Perk on={peakAt >= 1} name="Scouted" text={o.perkScouted.replace('{aHabits}', `${aOrAn(first)} ${habitsText(habits, ' or ')}`).replace('{discount}', '5')} />
+              <Perk on={peakAt >= 2} name="Corridor" text={o.perkCorridor.replace('{habits}', habitsText(habits))} />
+              <Perk on={peakAt >= 3} name="Stronghold" text={o.perkStronghold} />
             </ul>
             <p className={cx('muted', styles.note)}>{o.related.replace('{who}', habits.map((h) => `${vassalName(h as never)} (${getHabit(h as never).label})`).join(', '))}</p>
 
