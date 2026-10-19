@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useGameStore } from '../state/gameStore';
 import { currentSave, renderWithRouter, seedStore } from '../test/storeUtils';
@@ -110,10 +110,12 @@ describe('MapScreen', () => {
     expect(currentSave().map.outposts[0]?.retired).toBe(true);
     expect(screen.getByText(/No outposts yet/)).toBeInTheDocument();
 
-    mark('B', { x: 2, y: 1 });
-    mark('C', { x: -2, y: 1 });
-    mark('D', { x: 1, y: -3 });
-    mark('E', { x: -3, y: -3 });
+    act(() => {
+      mark('B', { x: 2, y: 1 });
+      mark('C', { x: -2, y: 1 });
+      mark('D', { x: 1, y: -3 });
+      mark('E', { x: -3, y: -3 });
+    });
     expect(screen.getByRole('button', { name: /Mark an outpost/ })).toBeDisabled();
     expect(screen.getByText('The Ledger holds 4 outposts at The Room. Each new ring makes room for one more.')).toBeInTheDocument();
   });

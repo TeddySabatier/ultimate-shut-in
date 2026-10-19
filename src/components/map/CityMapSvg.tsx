@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react';
 import type { OutpostState } from '../../game';
 import { strings } from '../../game';
 import gymRaw from '../../assets/outposts/gym.svg?raw';
@@ -106,19 +106,6 @@ export interface CityMapSvgProps {
   onPin: (id: string, opener: Element) => void;
 }
 
-/* ------------------------------ Tiles ------------------------------ */
-
-interface TileGroupProps {
-  className: string;
-  style: CSSProperties | undefined;
-  markup: string;
-}
-
-/** One memoised `<g>`: its markup never changes, only the class and the ripple delay. */
-const TileGroup = memo(function TileGroup({ className, style, markup }: TileGroupProps) {
-  return <g className={className} style={style} dangerouslySetInnerHTML={{ __html: markup }} />;
-});
-
 function groundClass(t: Tile, state: TileState, pop: boolean): string {
   return `g${t.home ? ' h' : ''}${t.kind !== 'lot' ? ` k-${t.kind}` : ''} s-${state}${pop ? ' pop' : ''}`;
 }
@@ -127,6 +114,12 @@ function buildingClass(t: Tile, state: TileState, pop: boolean): string {
   const b = t.building;
   if (!b) return '';
   return `b f-${b.family}${b.variant ? ' vb' : ''} s-${state}${pop ? ' pop' : ''}`;
+}
+
+function tileGroupHtml(className: string, markup: string, opts: { dl?: number; hidden?: boolean } = {}): string {
+  const style =
+    opts.hidden ? ' style="display:none"' : opts.dl !== undefined && opts.dl >= 0 ? ` style="--dl:${opts.dl}ms"` : '';
+  return `<g class="${className}"${style}>${markup}</g>`;
 }
 
 /** The tile `<g>` under an event target, as an index into its parent group. */
@@ -197,6 +190,37 @@ export function CityMapSvg({ seed, ring, wallR, prevWallR, prevRing, compareWall
 
   const orderedPins = useMemo(() => [...pins].sort((a, b) => a.cell.x + a.cell.y - (b.cell.x + b.cell.y) || a.zone - b.zone || a.name.localeCompare(b.name)), [pins]);
 
+  const groundHtml = useMemo(
+    () =>
+      layout.tiles
+        .map((t, i) => {
+          const dl = pops ? pops[i]! : -1;
+          return tileGroupHtml(groundClass(t, states[i]!, dl >= 0), t.groundMarkup, dl >= 0 ? { dl } : {});
+        })
+        .join(''),
+    [layout, states, pops],
+  );
+
+  const buildingHtml = useMemo(
+    () =>
+      layout.buildingTiles
+        .map((t) => {
+          const dl = pops ? pops[t.index]! : -1;
+          const hidden = occupied.has(`${t.cell.x},${t.cell.y}`) && t.kind !== 'haven';
+          return tileGroupHtml(buildingClass(t, states[t.index]!, dl >= 0), t.building!.markup, {
+            ...(dl >= 0 ? { dl } : {}),
+            hidden,
+          });
+        })
+        .join(''),
+    [layout, states, pops, occupied],
+  );
+
+  const sparkHtml = useMemo(
+    () => layout.sparks.map((s) => tileGroupHtml(states[s.tile] === 'f' ? 'spark' : 'spark off', s.markup)).join(''),
+    [layout, states],
+  );
+
   return (
     <svg
       id="city-map"
@@ -207,29 +231,13 @@ export function CityMapSvg({ seed, ring, wallR, prevWallR, prevRing, compareWall
     >
       <defs dangerouslySetInnerHTML={{ __html: layout.defs + ICON_SYMBOLS }} />
       <g aria-hidden="true" dangerouslySetInnerHTML={{ __html: layout.sky }} />
-      <g aria-hidden="true" onClick={onGround}>
-        {layout.tiles.map((t, i) => {
-          const dl = pops ? pops[i]! : -1;
-          return <TileGroup key={t.index} className={groundClass(t, states[i]!, dl >= 0)} style={dl >= 0 ? ({ '--dl': `${dl}ms` } as CSSProperties) : undefined} markup={t.groundMarkup} />;
-        })}
-      </g>
+      <g aria-hidden="true" onClick={onGround} dangerouslySetInnerHTML={{ __html: groundHtml }} />
       <g aria-hidden="true">
         <ellipse cx={CX} cy={CY} rx={glow.rx} ry={glow.ry} fill="url(#cm-glow)" className="glow" style={glowStyle} />
         <ellipse className="wallfill" cx={CX} cy={CY} rx={wall.rx} ry={wall.ry} style={wallStyle} />
       </g>
-      <g aria-hidden="true" onClick={onBuildings}>
-        {layout.buildingTiles.map((t) => {
-          const dl = pops ? pops[t.index]! : -1;
-          const hidden = occupied.has(`${t.cell.x},${t.cell.y}`) && t.kind !== 'haven';
-          const style: CSSProperties | undefined = hidden ? { display: 'none' } : dl >= 0 ? ({ '--dl': `${dl}ms` } as CSSProperties) : undefined;
-          return <TileGroup key={t.index} className={buildingClass(t, states[t.index]!, dl >= 0)} style={style} markup={t.building!.markup} />;
-        })}
-      </g>
-      <g aria-hidden="true">
-        {layout.sparks.map((s, i) => (
-          <g key={i} className={states[s.tile] === 'f' ? 'spark' : 'spark off'} dangerouslySetInnerHTML={{ __html: s.markup }} />
-        ))}
-      </g>
+      <g aria-hidden="true" onClick={onBuildings} dangerouslySetInnerHTML={{ __html: buildingHtml }} />
+      <g aria-hidden="true" dangerouslySetInnerHTML={{ __html: sparkHtml }} />
       <g aria-hidden="true" dangerouslySetInnerHTML={{ __html: marks.scorch }} />
       <g aria-hidden="true" dangerouslySetInnerHTML={{ __html: layout.guides }} />
       <g aria-hidden="true">

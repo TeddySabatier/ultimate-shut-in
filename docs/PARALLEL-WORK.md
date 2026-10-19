@@ -133,7 +133,7 @@ Track E additionally runs `npm run e2e` and reviews `e2e/__screenshots__/`. Trac
 | B — Engine | **DONE** | Save v4, `mapGeometry`, `outposts`, `map`, wave/board/economy hooks, engine tests |
 | C — State | **DONE** | `gameStore`, `mapView`, selectors, `eventText` map events |
 | D — UI | **DONE** | Assets, `CityMapSvg`, `MapScreen`, sheets, `WhereWereYou`, TabBar, Ledger outposts |
-| E — E2E | **PENDING** | No `e2e/map.spec.ts` on integration branch; responsive/axe/visual Map coverage still open |
+| E — E2E | **DONE** | `e2e/map.spec.ts`, responsive/axe/visual Map coverage, ring-7 fixture |
 
 Update this table when a track lands on `main`.
 
