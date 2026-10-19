@@ -79,7 +79,7 @@ describe('MapScreen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'I was there: log a visit to Hollow Park' }));
     expect(currentSave().map.outposts[0]?.visits).toBe(1);
     expect(screen.getByRole('button', { name: 'Visit to Hollow Park logged today' })).toBeDisabled();
-    expect(screen.getByText('Outposts', { selector: 'span' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Outposts/ })).toBeInTheDocument();
 
     // The outpost sheet from the row.
     fireEvent.click(screen.getByRole('button', { name: /^Hollow Park, Marked/ }));
@@ -105,7 +105,8 @@ describe('MapScreen', () => {
     expect(currentSave().map.outposts[0]?.name).toBe('Riverside Gym');
     const sheet = screen.getByRole('dialog', { name: 'Riverside Gym' });
     fireEvent.click(within(sheet).getByRole('button', { name: 'Retire' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Retire', exact: true }));
+    const confirm = screen.getByRole('dialog', { name: /Retire Riverside Gym/ });
+    fireEvent.click(within(confirm).getByRole('button', { name: 'Retire' }));
     expect(currentSave().map.outposts[0]?.retired).toBe(true);
     expect(screen.getByText(/No outposts yet/)).toBeInTheDocument();
 

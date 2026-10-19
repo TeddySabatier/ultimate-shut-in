@@ -120,9 +120,9 @@ describe('CityMapSvg', () => {
     const { container } = render(<CityMapSvg {...base} onZone={onZone} onPin={onPin} />);
     fireEvent.keyDown(screen.getByRole('button', { name: 'Zone 6' }), { key: 'Enter' });
     expect(onZone).toHaveBeenLastCalledWith(6, expect.anything());
-    fireEvent.keyDown(screen.getByRole('button', { name: /Place op1/ }), { key: ' ' });
+    fireEvent.keyDown(screen.getByRole('button', { name: /Place op1, Gym/ }), { key: ' ' });
     expect(onPin).toHaveBeenLastCalledWith('op1', expect.anything());
-    fireEvent.click(screen.getByRole('button', { name: /Place op7/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Place op7, Gym/ }));
     expect(onPin).toHaveBeenLastCalledWith('op7', expect.anything());
     // The Haven tower is the first building: tapping its top opens zone 1 (hit-test by cell, not screen position).
     const layout = buildLayout(42);
@@ -144,7 +144,8 @@ describe('CityMapSvg', () => {
     expect(svg.querySelectorAll('.pop')).toHaveLength(0);
     expect(svg.querySelector('.ghost')).toBeNull();
     expect(svg.querySelectorAll('.g.s-c').length).toBe(9); // zones 1 and 2
-    expect(svg.querySelectorAll('.g.s-d').length).toBeGreaterThan(0); // dawn cells inside the creep
+    const { container: dawnBox } = render(<CityMapSvg {...base} ring={1} wallR={1.2} prevWallR={0.82} prevRing={1} compareWallR={null} pins={[]} residue={[]} />);
+    expect(dawnBox.querySelectorAll('.g.s-d').length).toBeGreaterThan(0); // dawn cells inside the creep
     rerender(<CityMapSvg {...base} ring={2} wallR={1.9} prevWallR={0.82} prevRing={1} compareWallR={0.82} pins={[]} residue={[]} />);
     expect(svg.querySelector('.ghost')).not.toBeNull();
     expect(svg.querySelector('.gained')?.getAttribute('d')?.length).toBeGreaterThan(10);
