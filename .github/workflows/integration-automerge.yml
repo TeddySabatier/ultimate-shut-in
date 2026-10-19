@@ -1,0 +1,95 @@
+name: Integration auto-merge
+
+# Overnight and other unattended programs: a pull request whose BASE is an
+# `integration/*` branch merges itself once it is ready (not a draft), mergeable,
+# and every CI job is green. `main` is never touched by this workflow: the
+# integration branch is reviewed and merged to main by a person (see docs/OVERNIGHT.md).
+#
+# Stacked pull requests: when a PR merges, any open PR that was based on its
+# branch is retargeted to the merged PR's base, so a second run stacked on a
+# first one flows on by itself.
+#
+# Switches:
+#   - repository variable INTEGRATION_AUTOMERGE = off  stops everything
+#   - label `hold` on a PR makes this workflow skip that PR
+#   - draft PRs are never merged
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+  pull_request:
+    types: [ready_for_review]
+    branches: ['integration/**']
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+  actions: read
+
+concurrency:
+  group: integration-automerge
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    name: Merge ready integration PRs
+    runs-on: ubuntu-latest
+    if: ${{ vars.INTEGRATION_AUTOMERGE != 'off' }}
+    steps:
+      - name: Merge every ready pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -uo pipefail
+          EXPECTED='Lint, typecheck, test, build|E2E mobile 1/2|E2E mobile 2/2|E2E desktop'
+
+          prs=$(gh pr list --repo "$REPO" --state open --limit 100 --json number,baseRefName \
+            --jq '.[] | select(.baseRefName | startswith("integration/")) | .number')
+
+          for n in $prs; do
+            info=$(gh pr view "$n" --repo "$REPO" \
+              --json isDraft,mergeable,headRefName,baseRefName,title,labels,isCrossRepository,statusCheckRollup)
+
+            draft=$(jq -r '.isDraft' <<<"$info")
+            cross=$(jq -r '.isCrossRepository' <<<"$info")
+            mergeable=$(jq -r '.mergeable' <<<"$info")
+            hold=$(jq -r '[.labels[].name] | index("hold") != null' <<<"$info")
+            head=$(jq -r '.headRefName' <<<"$info")
+            base=$(jq -r '.baseRefName' <<<"$info")
+            title=$(jq -r '.title' <<<"$info")
+
+            if [ "$draft" = "true" ] || [ "$cross" = "true" ] || [ "$hold" = "true" ]; then
+              echo "#$n skipped (draft, fork or hold)"; continue
+            fi
+            if [ "$mergeable" != "MERGEABLE" ]; then
+              echo "#$n skipped (mergeable=$mergeable)"; continue
+            fi
+
+            green=$(jq -r --arg exp "$EXPECTED" '
+              ($exp | split("|")) as $names
+              | [.statusCheckRollup[] | select(.name as $n | $names | index($n))] as $c
+              | if ($names | all(. as $n | $c | any(.name == $n and .conclusion == "SUCCESS")))
+                   and ($c | all(.status == "COMPLETED" and (.conclusion == "SUCCESS" or .conclusion == "SKIPPED")))
+                then "yes" else "no" end' <<<"$info")
+            if [ "$green" != "yes" ]; then
+              echo "#$n skipped (CI not fully green yet)"; continue
+            fi
+
+            echo "#$n merging into $base"
+            if gh pr merge "$n" --repo "$REPO" --merge \
+                 --subject "Merge PR #$n: $title" \
+                 --body "Auto-merged into the integration branch after green CI. A person reviews the whole integration branch before it merges to main."; then
+              for c in $(gh pr list --repo "$REPO" --state open --base "$head" --json number --jq '.[].number'); do
+                echo "  retargeting stacked #$c from $head to $base"
+                gh pr edit "$c" --repo "$REPO" --base "$base" || true
+              done
+            else
+              echo "#$n merge failed, will retry on the next trigger"
+            fi
+          done
