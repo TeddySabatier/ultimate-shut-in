@@ -37,6 +37,7 @@ import {
   reRecruitVassal,
   rerollQuest,
   restoreOutpost,
+  setQuestLearned,
   retireOutpost,
   ringName,
   sanitizeName,
@@ -151,6 +152,8 @@ export interface GameActions {
   pauseTimer: (instanceId: string) => void;
   increment: (instanceId: string, delta: number) => void;
   reroll: (instanceId: string) => void;
+  /** Write "what I learned" on a quest template. Empty text clears the note. */
+  setLearned: (templateId: string, text: string) => void;
   reRecruit: (habit: HabitId, welcomeGift?: boolean) => void;
   resurrect: (choice: ResurrectionChoice) => void;
   /**
@@ -341,6 +344,7 @@ export const useGameStore = create<GameStore>()(
         pauseTimer: (id) => void withSave((save, now) => pauseTimer(save, id, now)),
         increment: (id, delta) => void withSave((save, now) => incrementCount(save, id, delta, now)),
         reroll: (id) => void withSave((save, now) => rerollQuest(save, id, now)),
+        setLearned: (templateId, text) => void withSave((save, now) => setQuestLearned(save, templateId, text, now)),
         reRecruit: (habit, welcomeGift = false) =>
           void withSave((save, now) => reRecruitVassal(save, habit, now, todayOf(save, now), welcomeGift)),
         resurrect: (choice) => void withSave((save, now) => applyResurrection(save, choice, now, todayOf(save, now))),

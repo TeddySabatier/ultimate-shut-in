@@ -32,7 +32,7 @@ export const HABIT_IDS: readonly HabitId[] = [
 export const UTILITY_IDS: readonly UtilityId[] = ['power', 'water', 'gas'] as const;
 
 export interface SaveFile {
-  version: 4;
+  version: 5;
   player: Player;
   settings: Settings;
   vassals: Record<HabitId, Vassal>;
@@ -52,6 +52,11 @@ export interface SaveFile {
    * tried quest. Only the proposal rules read it; written at each boundary.
    */
   activity: ActivityDay[];
+  /**
+   * One note per quest template: what the player wrote they learned.
+   * Keyed by `templateId`, so it stays when the board rolls over.
+   */
+  notes: QuestNote[];
   /** The City Map: outposts, visits, domain snapshots (`docs/design/CITY-MAP.md`). */
   map: MapState;
   firstPlayDay: number;
@@ -292,6 +297,16 @@ export interface ActivityEntry {
 export interface ActivityDay {
   day: number;
   entries: ActivityEntry[];
+}
+
+/** A player's own note on a quest. One per template; the newest edit wins. */
+export interface QuestNote {
+  templateId: string;
+  /** Title at the time of the last edit, so the note still reads if the quest is archived. */
+  title: string;
+  habit: HabitId;
+  text: string;
+  updatedAt: number;
 }
 
 /* ------------------------------------------------------------------ */

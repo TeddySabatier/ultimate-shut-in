@@ -30,6 +30,7 @@ export {
   undoQuest,
   rerollQuest,
 } from './board';
+export { LEARNED_MAX, NOTES_MAX, setQuestLearned, tidyLearned } from './notes';
 export * from './template';
 export {
   MAX_CUSTOM_ON_BOARD,

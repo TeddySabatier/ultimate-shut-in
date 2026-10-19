@@ -21,6 +21,7 @@ export function QuestsScreen() {
   const pauseTimer = useGameStore((s) => s.pauseTimer);
   const increment = useGameStore((s) => s.increment);
   const reroll = useGameStore((s) => s.reroll);
+  const setLearned = useGameStore((s) => s.setLearned);
   const acceptProposal = useGameStore((s) => s.acceptProposal);
   const dismissProposal = useGameStore((s) => s.dismissProposal);
   const [composing, setComposing] = useState(false);
@@ -35,8 +36,9 @@ export function QuestsScreen() {
       onPause: pauseTimer,
       onIncrement: increment,
       onReroll: reroll,
+      onLearned: setLearned,
     }),
-    [complete, tryQuest, undo, startTimer, pauseTimer, increment, reroll],
+    [complete, tryQuest, undo, startTimer, pauseTimer, increment, reroll, setLearned],
   );
 
   const board = save.board;
@@ -100,6 +102,7 @@ export function QuestsScreen() {
               canUndo={canUndo}
               rerollAvailable={rerollAvailable}
               rerollPrice={price}
+              learned={save.notes.find((n) => n.templateId === q.templateId)?.text ?? ''}
               {...actions}
             />
           );

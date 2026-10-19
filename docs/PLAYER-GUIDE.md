@@ -102,6 +102,8 @@ Other things on the board:
 
 The quests are self-reported. The game never checks a sensor, photo or location, and it never assumes you are cheating.
 
+Each quest has a **What I learned** box. Whatever you write stays on that quest and is saved with your Haven, including after the day resets. A quest that is not on today's board keeps its note on the Ledger, where you can keep writing.
+
 ## Settlement: what a quest pays
 
 Each completed quest pays out in a short "Settlement" report:

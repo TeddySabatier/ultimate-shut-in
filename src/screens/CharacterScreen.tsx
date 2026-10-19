@@ -24,6 +24,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { Icon } from '../components/Icon';
 import { Meter } from '../components/Meter';
 import { SystemWindow } from '../components/SystemWindow';
+import { LearnedShelf } from '../components/LearnedShelf';
 import { MyQuestsSection } from '../components/MyQuestsSection';
 import { OutpostsSection } from '../components/OutpostsSection';
 import { VassalCard } from '../components/VassalCard';
@@ -80,6 +81,7 @@ export function CharacterScreen() {
   const resurrect = useGameStore((s) => s.resurrect);
   const addCustomToBoard = useGameStore((s) => s.addCustomToBoard);
   const archiveCustom = useGameStore((s) => s.archiveCustom);
+  const setLearned = useGameStore((s) => s.setLearned);
   const restoreOutpost = useGameStore((s) => s.restoreOutpost);
   const forgetOutpost = useGameStore((s) => s.forgetOutpost);
   const now = useNow(false);
@@ -161,6 +163,8 @@ export function CharacterScreen() {
       </SystemWindow>
 
       <MyQuestsSection save={save} onAddToday={addCustomToBoard} onArchive={archiveCustom} />
+
+      <LearnedShelf save={save} onChange={setLearned} />
 
       <OutpostsSection save={save} now={now} onRestore={restoreOutpost} onForget={forgetOutpost} />
 

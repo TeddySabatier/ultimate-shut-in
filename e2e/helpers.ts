@@ -19,6 +19,7 @@ export interface SaveLike {
   week: { history: { index: number; result: string; attack: number; defense: number }[] };
   titles: { titleId: string }[];
   stats: { questsTotal: number; questDayStreak: number };
+  notes?: { templateId: string; text: string }[];
   lastOpenDay: number;
   firstPlayDay: number;
 }

@@ -9,8 +9,9 @@ const DAY0 = gameDayIndex(T0, 4, TZ.tz);
 describe('createNewSave', () => {
   it('builds the GDD defaults', () => {
     const s = createNewSave(T0, undefined, TZ);
-    expect(s.version).toBe(4);
-    expect(SAVE_VERSION).toBe(4);
+    expect(s.version).toBe(5);
+    expect(SAVE_VERSION).toBe(5);
+    expect(s.notes).toEqual([]);
     expect(s.player).toEqual({ name: 'Absolute', level: 1, xp: 0, coins: 0, domainPoints: 0, ring: 1, highestRing: 1, resurrectionMonth: null });
     expect(s.settings).toEqual(defaultSettings());
     expect(s.settings.enabledHabits).toEqual([...HABIT_IDS]);
@@ -38,7 +39,7 @@ describe('createNewSave', () => {
 describe('migrate', () => {
   it('accepts the legacy { name, level, xp } shape with or without the persist wrapper', () => {
     const a = migrate({ name: 'Old Hand', level: 3, xp: 50 }, T0, TZ);
-    expect(a.version).toBe(4);
+    expect(a.version).toBe(5);
     expect(a.player).toMatchObject({ name: 'Old Hand', level: 3, xp: 50, coins: 0, ring: 1 });
     expect(a.firstPlayDay).toBe(DAY0);
     const b = migrate({ state: { name: 'Wrapped', level: 99, xp: -5 }, version: 1 }, T0, TZ);
@@ -104,7 +105,7 @@ describe('migrate', () => {
   it('returns a fresh save for garbage', () => {
     expect(migrate(null, T0, TZ).player.name).toBe('Absolute');
     expect(migrate('text', T0, TZ).firstPlayDay).toBe(DAY0);
-    expect(migrate([1, 2], T0, TZ).version).toBe(4);
+    expect(migrate([1, 2], T0, TZ).version).toBe(5);
   });
 });
 
@@ -121,7 +122,7 @@ describe('migrate: v3 (custom quests, proposals, activity)', () => {
   it('upgrades a v2 save with empty arrays and keeps everything else', () => {
     const old = v2();
     const s = migrate(old, T0, TZ);
-    expect(s.version).toBe(4);
+    expect(s.version).toBe(5);
     expect(s.customTemplates).toEqual([]);
     expect(s.proposals).toEqual([]);
     expect(s.activity).toEqual([]);
@@ -241,7 +242,7 @@ describe('migrate: v4 (city map)', () => {
       { index: 2, ring: 3, attack: 10, defense: 12, breakdown: { vassals: 1, trust: 2, walls: 3, combos: 0, titles: 0, wellKept: 0 }, result: 'win', dpAwarded: 15, log: [], settledAt: T0 },
     ];
     const s = migrate(old, T0, TZ);
-    expect(s.version).toBe(4);
+    expect(s.version).toBe(5);
     expect(s.map.outposts).toEqual([]);
     expect(s.map.visits).toEqual([]);
     expect(s.map.lastSeen).toBeNull();
@@ -330,5 +331,28 @@ describe('migrate: v4 (city map)', () => {
     expect(s.customTemplates.map((t) => t.outpostId)).toEqual(['op1', undefined, 'op9']);
     // Idempotent: a second pass changes nothing.
     expect(migrate(JSON.parse(exportSave(s)), T0, TZ)).toEqual(s);
+  });
+});
+
+describe('migrate: v5 (what I learned)', () => {
+  it('gives a v4 save an empty notes list and keeps a tidy note', () => {
+    const old = createNewSave(T0, 'Noted', TZ) as unknown as Record<string, unknown>;
+    delete old.notes;
+    old.version = 4;
+    old.notes = [
+      { templateId: 'study.read', habit: 'study', title: 'Read', text: '  A chapter\n\n\nabout doors.  ', updatedAt: T0 },
+      { templateId: 'study.read', habit: 'study', title: 'Older', text: 'stale', updatedAt: T0 - 1 },
+      { templateId: '', habit: 'study', title: 'Blank', text: 'nope', updatedAt: T0 },
+      { templateId: 'move.walk', habit: 'flying', title: 'Walk', text: 'nope', updatedAt: T0 },
+      { templateId: 'clean.sweep', habit: 'clean', title: 'Sweep', text: '   ', updatedAt: T0 },
+    ];
+    const s = migrate(old, T0, TZ);
+    expect(s.version).toBe(5);
+    expect(s.notes).toEqual([{ templateId: 'study.read', habit: 'study', title: 'Read', text: 'A chapter\n\nabout doors.', updatedAt: T0 }]);
+    const bare = createNewSave(T0, 'Bare', TZ) as unknown as Record<string, unknown>;
+    delete bare.notes;
+    bare.version = 4;
+    expect(migrate(bare, T0, TZ).notes).toEqual([]);
+    expect(migrate(JSON.parse(exportSave(s)), T0, TZ).notes).toEqual(s.notes);
   });
 });

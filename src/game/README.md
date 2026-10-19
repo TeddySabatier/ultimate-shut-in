@@ -52,6 +52,7 @@ current board and its done quests until the index catches up again.
 | `time.ts` | `gameDayIndex`, `currentMonthKey`, wave-period helpers, `fixedTz` for tests. |
 | `economy.ts` | Difficulty tables, XP curves, ring derivation, wall bonus, `questRewards`, prices, constants. |
 | `board.ts` | `generateBoard` (GDD 6.3) and quest actions: `startTimer`, `pauseTimer`, `incrementCount`, `completeQuest`, `markTried`, `undoQuest`, `rerollQuest`. |
+| `notes.ts` | `setQuestLearned`: one "what I learned" note per quest template, kept on the save when the board rolls over. |
 | `vassals.ts` | Loyalty gain/decay with the grace day, trust, Strict-mode leaving. |
 | `recruit.ts` | `reRecruitVassal` (Welcome back), `setBenevolence` (Strict -> Benevolent brings away vassals back), shared return routine that refills an empty board. |
 | `utilities.ts` | Tied habits, restore/decay, state thresholds, Well-kept check. |

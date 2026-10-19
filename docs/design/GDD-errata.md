@@ -196,3 +196,7 @@ changes nothing else.
   seed includes the name, as 6.3 step 1 specifies).
 - The vassal receives the post-multiplier `xp` (6.4), not `baseXp`; the
   content schema note now says so.
+
+## 20. What I learned (not in the GDD)
+
+GDD section 4 gives a board quest no place to write. `SaveFile.notes` (version 5) stores one text per quest template: `templateId`, a title snapshot, the habit, the text (at most 2,000 characters) and `updatedAt`. At most 80 notes are kept; the oldest drops off. Writing or clearing a note changes no rewards, streaks or loyalty. A v4 save migrates with `notes: []`. The persist envelope stays at version 3; `migrate` fills the field.

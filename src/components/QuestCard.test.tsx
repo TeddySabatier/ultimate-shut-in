@@ -20,10 +20,11 @@ function actions(): QuestCardActions {
     onPause: vi.fn(),
     onIncrement: vi.fn(),
     onReroll: vi.fn(),
+    onLearned: vi.fn(),
   };
 }
 
-function renderCard(quest: BoardQuest, template: QuestTemplate, a: QuestCardActions, extra: Partial<{ canUndo: boolean; bonus: boolean; now: number; rerollAvailable: boolean }> = {}) {
+function renderCard(quest: BoardQuest, template: QuestTemplate, a: QuestCardActions, extra: Partial<{ canUndo: boolean; bonus: boolean; now: number; rerollAvailable: boolean; learned: string }> = {}) {
   return render(
     <QuestCard
       quest={quest}
@@ -34,6 +35,7 @@ function renderCard(quest: BoardQuest, template: QuestTemplate, a: QuestCardActi
       canUndo={extra.canUndo ?? true}
       rerollAvailable={extra.rerollAvailable ?? true}
       rerollPrice={15}
+      learned={extra.learned ?? ''}
       {...a}
     />,
   );
@@ -111,5 +113,16 @@ describe('QuestCard', () => {
     renderCard(q, t, a, { canUndo: false });
     expect(screen.queryByRole('button', { name: /undo/i })).toBeNull();
     expect(screen.getByText(/settled for the day/i)).toBeInTheDocument();
+  });
+
+  it('writes what was learned onto the quest', () => {
+    const t = templateOfKind('check');
+    const a = actions();
+    renderCard(makeBoardQuest(DAY, t), t, a, { learned: 'Old note' });
+    const box = screen.getByRole('textbox', { name: /what i learned/i });
+    expect(box).toHaveValue('Old note');
+    fireEvent.change(box, { target: { value: 'The long way home is quieter.' } });
+    fireEvent.blur(box);
+    expect(a.onLearned).toHaveBeenCalledWith(t.id, 'The long way home is quieter.');
   });
 });

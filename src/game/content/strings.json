@@ -244,7 +244,10 @@
     "resetHour": "Day starts at",
     "lightsOut": "Lights-out hour",
     "wakeHour": "Wake hour",
-    "map": "Map"
+    "map": "Map",
+    "learned": "What I learned",
+    "learnedHint": "Write it here. It stays on this quest and is saved with your Haven.",
+    "learnedShelf": "These quests are not on today's board. The notes stay saved, and you can keep writing."
   },
   "compose": {
     "open": "Add my own quest",

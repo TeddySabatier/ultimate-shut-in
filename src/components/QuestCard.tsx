@@ -4,6 +4,7 @@ import { habitIcons, uiIcons } from '../assets';
 import { cx } from '../utils/cx';
 import { mmss } from '../utils/format';
 import { Icon } from './Icon';
+import { LearnedField } from './LearnedField';
 import { RewardChips, TierPips } from './Chips';
 import styles from './QuestCard.module.css';
 
@@ -15,6 +16,7 @@ export interface QuestCardActions {
   onPause: (id: string) => void;
   onIncrement: (id: string, delta: number) => void;
   onReroll: (id: string) => void;
+  onLearned: (templateId: string, text: string) => void;
 }
 
 interface QuestCardProps extends QuestCardActions {
@@ -28,6 +30,8 @@ interface QuestCardProps extends QuestCardActions {
   canUndo: boolean;
   rerollAvailable: boolean;
   rerollPrice: number;
+  /** Saved note for this quest's template. Empty when the player has written nothing. */
+  learned: string;
 }
 
 /** One board entry with its kind-specific controls. Presentational: all rules come from props. */
@@ -47,6 +51,8 @@ export function QuestCard({
   onPause,
   onIncrement,
   onReroll,
+  onLearned,
+  learned,
 }: QuestCardProps) {
   const id = useId();
   const habit = getHabit(quest.habit);
@@ -86,6 +92,13 @@ export function QuestCard({
       </header>
 
       <p className={styles.desc}>{template.description}</p>
+
+      <LearnedField
+        value={learned}
+        label={strings.ui.learned}
+        hint={strings.ui.learnedHint}
+        onCommit={(text) => onLearned(template.id, text)}
+      />
 
       {done && quest.rewards ? (
         <RewardChips {...quest.rewards} timedBonus={quest.timedBonus} className={styles.rewards} />

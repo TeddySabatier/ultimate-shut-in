@@ -187,3 +187,15 @@ test("disabling a habit keeps its quests off tomorrow's board", async ({ page })
   await gotoTab(page, 'Haven');
   await expect(page.getByRole('list', { name: 'Vassals' }).getByRole('listitem')).toHaveCount(7);
 });
+
+test('what I learned stays on the quest after a reload', async ({ page }) => {
+  await gotoTab(page, 'Board');
+  const card = openCards(page).first();
+  const box = card.getByRole('textbox', { name: 'What I learned' });
+  await box.fill('The stairs count as a walk.');
+  await box.blur();
+  await expect.poll(async () => (await getSave(page)).notes?.[0]?.text).toBe('The stairs count as a walk.');
+  await page.reload();
+  await gotoTab(page, 'Board');
+  await expect(openCards(page).first().getByRole('textbox', { name: 'What I learned' })).toHaveValue('The stairs count as a walk.');
+});

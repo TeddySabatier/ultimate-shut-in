@@ -3,11 +3,12 @@
  * shape (`{name, level, xp}`, version missing or 1), v2 files (no custom
  * quests, proposals or activity: they get empty arrays), v3 files (no city
  * map: they get an empty one seeded with one snapshot of the current state)
- * and the current v4 file, filling any missing field with a default so older
- * saves keep loading.
+ * v4 files (no learned notes: they get an empty list) and the current v5
+ * file, filling any missing field with a default so older saves keep loading.
  */
 import { getCombo, habits } from './content';
 import { instanceId } from './board';
+import { migrateNotes } from './notes';
 import { MAX_LOG_ENTRIES, clamp } from './draft';
 import {
   LOYALTY_START,
@@ -72,7 +73,7 @@ import type {
 } from './types';
 import { HABIT_IDS, OUTPOST_STATES, UTILITY_IDS } from './types';
 
-export const SAVE_VERSION = 4 as const;
+export const SAVE_VERSION = 5 as const;
 export const DEFAULT_NAME = 'Absolute';
 export const DEFAULT_RESET_HOUR = 4;
 export const NAME_MAX_LENGTH = 24;
@@ -164,6 +165,7 @@ export function createNewSave(now: number, name?: string, opts?: NewSaveOptions)
     customTemplates: [],
     proposals: [],
     activity: [],
+    notes: [],
     map: emptyMap(),
     firstPlayDay: today,
     lastOpenDay: today,
@@ -716,6 +718,7 @@ export function migrate(raw: unknown, now: number, opts?: TimeOptions): SaveFile
     customTemplates,
     proposals: migrateProposals(unwrapped.proposals),
     activity: migrateActivity(unwrapped.activity),
+    notes: migrateNotes(unwrapped.notes),
     map,
     firstPlayDay,
     lastOpenDay,
