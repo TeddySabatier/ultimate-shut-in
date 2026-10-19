@@ -94,4 +94,4 @@ Prompt:
 - Wire `useT()` into every screen and add the locale setting (depends on E and A).
 - Weekly recap share card (needs the wave window from A).
 - Citizens implementation (needs F and A).
-- Arena: Armory and run loop, then Roguelike Chess as the first plug-in game (needs G; the Armory needs B's edit flow nothing, but the roster needs A and the citizens from F).
+- Arena: Armory and run loop, then Roguelike Chess as the first plug-in game (needs G; the troop roster needs A, and citizens as troops need F).
