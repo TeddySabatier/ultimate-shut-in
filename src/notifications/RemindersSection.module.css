@@ -42,7 +42,7 @@
   background: var(--color-panel);
 }
 
-.item > .toggle {
+.item > .text {
   flex: 1 1 12rem;
 }
 
@@ -65,6 +65,12 @@
 
 .text > .help {
   margin: 0;
+}
+
+/* Help sits under the label, aligned with its text rather than the checkbox. */
+.indented {
+  display: block;
+  padding: 0 0 var(--space-2) calc(22px + var(--space-3));
 }
 
 .time {

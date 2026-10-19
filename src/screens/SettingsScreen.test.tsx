@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mockNotification, removeNotification, type NotificationMock } from '../notifications/mockNotification';
 import { REMINDERS_KEY, loadPrefs } from '../notifications/prefs';
 import { useGameStore } from '../state/gameStore';
@@ -185,5 +185,53 @@ describe('SettingsScreen reminders', () => {
     render(<SettingsScreen />);
     expect(master()).toBeDisabled();
     expect(screen.getByText(/cannot show notifications here/i)).toBeInTheDocument();
+  });
+
+  it('keeps the switch off with a note when the browser will not store the choice', async () => {
+    mock = mockNotification('granted');
+    seedStore();
+    render(<SettingsScreen />);
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('full', 'QuotaExceededError');
+    });
+    try {
+      await act(async () => {
+        fireEvent.click(master());
+      });
+    } finally {
+      spy.mockRestore();
+    }
+    expect(master()).not.toBeChecked();
+    expect(screen.getByText(/would not keep that choice/i)).toBeInTheDocument();
+    expect(loadPrefs().enabled).toBe(false);
+  });
+
+  it('links the intro, the honesty note and each help line to its toggle for screen readers', async () => {
+    mock = mockNotification('granted');
+    seedStore();
+    render(<SettingsScreen />);
+    await act(async () => {
+      fireEvent.click(master());
+    });
+    const described = (el: HTMLElement) =>
+      (el.getAttribute('aria-describedby') ?? '')
+        .split(' ')
+        .map((id) => document.getElementById(id)?.textContent ?? '')
+        .join(' ');
+    expect(described(master())).toMatch(/Opt-in and local/);
+    expect(described(master())).toMatch(/when the app is closed nothing fires/i);
+    expect(described(screen.getByRole('checkbox', { name: 'Board issued' }))).toMatch(/never before the day starts/i);
+    expect(described(screen.getByRole('checkbox', { name: 'Wave tomorrow' }))).toMatch(/evening before a wave settles/i);
+    expect(described(screen.getByRole('checkbox', { name: 'Timer finished' }))).toMatch(/running timer quest/i);
+  });
+
+  it('does not promise delivery while the app is closed or in the background', () => {
+    mock = mockNotification('granted');
+    seedStore();
+    render(<SettingsScreen />);
+    const copy = document.body.textContent ?? '';
+    expect(copy).toMatch(/open on screen/i);
+    expect(copy).toMatch(/phones pause apps in the background/i);
+    expect(copy).not.toMatch(/schedule notifications itself/i);
   });
 });

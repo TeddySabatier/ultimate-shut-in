@@ -24,6 +24,8 @@ function fromTimeValue(value: string): number | null {
   return h < 24 && m < 60 ? h * 60 + m : null;
 }
 
+type TimedKind = 'board' | 'wave';
+
 /** Settings window for the opt-in local reminders. Permission is asked on the master toggle tap only. */
 export function RemindersSection() {
   const save = useSave();
@@ -31,7 +33,17 @@ export function RemindersSection() {
   const [permission, setPermission] = useState(notificationPermission);
   const [attempted, setAttempted] = useState(false);
   const [dismissed, setDismissed] = useState(false);
-  const ids = { master: useId(), board: useId(), wave: useId(), timer: useId(), boardTime: useId(), waveTime: useId() };
+  const [saveFailed, setSaveFailed] = useState(false);
+  const uid = useId();
+  const ids = {
+    intro: `${uid}-intro`,
+    note: `${uid}-note`,
+    honesty: `${uid}-honesty`,
+    master: `${uid}-master`,
+    board: `${uid}-board`,
+    wave: `${uid}-wave`,
+    timer: `${uid}-timer`,
+  };
 
   // The user may change the site permission in the browser UI and come back.
   useEffect(() => {
@@ -47,38 +59,79 @@ export function RemindersSection() {
   // The explanation shows once the user tried to turn reminders on (or they were on and got revoked), not to everyone who blocked notifications.
   const blocked = permission === 'denied' && (attempted || prefs.enabled);
 
+  /** Writes the prefs; when the browser will not keep them the switch stays as it was and a note says so. */
+  const persist = (next: ReminderPrefs): boolean => {
+    const ok = setPrefs(next);
+    setSaveFailed(!ok);
+    return ok;
+  };
+
   const onMaster = async (checked: boolean) => {
     setDismissed(false);
+    setSaveFailed(false);
     setAttempted(checked);
     if (!checked) {
-      setPrefs({ ...prefs, enabled: false });
+      persist({ ...prefs, enabled: false });
       return;
     }
     if (unsupported) return;
     const result = permission === 'default' ? await requestNotificationPermission() : permission;
     setPermission(result);
-    if (result === 'granted') setPrefs({ ...prefs, enabled: true });
+    if (result === 'granted') persist({ ...prefs, enabled: true });
     else setDismissed(result === 'default');
   };
 
-  const patch = (next: Partial<ReminderPrefs>) => setPrefs({ ...prefs, ...next });
+  const setTime = (kind: TimedKind, value: string) => {
+    const minutes = fromTimeValue(value);
+    if (minutes !== null) persist({ ...prefs, [kind]: { ...prefs[kind], minutes } });
+  };
   const { lightsOutHour, wakeHour } = save.settings;
+
+  const timed = (kind: TimedKind) => (
+    <li className={styles.item}>
+      <div className={styles.text}>
+        <label className={styles.toggle} htmlFor={ids[kind]}>
+          <input
+            id={ids[kind]}
+            type="checkbox"
+            aria-describedby={`${ids[kind]}-help`}
+            checked={prefs[kind].on}
+            onChange={(e) => persist({ ...prefs, [kind]: { ...prefs[kind], on: e.target.checked } })}
+          />
+          <span className={styles.label}>{ui[kind].label}</span>
+        </label>
+        <span id={`${ids[kind]}-help`} className={cx('muted', styles.help, styles.indented)}>
+          {ui[kind].help}
+        </span>
+      </div>
+      <input
+        type="time"
+        className={styles.time}
+        aria-label={`${ui[kind].label} ${ui.timeSuffix}`}
+        value={toTimeValue(prefs[kind].minutes)}
+        disabled={!prefs[kind].on}
+        onChange={(e) => setTime(kind, e.target.value)}
+      />
+    </li>
+  );
 
   return (
     <SystemWindow title={ui.window}>
-      <p className={cx('muted', styles.intro)}>{ui.intro}</p>
+      <p id={ids.intro} className={cx('muted', styles.intro)}>
+        {ui.intro}
+      </p>
       <label className={styles.toggle} htmlFor={ids.master}>
         <input
           id={ids.master}
           type="checkbox"
           checked={active}
           disabled={unsupported}
-          aria-describedby={`${ids.master}-note`}
+          aria-describedby={`${ids.intro} ${ids.honesty} ${ids.note}`}
           onChange={(e) => void onMaster(e.target.checked)}
         />
         <span>{ui.master}</span>
       </label>
-      <div id={`${ids.master}-note`}>
+      <div id={ids.note}>
         {unsupported ? <p className={styles.note}>{ui.unsupported}</p> : null}
         {blocked ? (
           <p className={styles.note} role="status">
@@ -90,65 +143,40 @@ export function RemindersSection() {
             {ui.dismissed}
           </p>
         ) : null}
+        {saveFailed ? (
+          <p className={styles.note} role="status">
+            {ui.saveFailed}
+          </p>
+        ) : null}
       </div>
 
       {active ? (
         <ul className={styles.list}>
+          {timed('board')}
+          {timed('wave')}
           <li className={styles.item}>
-            <label className={styles.toggle} htmlFor={ids.board}>
-              <input id={ids.board} type="checkbox" aria-label={ui.board.label} checked={prefs.board.on} onChange={(e) => patch({ board: { ...prefs.board, on: e.target.checked } })} />
-              <span className={styles.text}>
-                <span className={styles.label}>{ui.board.label}</span>
-                <span className={cx('muted', styles.help)}>{ui.board.help}</span>
-              </span>
-            </label>
-            <input
-              id={ids.boardTime}
-              type="time"
-              className={styles.time}
-              aria-label={`${ui.board.label} ${ui.timeSuffix}`}
-              value={toTimeValue(prefs.board.minutes)}
-              disabled={!prefs.board.on}
-              onChange={(e) => {
-                const minutes = fromTimeValue(e.target.value);
-                if (minutes !== null) patch({ board: { ...prefs.board, minutes } });
-              }}
-            />
-          </li>
-          <li className={styles.item}>
-            <label className={styles.toggle} htmlFor={ids.wave}>
-              <input id={ids.wave} type="checkbox" aria-label={ui.wave.label} checked={prefs.wave.on} onChange={(e) => patch({ wave: { ...prefs.wave, on: e.target.checked } })} />
-              <span className={styles.text}>
-                <span className={styles.label}>{ui.wave.label}</span>
-                <span className={cx('muted', styles.help)}>{ui.wave.help}</span>
-              </span>
-            </label>
-            <input
-              id={ids.waveTime}
-              type="time"
-              className={styles.time}
-              aria-label={`${ui.wave.label} ${ui.timeSuffix}`}
-              value={toTimeValue(prefs.wave.minutes)}
-              disabled={!prefs.wave.on}
-              onChange={(e) => {
-                const minutes = fromTimeValue(e.target.value);
-                if (minutes !== null) patch({ wave: { ...prefs.wave, minutes } });
-              }}
-            />
-          </li>
-          <li className={styles.item}>
-            <label className={styles.toggle} htmlFor={ids.timer}>
-              <input id={ids.timer} type="checkbox" aria-label={ui.timer.label} checked={prefs.timer.on} onChange={(e) => patch({ timer: { on: e.target.checked } })} />
-              <span className={styles.text}>
+            <div className={styles.text}>
+              <label className={styles.toggle} htmlFor={ids.timer}>
+                <input
+                  id={ids.timer}
+                  type="checkbox"
+                  aria-describedby={`${ids.timer}-help`}
+                  checked={prefs.timer.on}
+                  onChange={(e) => persist({ ...prefs, timer: { on: e.target.checked } })}
+                />
                 <span className={styles.label}>{ui.timer.label}</span>
-                <span className={cx('muted', styles.help)}>{ui.timer.help}</span>
+              </label>
+              <span id={`${ids.timer}-help`} className={cx('muted', styles.help, styles.indented)}>
+                {ui.timer.help}
               </span>
-            </label>
+            </div>
           </li>
         </ul>
       ) : null}
 
-      <p className={cx('muted', styles.help)}>{ui.honesty}</p>
+      <p id={ids.honesty} className={cx('muted', styles.help)}>
+        {ui.honesty}
+      </p>
       {active ? <p className={cx('muted', styles.help)}>{ui.quiet.replace('{from}', hourLabel(lightsOutHour)).replace('{to}', hourLabel(wakeHour))}</p> : null}
     </SystemWindow>
   );

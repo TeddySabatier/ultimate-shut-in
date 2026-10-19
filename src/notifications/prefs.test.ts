@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { DEFAULT_PREFS, REMINDERS_KEY, loadPrefs, sanitizePrefs, savePrefs } from './prefs';
+import { describe, expect, it, vi } from 'vitest';
+import { DEFAULT_PREFS, REMINDERS_KEY, loadPrefs, sanitizePrefs, savePrefs, subscribePrefs } from './prefs';
 
 describe('reminder prefs', () => {
   it('defaults to off with board 08:30, wave 19:00 and the timer on', () => {
@@ -28,5 +28,32 @@ describe('reminder prefs', () => {
     });
     localStorage.setItem(REMINDERS_KEY, '{not json');
     expect(loadPrefs()).toEqual(DEFAULT_PREFS);
+  });
+
+  it('says so when the browser will not store the prefs, and keeps what was there', () => {
+    expect(savePrefs({ ...DEFAULT_PREFS, enabled: true })).toBe(true);
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('full', 'QuotaExceededError');
+    });
+    try {
+      expect(savePrefs({ ...DEFAULT_PREFS, enabled: false })).toBe(false);
+    } finally {
+      spy.mockRestore();
+    }
+    expect(loadPrefs().enabled).toBe(true);
+  });
+
+  it('notifies listeners on local saves and on storage events from other tabs', () => {
+    const listener = vi.fn();
+    const off = subscribePrefs(listener);
+    savePrefs(DEFAULT_PREFS);
+    expect(listener).toHaveBeenCalledTimes(1);
+    window.dispatchEvent(new StorageEvent('storage', { key: REMINDERS_KEY }));
+    expect(listener).toHaveBeenCalledTimes(2);
+    window.dispatchEvent(new StorageEvent('storage', { key: 'something-else' }));
+    expect(listener).toHaveBeenCalledTimes(2);
+    off();
+    window.dispatchEvent(new StorageEvent('storage', { key: REMINDERS_KEY }));
+    expect(listener).toHaveBeenCalledTimes(2);
   });
 });

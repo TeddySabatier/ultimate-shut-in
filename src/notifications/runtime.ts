@@ -1,9 +1,12 @@
 /**
  * Reminder runtime: arms the scheduler's fire times with `setTimeout` while the
- * app is open, and re-arms whenever the save, the prefs or the page visibility
- * change. When the app is closed nothing fires; that is stated in Settings.
- * Where the Notification Triggers API exists the same times are also handed to
- * the browser, with the same tag so a double delivery replaces itself.
+ * app is open, and re-arms whenever the save, the prefs (here or in another
+ * tab), the page visibility or the focus change. When the app is closed
+ * nothing fires; that is stated in Settings.
+ *
+ * Timers are short hops, not one long wait: each hop checks the wall clock, so
+ * a laptop that slept (timers stop on some platforms) fires within a hop of
+ * waking instead of hours late.
  */
 import { useGameStore } from '../state/gameStore';
 import { now as clockNow } from '../state/clock';
@@ -13,8 +16,12 @@ import { nextReminders, type PlannedReminder } from './scheduler';
 
 /** `setTimeout` cannot wait longer than a signed 32-bit number of ms. */
 const MAX_DELAY_MS = 2_147_483_647;
-/** A timer that fires this late (suspended tab, sleeping phone) is stale and skipped. */
+/** Longest single wait; the wall clock is re-read after each hop. */
+export const HOP_MS = 5 * 60_000;
+/** A reminder this late (suspended tab, sleeping phone) is stale and skipped. */
 export const STALE_AFTER_MS = 30 * 60_000;
+/** How long to wait for the service worker to become active before using the page API. */
+const SW_WAIT_MS = 3_000;
 const TAG_PREFIX = 'haven-';
 
 type PermissionState = NotificationPermission | 'unsupported';
@@ -62,21 +69,30 @@ function optionsFor(r: PlannedReminder): NotificationOptions {
   return { body, tag: `${TAG_PREFIX}${r.id}`, lang: 'en', ...(icon ? { icon } : {}) };
 }
 
-async function registration(): Promise<ServiceWorkerRegistration | undefined> {
+/** The active service worker registration, or undefined when there is none (or it is not ready soon). */
+async function activeRegistration(): Promise<ServiceWorkerRegistration | undefined> {
   try {
     if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return undefined;
-    return await navigator.serviceWorker.getRegistration();
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const wait = new Promise<undefined>((resolve) => {
+      timeout = setTimeout(() => resolve(undefined), SW_WAIT_MS);
+    });
+    try {
+      return await Promise.race([navigator.serviceWorker.ready, wait]);
+    } finally {
+      clearTimeout(timeout);
+    }
   } catch {
     return undefined;
   }
 }
 
-/** Shows one notification: through the service worker when there is one (Android needs it), else directly. */
+/** Shows one notification: through the active service worker when there is one (Android needs it), else directly. */
 async function show(r: PlannedReminder): Promise<void> {
   const { title } = reminderMessage(r);
   const options = optionsFor(r);
   try {
-    const reg = await registration();
+    const reg = await activeRegistration();
     if (reg) {
       await reg.showNotification(title, options);
       return;
@@ -91,30 +107,21 @@ async function show(r: PlannedReminder): Promise<void> {
   }
 }
 
-type TriggerCtor = new (timestamp: number) => unknown;
-
-/** Hands the times to the browser when it supports scheduled notifications (rare, and optional). */
-async function scheduleTriggers(planned: PlannedReminder[]): Promise<void> {
-  const Trigger = (globalThis as { TimestampTrigger?: TriggerCtor }).TimestampTrigger;
-  if (!Trigger || !notificationsSupported() || !('showTrigger' in Notification.prototype)) return;
-  try {
-    const reg = await registration();
-    if (!reg) return;
-    const pending = await reg.getNotifications({ includeTriggered: false } as GetNotificationOptions);
-    for (const n of pending) if (n.tag.startsWith(TAG_PREFIX)) n.close();
-    for (const r of planned) {
-      const { title } = reminderMessage(r);
-      await reg.showNotification(title, { ...optionsFor(r), showTrigger: new Trigger(r.at) } as NotificationOptions);
-    }
-  } catch {
-    /* the in-page timers still run */
-  }
-}
-
 function fire(r: PlannedReminder): void {
   timers.delete(r.id);
-  if (clockNow() - r.at <= STALE_AFTER_MS && notificationPermission() === 'granted') void show(r);
+  const prefs = loadPrefs();
+  if (prefs.enabled && clockNow() - r.at <= STALE_AFTER_MS && notificationPermission() === 'granted') void show(r);
   rearm(Math.max(clockNow(), r.at + 1));
+}
+
+/** Waits one hop (or less) and checks the clock again before firing. */
+function arm(r: PlannedReminder): void {
+  const delay = r.at - clockNow();
+  if (delay > MAX_DELAY_MS) return;
+  timers.set(
+    r.id,
+    setTimeout(() => (clockNow() >= r.at ? fire(r) : arm(r)), Math.max(0, Math.min(delay, HOP_MS))),
+  );
 }
 
 /** Recomputes the plan and replaces every armed timer. Safe to call at any time. */
@@ -123,18 +130,12 @@ export function rearm(nowMs: number = clockNow()): void {
   const { save, onboarded } = useGameStore.getState();
   const prefs = loadPrefs();
   if (!save || !onboarded || !prefs.enabled || notificationPermission() !== 'granted') return;
-  const planned = nextReminders(save, prefs, nowMs);
-  for (const r of planned) {
-    const delay = r.at - nowMs;
-    if (delay > MAX_DELAY_MS) continue;
-    timers.set(r.id, setTimeout(() => fire(r), Math.max(0, delay)));
-  }
-  void scheduleTriggers(planned);
+  for (const r of nextReminders(save, prefs, nowMs)) arm(r);
 }
 
 let stop: (() => void) | null = null;
 
-/** Starts the runtime once; returns a function that stops it. Called from `registerSW`. */
+/** Starts the runtime once; returns a function that stops it. */
 export function startReminderRuntime(): () => void {
   if (stop) return stop;
   if (typeof window === 'undefined') return () => undefined;
@@ -145,19 +146,50 @@ export function startReminderRuntime(): () => void {
     rearm();
   });
   const unsubPrefs = subscribePrefs(() => rearm());
-  const onVisible = () => {
+  const onWake = () => {
     if (document.visibilityState === 'visible') rearm();
   };
-  document.addEventListener('visibilitychange', onVisible);
-  window.addEventListener('pageshow', onVisible);
+  document.addEventListener('visibilitychange', onWake);
+  window.addEventListener('pageshow', onWake);
+  window.addEventListener('focus', onWake);
   rearm();
   stop = () => {
     unsubStore();
     unsubPrefs();
-    document.removeEventListener('visibilitychange', onVisible);
-    window.removeEventListener('pageshow', onVisible);
+    document.removeEventListener('visibilitychange', onWake);
+    window.removeEventListener('pageshow', onWake);
+    window.removeEventListener('focus', onWake);
     clearTimers();
     stop = null;
   };
   return stop;
+}
+
+/**
+ * Starts the runtime once the service worker is active (or right away without
+ * one), so a reminder never races the worker's first install. Never throws: a
+ * failure here must not take offline support down with it.
+ */
+export function startReminderRuntimeWhenReady(): void {
+  try {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
+      startReminderRuntime();
+      return;
+    }
+    // `ready` never settles when registration fails, so do not wait for it forever.
+    void activeRegistration().then(
+      () => startSafely(),
+      () => startSafely(),
+    );
+  } catch (error) {
+    console.error('[reminders] could not start', error);
+  }
+}
+
+function startSafely(): void {
+  try {
+    startReminderRuntime();
+  } catch (error) {
+    console.error('[reminders] could not start', error);
+  }
 }

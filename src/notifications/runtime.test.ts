@@ -5,11 +5,12 @@ import { useGameStore } from '../state/gameStore';
 import { currentSave, seedStore } from '../test/storeUtils';
 import { mockNotification, type NotificationMock } from './mockNotification';
 import { DEFAULT_PREFS, REMINDERS_KEY, savePrefs } from './prefs';
-import { notificationPermission, rearm, requestNotificationPermission, startReminderRuntime } from './runtime';
+import { HOP_MS, notificationPermission, rearm, requestNotificationPermission, startReminderRuntime, startReminderRuntimeWhenReady } from './runtime';
 import { nextReminders } from './scheduler';
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
+const SW_WAIT_FOR_TEST = 4_000;
 
 let mock: NotificationMock;
 let stop: (() => void) | null = null;
@@ -131,32 +132,130 @@ describe('reminder runtime', () => {
     vi.clearAllTimers();
   });
 
-  it('uses the Notification Triggers API when the browser has it', async () => {
-    const scheduled: { title: string; trigger: unknown }[] = [];
-    const closed: string[] = [];
-    class TimestampTrigger {
-      constructor(public timestamp: number) {}
+  it('shows through the active service worker registration when there is one', async () => {
+    const calls: { title: string; options: NotificationOptions }[] = [];
+    const reg = { showNotification: vi.fn(async (title: string, options: NotificationOptions) => void calls.push({ title, options })) };
+    Object.defineProperty(navigator, 'serviceWorker', { value: { ready: Promise.resolve(reg) }, configurable: true });
+    try {
+      seedStore();
+      enable();
+      stop = startReminderRuntime();
+      const first = nextReminders(currentSave(), { ...DEFAULT_PREFS, enabled: true }, T0)[0];
+      await vi.advanceTimersByTimeAsync((first?.at ?? T0) - T0 + 1000);
+      expect(calls).toHaveLength(1);
+      expect(calls[0]?.title).toBe('SYSTEM');
+      expect(calls[0]?.options.tag).toMatch(/^haven-/);
+      expect(mock.shown).toHaveLength(0);
+    } finally {
+      Reflect.deleteProperty(navigator, 'serviceWorker');
     }
-    Object.defineProperty(globalThis, 'TimestampTrigger', { value: TimestampTrigger, configurable: true, writable: true });
-    Object.defineProperty(window.Notification.prototype, 'showTrigger', { value: null, configurable: true });
-    const reg = {
-      getNotifications: vi.fn(async () => [{ tag: 'haven-old', close: () => closed.push('haven-old') }]),
-      showNotification: vi.fn(async (title: string, options: { showTrigger?: unknown }) => {
-        scheduled.push({ title, trigger: options.showTrigger });
-      }),
-    };
-    Object.defineProperty(navigator, 'serviceWorker', { value: { getRegistration: async () => reg }, configurable: true });
+  });
+
+  it('falls back to the page API when the service worker never becomes active', async () => {
+    Object.defineProperty(navigator, 'serviceWorker', { value: { ready: new Promise(() => undefined) }, configurable: true });
+    try {
+      seedStore();
+      enable();
+      stop = startReminderRuntime();
+      const first = nextReminders(currentSave(), { ...DEFAULT_PREFS, enabled: true }, T0)[0];
+      await vi.advanceTimersByTimeAsync((first?.at ?? T0) - T0 + 1000);
+      await vi.advanceTimersByTimeAsync(SW_WAIT_FOR_TEST);
+      expect(mock.shown.length).toBeGreaterThan(0);
+    } finally {
+      Reflect.deleteProperty(navigator, 'serviceWorker');
+    }
+  });
+
+  it('never asks the browser to schedule notifications itself', async () => {
+    const trigger = vi.fn();
+    Object.defineProperty(globalThis, 'TimestampTrigger', { value: trigger, configurable: true, writable: true });
+    const reg = { showNotification: vi.fn(async () => undefined), getNotifications: vi.fn(async () => []) };
+    Object.defineProperty(navigator, 'serviceWorker', { value: { ready: Promise.resolve(reg) }, configurable: true });
     try {
       seedStore();
       enable();
       stop = startReminderRuntime();
       await vi.advanceTimersByTimeAsync(0);
-      expect(closed).toEqual(['haven-old']);
-      expect(scheduled.length).toBeGreaterThan(0);
-      expect(scheduled.every((s) => s.title === 'SYSTEM' && s.trigger instanceof TimestampTrigger)).toBe(true);
+      expect(trigger).not.toHaveBeenCalled();
+      expect(reg.getNotifications).not.toHaveBeenCalled();
+      expect(reg.showNotification).not.toHaveBeenCalled();
     } finally {
       Reflect.deleteProperty(navigator, 'serviceWorker');
       Reflect.deleteProperty(globalThis, 'TimestampTrigger');
+    }
+  });
+
+  it('waits in short hops and re-reads the clock, so a long sleep cannot leave a reminder hours late', async () => {
+    seedStore();
+    enable();
+    stop = startReminderRuntime();
+    const first = nextReminders(currentSave(), { ...DEFAULT_PREFS, enabled: true }, T0)[0];
+    const wait = (first?.at ?? T0) - T0;
+    expect(wait).toBeGreaterThan(HOP_MS);
+    // Jump the wall clock to just before the reminder without running any timer (the OS slept).
+    vi.setSystemTime(T0 + wait - 1000);
+    await vi.advanceTimersByTimeAsync(HOP_MS);
+    expect(mock.shown.map((n) => n.options?.tag)).toContain(`haven-${first?.id}`);
+  });
+
+  it('stops when another tab turns the reminders off (storage event)', () => {
+    seedStore();
+    enable();
+    stop = startReminderRuntime();
+    expect(vi.getTimerCount()).toBeGreaterThan(0);
+    localStorage.setItem(REMINDERS_KEY, JSON.stringify({ ...DEFAULT_PREFS, enabled: false }));
+    window.dispatchEvent(new StorageEvent('storage', { key: REMINDERS_KEY }));
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('re-arms on window focus', () => {
+    seedStore();
+    enable();
+    stop = startReminderRuntime();
+    const armed = vi.getTimerCount();
+    vi.clearAllTimers();
+    window.dispatchEvent(new Event('focus'));
+    expect(vi.getTimerCount()).toBe(armed);
+  });
+
+  it('does not show a reminder if the switch was turned off while its timer was pending', async () => {
+    seedStore();
+    enable();
+    stop = startReminderRuntime();
+    const first = nextReminders(currentSave(), { ...DEFAULT_PREFS, enabled: true }, T0)[0];
+    // Off in storage only: no event, so the pending timer is still armed.
+    localStorage.setItem(REMINDERS_KEY, JSON.stringify({ ...DEFAULT_PREFS, enabled: false }));
+    await vi.advanceTimersByTimeAsync((first?.at ?? T0) - T0 + 1000);
+    expect(mock.shown).toHaveLength(0);
+  });
+});
+
+describe('startReminderRuntimeWhenReady', () => {
+  it('starts right away without a service worker and never throws', () => {
+    seedStore();
+    enable();
+    expect(() => startReminderRuntimeWhenReady()).not.toThrow();
+    expect(vi.getTimerCount()).toBeGreaterThan(0);
+    stop = startReminderRuntime();
+  });
+
+  it('waits for an active service worker before starting', async () => {
+    let resolveReady: (reg: unknown) => void = () => undefined;
+    Object.defineProperty(navigator, 'serviceWorker', { value: { ready: new Promise((r) => (resolveReady = r)) }, configurable: true });
+    try {
+      seedStore();
+      enable();
+      startReminderRuntimeWhenReady();
+      await vi.advanceTimersByTimeAsync(0);
+      // Only the wait for the worker is pending: no reminder is armed yet.
+      expect(vi.getTimerCount()).toBe(1);
+      resolveReady({ showNotification: vi.fn() });
+      await vi.advanceTimersByTimeAsync(0);
+      // The wait is cleared and the board and wave reminders are armed.
+      expect(vi.getTimerCount()).toBeGreaterThan(1);
+      stop = startReminderRuntime();
+    } finally {
+      Reflect.deleteProperty(navigator, 'serviceWorker');
     }
   });
 });

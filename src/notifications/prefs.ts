@@ -88,23 +88,36 @@ export function loadPrefs(): ReminderPrefs {
 
 const listeners = new Set<() => void>();
 
-export function savePrefs(next: ReminderPrefs): void {
+/** Stores the prefs and tells listeners. Returns false when the browser would not keep them. */
+export function savePrefs(next: ReminderPrefs): boolean {
+  let stored = false;
   try {
-    storage()?.setItem(REMINDERS_KEY, JSON.stringify(sanitizePrefs(next)));
+    const ls = storage();
+    if (ls) {
+      ls.setItem(REMINDERS_KEY, JSON.stringify(sanitizePrefs(next)));
+      stored = true;
+    }
   } catch {
-    /* private mode: the toggle just does not persist */
+    /* private mode or quota: reported to the caller, which keeps the switch off */
   }
   for (const l of [...listeners]) l();
+  return stored;
 }
 
+/** Listener runs on local changes and, through the `storage` event, on changes made in another tab. */
 export function subscribePrefs(listener: () => void): () => void {
   listeners.add(listener);
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === null || e.key === REMINDERS_KEY) listener();
+  };
+  if (typeof window !== 'undefined') window.addEventListener('storage', onStorage);
   return () => {
     listeners.delete(listener);
+    if (typeof window !== 'undefined') window.removeEventListener('storage', onStorage);
   };
 }
 
-export function useReminderPrefs(): readonly [ReminderPrefs, (next: ReminderPrefs) => void] {
+export function useReminderPrefs(): readonly [ReminderPrefs, (next: ReminderPrefs) => boolean] {
   const prefs = useSyncExternalStore(subscribePrefs, loadPrefs, () => DEFAULT_PREFS);
   return [prefs, savePrefs] as const;
 }
