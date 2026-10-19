@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { parties, runs } from '../testing/fixtures';
 import { playToEnd } from '../testing/play';
 import { RealtimeExample } from './RealtimeExample';
+import { useFixedStep } from './useFixedStep';
 import { DOT_TICKS, dotEngine } from './RealtimeExample.engine';
 
 function setHidden(hidden: boolean) {
@@ -77,6 +78,27 @@ describe('real-time games', () => {
     expect([canvas.width, canvas.height]).toEqual([400, 100]);
     expect(ctx.setTransform).toHaveBeenCalledWith(2, 0, 0, 2, 0, 0);
     expect(ctx.fillRect).toHaveBeenCalled();
+  });
+
+  it('reads the drawing colour from the design tokens', () => {
+    document.documentElement.style.setProperty('--color-accent-2', '#123456');
+    render(<RealtimeExample {...props()} />);
+    expect(ctx.fillStyle).toBe('#123456');
+    document.documentElement.style.removeProperty('--color-accent-2');
+  });
+
+  it('onFrame gets an interpolation factor in [0, 1) every frame, after the ticks', () => {
+    const seen: number[] = [];
+    let ticks = 0;
+    function Clock() {
+      useFixedStep(() => ticks++, { running: true, onFrame: (a) => seen.push(a) });
+      return null;
+    }
+    render(<Clock />);
+    act(() => vi.advanceTimersByTime(500));
+    expect(seen.length).toBeGreaterThan(ticks);
+    expect(seen.every((a) => a >= 0 && a < 1)).toBe(true);
+    expect(new Set(seen.map((a) => a.toFixed(2))).size).toBeGreaterThan(1);
   });
 
   it('the example engine passes a headless play', () => {
