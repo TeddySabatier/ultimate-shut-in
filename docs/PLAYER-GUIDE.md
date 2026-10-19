@@ -21,8 +21,9 @@ Haven Protocol turns real-life habits into a small fortress-building game. You d
 13. [Resurrection token](#resurrection-token)
 14. [Benevolent and Strict modes](#benevolent-and-strict-modes)
 15. [Missing days](#missing-days)
-16. [Export and import](#export-and-import)
-17. [FAQ](#faq)
+16. [Reminders and app shortcuts](#reminders-and-app-shortcuts)
+17. [Export and import](#export-and-import)
+18. [FAQ](#faq)
 
 ## First launch
 
@@ -273,6 +274,24 @@ Life happens. The game is built so that being away never snowballs:
 - You get one "welcome back" line on the Haven tab, nothing more.
 
 Example: a Steady player gone for 30 days with every vassal at loyalty 60 comes back to loyalty 39, utilities down at most 45 points, a few quiet waves and a fresh board. Nothing is lost.
+
+## Reminders and app shortcuts
+
+Settings has a **Reminders** window. It is off until you switch on **Send me reminders**; that tap is the only moment the browser is asked for permission to show notifications. If you say no, nothing is sent, and the window explains how to allow it again in the browser's site settings.
+
+Once on, there are three reminders, each with its own toggle:
+
+| Reminder | When | Default |
+| --- | --- | --- |
+| **Board issued** | Every day at the time you choose, never before your day starts. | 08:30 |
+| **Wave tomorrow** | The calendar day before a wave settles (the wave week ends at your day-start hour). | 19:00 |
+| **Timer finished** | The moment a running timer quest reaches its time, if it is still the same day's board. | on |
+
+They read like a system window: the title is "SYSTEM", then one warm line. Nothing is sent between your **Lights out** and **Wake** hours (Settings, Hours): a board reminder waits for the wake hour, the other two are skipped.
+
+**What reminders cannot do.** There is no server and no push service, so reminders are scheduled by the app on your device and only arrive **while Haven Protocol is open on screen, or was left open a moment ago**: phones pause apps in the background. When the app is closed nothing fires, and a reminder missed while your phone slept is not sent later. Tapping a reminder opens the app on the right screen (the Board for a board or timer reminder, the Haven for a wave). The choices are kept on this device only (not in the save file, so they are not exported), and if the browser will not store them the switch stays off with a note.
+
+**App shortcuts.** After you install the app, long-press its icon (Android) or right-click it (desktop) for three shortcuts: **Add my own quest** (opens the Board with the compose sheet ready), **Today's board** and **Map**.
 
 ## Export and import
 

@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { ALL_HABITS, freshApp, getSave, gotoTab, onboard } from './helpers';
 
 test.beforeEach(async ({ page }) => {
@@ -101,4 +101,73 @@ test('benevolence options explain what Strict does', async ({ page }) => {
   await page.getByRole('radio', { name: 'Strict', exact: true }).check();
   await expect(page.getByRole('radio', { name: 'Strict', exact: true })).toBeChecked();
   expect((await getSave(page)).settings.benevolence).toBe('strict');
+});
+
+/**
+ * A Notification stand-in whose permission survives reloads (a real browser keeps
+ * the grant), so the tests do not depend on the headless browser's prompt policy.
+ */
+async function stubNotifications(page: Page, initial: 'default' | 'granted' | 'denied', answer: 'granted' | 'denied'): Promise<void> {
+  await page.addInitScript(
+    ([start, reply]) => {
+      const key = 'e2e.notification-permission';
+      if (localStorage.getItem(key) === null) localStorage.setItem(key, start);
+      class FakeNotification {
+        static get permission(): string {
+          return localStorage.getItem(key) ?? 'default';
+        }
+        static async requestPermission(): Promise<string> {
+          const next = localStorage.getItem(key) === 'default' ? reply : (localStorage.getItem(key) ?? 'default');
+          localStorage.setItem(key, next);
+          return next;
+        }
+      }
+      Object.defineProperty(window, 'Notification', { value: FakeNotification, configurable: true, writable: true });
+    },
+    [initial, answer] as const,
+  );
+  await page.reload();
+  await gotoTab(page, 'Settings');
+}
+
+test('reminders: the toggles and times persist across a reload', async ({ page }) => {
+  await stubNotifications(page, 'default', 'granted');
+  const master = page.getByRole('checkbox', { name: 'Send me reminders' });
+  await expect(master).not.toBeChecked();
+  await expect(page.getByText(/When the app is closed nothing fires/)).toBeVisible();
+  await master.check();
+  await expect(page.getByRole('checkbox', { name: 'Board issued' })).toBeChecked();
+  await expect(page.getByLabel('Board issued time')).toHaveValue('08:30');
+  await expect(page.getByLabel('Wave tomorrow time')).toHaveValue('19:00');
+
+  await page.getByLabel('Board issued time').fill('09:15');
+  await page.getByRole('checkbox', { name: 'Wave tomorrow' }).uncheck();
+  await page.getByRole('checkbox', { name: 'Timer finished' }).uncheck();
+
+  await page.reload();
+  await gotoTab(page, 'Settings');
+  await expect(page.getByRole('checkbox', { name: 'Send me reminders' })).toBeChecked();
+  await expect(page.getByLabel('Board issued time')).toHaveValue('09:15');
+  await expect(page.getByRole('checkbox', { name: 'Board issued' })).toBeChecked();
+  await expect(page.getByRole('checkbox', { name: 'Wave tomorrow' })).not.toBeChecked();
+  await expect(page.getByRole('checkbox', { name: 'Timer finished' })).not.toBeChecked();
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('haven.reminders') ?? 'null'));
+  expect(stored).toMatchObject({ enabled: true, board: { on: true, minutes: 555 }, wave: { on: false }, timer: { on: false } });
+  // Reminders are device preferences: the save itself is untouched.
+  expect(Object.keys((await getSave(page)).settings)).not.toContain('reminders');
+});
+
+test('reminders: a denied permission shows the explanation and stays off', async ({ page }) => {
+  await stubNotifications(page, 'default', 'denied');
+  const master = page.getByRole('checkbox', { name: 'Send me reminders' });
+  await master.click();
+  await expect(page.getByText(/Notifications are blocked for this site/)).toBeVisible();
+  await expect(master).not.toBeChecked();
+  await expect(page.getByRole('checkbox', { name: 'Board issued' })).toHaveCount(0);
+  await page.reload();
+  await gotoTab(page, 'Settings');
+  await expect(page.getByText(/Notifications are blocked for this site/)).toHaveCount(0);
+  await expect(page.getByRole('checkbox', { name: 'Send me reminders' })).not.toBeChecked();
+  const stored = await page.evaluate(() => localStorage.getItem('haven.reminders'));
+  expect(stored === null || JSON.parse(stored).enabled === false).toBe(true);
 });

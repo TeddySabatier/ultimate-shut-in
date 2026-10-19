@@ -21,6 +21,22 @@ Review items not done: none skipped. The "restore toast reads like an edit" poin
 
 `src/game/README.md` (module map, `custom.ts` row) could list `restoreCustomTemplate`, `customTitleTaken` and `customCopyInProgress`; it is not in this brief's list.
 
+## C. Reminders and app shortcuts
+
+The compose deep link is wired: `src/screens/QuestsScreen.tsx` calls `useComposeDeepLink(() => setComposing(true));` right below the `composing` state (screen test and e2e cover `#/quests?compose=1`). If another branch rewrites `QuestsScreen`, keep that one call (plus its import from `../notifications/useDeepLink`) after the `composing` state and before any early return.
+
+Other things to know when merging:
+
+- `src/game/content/strings.json`: the `reminders` key is appended after `map`. If another branch also appends at the end of the file, keep both keys; nothing else in that file changed.
+- `src/main.tsx` and `src/App.tsx` are untouched. The reminder runtime starts from `registerSW()` in `src/pwa/registerSW.ts`, which `main.tsx` already calls.
+- Reminder preferences are device-level and live in `localStorage` key `haven.reminders`, not in the SaveFile (`types.ts` and `save.ts` are reserved), so there is no migration. They are not part of Export save.
+- "Wave tomorrow" fires at its time on the calendar day before the wave settles (the wave settles at the reset hour after the last game day of a period), for every reset hour.
+- `public/sw-notify.js` adds a `notificationclick` handler to the generated service worker through `workbox.importScripts`; `vite.config.ts` only gained that option and the manifest `shortcuts`.
+- The Notification Triggers path was removed (it could not cancel what it scheduled). Reminders only fire while the app is open.
+- The `Map` shortcut targets `#/map`, which exists on main since the Map tab merged.
+
+Review minors from PR #1 that were all done in the follow-up pass; none skipped except: reminders are not kept in an in-memory copy when storage refuses writes. The switch stays off with a note instead, which is simpler and never leaves a hidden "on" state.
+
 ## D. Test-suite diet
 
 - **`e2e/helpers.ts` (brief A owns it): navigations hang in bursts.** `freshApp` (`goto`, then a `reload`) sometimes never reaches `domcontentloaded`: the reload sits for 20 to 60 s, then the test times out in its `beforeEach` hook. It comes in bursts (the suite runs clean for several minutes, then four workers stall together) and mostly hits the tests that start first. What was ruled out, with a probe outside the test runner (4 Chromium processes, 8 fresh contexts each, same `goto` + service-worker wait + `reload` sequence): the font CDN (a dead `HTTPS_PROXY` made `route.fetch` fail instantly and the stalls stayed), `vite preview` (a plain Node static server stalls too), worker count (2 workers stalled more than 4), IPv6 (`--dns-result-order=ipv4first --no-network-family-autoselection` made no difference once the run order was swapped), a cold start (a warm-up page did nothing). Trace of a stalled test: `Page.reload` is waiting for `navigated to http://localhost:4273/` and nothing else; in one probe the pending request was a 5 KB SVG of the app itself. Suspects left: the service worker taking over the reloaded page while the precache is settling. Suggested for the helper owner: after the first `goto`, unregister the worker (`navigator.serviceWorker.getRegistrations()` then `unregister()`) in every spec except `pwa.spec.ts` and skip the reload (the init script already sets the debug flag; `localStorage.clear()` can run in an init script guarded by `sessionStorage`), or run the non-PWA specs in a project with `use.serviceWorkers: 'block'` and drop the wait-for-active step that would then time out. Until then `playwright.config.ts` caps navigations at 20 s and retries twice locally (once in CI) so a stall costs seconds, not a failed run.

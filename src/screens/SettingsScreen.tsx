@@ -8,6 +8,7 @@ import { hourLabel } from '../utils/format';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { Icon } from '../components/Icon';
 import { SystemWindow } from '../components/SystemWindow';
+import { RemindersSection } from '../notifications/RemindersSection';
 import styles from './SettingsScreen.module.css';
 
 const DIFFICULTIES: readonly Difficulty[] = ['gentle', 'steady', 'hardcore'];
@@ -183,6 +184,8 @@ export function SettingsScreen() {
         </div>
         <p className={cx('muted', styles.help)}>Sleep quests refer to these hours, never to the clock on the device.</p>
       </SystemWindow>
+
+      <RemindersSection />
 
       <SystemWindow title="Display">
         <label className={styles.toggle} htmlFor={ids.motion}>

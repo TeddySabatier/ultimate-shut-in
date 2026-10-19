@@ -4,6 +4,7 @@ import { uiIcons } from '../assets';
 import { useGameStore, useSave } from '../state/gameStore';
 import { anyTimerRunning, canUndoToday, msUntilReset, rewardPreview, seededLine, templateOf, todayIndex } from '../state/selectors';
 import { useNow } from '../hooks/useNow';
+import { useComposeDeepLink } from '../notifications/useDeepLink';
 import { hourLabel, roughDuration } from '../utils/format';
 import { Icon } from '../components/Icon';
 import { ProposalsSection } from '../components/ProposalsSection';
@@ -24,6 +25,7 @@ export function QuestsScreen() {
   const acceptProposal = useGameStore((s) => s.acceptProposal);
   const dismissProposal = useGameStore((s) => s.dismissProposal);
   const [composing, setComposing] = useState(false);
+  useComposeDeepLink(() => setComposing(true));
   const now = useNow(anyTimerRunning(save));
 
   const actions: QuestCardActions = useMemo(
