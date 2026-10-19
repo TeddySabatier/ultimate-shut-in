@@ -6,15 +6,13 @@ const baseURL = `http://localhost:${PORT}`;
 
 export default defineConfig({
   testDir: 'e2e',
-  // Warm the preview server, fonts and service worker once, before the workers start.
-  globalSetup: './scripts/e2e-warmup.mjs',
   // Every test starts from a fresh page with empty localStorage (e2e/helpers.ts
   // freshApp), so tests are independent and spread across workers, not only files.
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  // One retry everywhere: on this suite the only recurring failure is a navigation that hangs
+  // Retries: the only recurring failure is a navigation that hangs
   // (see navigationTimeout below), and a fresh page recovers it.
-  retries: 1,
+  retries: process.env.CI ? 1 : 2,
   workers: process.env.E2E_WORKERS ? Number(process.env.E2E_WORKERS) : process.env.CI ? 2 : 4,
   // CI shards upload the report only when they fail (see .github/workflows/ci.yml).
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : [['list']],
@@ -24,8 +22,8 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   use: {
     baseURL,
-    // A navigation or reload that hangs (seen about once in 30 on a cold service worker, a
-    // localhost asset request never completes) is cut after 20 s instead of eating the whole
+    // A navigation or reload that hangs (it comes in bursts, see docs/review/qa-report.md,
+    // "Suite performance") is cut after 20 s instead of eating the whole
     // 60 s test budget; the retry starts from a fresh page. Normal navigations take under 1 s.
     navigationTimeout: 20_000,
     screenshot: 'only-on-failure',

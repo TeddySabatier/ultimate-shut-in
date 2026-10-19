@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   combos,
@@ -114,5 +116,8 @@ describe('outposts content', () => {
     expect(getOutpostState('corridor').label).toBe('Corridor');
     expect(outpostRules).toMatchObject({ baseCap: 3, capPerRing: 1, maxCap: 10, perZone: 3, minSpacing: 3, quietAfterDays: 14, rerollDiscount: 5, corridorCoinMult: 0.1, strongholdDefense: 2, strongholdDefenseCap: 6, visitLogMax: 400 });
     expect(Object.keys(strings.map.errors).length).toBeGreaterThanOrEqual(14);
+    for (const t of outpostTypes) {
+      expect(existsSync(resolve('src/assets/outposts', `${t.icon}.svg`)), t.icon).toBe(true);
+    }
   });
 });
