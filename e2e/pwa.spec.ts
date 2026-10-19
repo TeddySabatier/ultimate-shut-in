@@ -25,6 +25,34 @@ test('manifest is linked, fetchable and names the app with 192/512 icons', async
   await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#0f0f14');
 });
 
+test('manifest lists the three app shortcuts with fetchable 96px icons', async ({ page, request }) => {
+  const href = await page.locator('link[rel="manifest"]').getAttribute('href');
+  const manifestUrl = new URL(href as string, page.url()).toString();
+  const manifest = (await (await request.get(manifestUrl)).json()) as {
+    scope: string;
+    shortcuts?: { name: string; url: string; icons: { src: string; sizes: string; type: string }[] }[];
+  };
+  const shortcuts = manifest.shortcuts ?? [];
+  expect(shortcuts.map((s) => [s.name, s.url])).toEqual([
+    ['Add my own quest', './#/quests?compose=1'],
+    ["Today's board", './#/quests'],
+    ['Map', './#/map'],
+  ]);
+  const scope = new URL(manifest.scope, manifestUrl);
+  for (const shortcut of shortcuts) {
+    expect(new URL(shortcut.url, manifestUrl).href.startsWith(scope.href), shortcut.name).toBe(true);
+    const [icon] = shortcut.icons;
+    expect(icon?.sizes).toBe('96x96');
+    const res = await request.get(new URL(icon?.src ?? '', manifestUrl).toString());
+    expect(res.ok(), icon?.src).toBe(true);
+    expect(res.headers()['content-type']).toContain('image/png');
+    const png = await res.body();
+    // PNG header, then the IHDR width and height.
+    expect(png.readUInt32BE(16)).toBe(96);
+    expect(png.readUInt32BE(20)).toBe(96);
+  }
+});
+
 test('service worker registers and the app renders offline after the first load', async ({ page, context }) => {
   await onboard(page, { name: 'Tester' });
   const scope = await page.evaluate(async () => {
