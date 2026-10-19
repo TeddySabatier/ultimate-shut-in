@@ -60,10 +60,13 @@ current board and its done quests until the index catches up again.
 | `combos.ts` | Forge on same-day habit pairs, unforge on undo, counted items for the wave. |
 | `resurrection.ts` | Token offer, eligibility window, `applyResurrection`. |
 | `tick.ts` | `processBoundaries(save, now)`: the single entry point on app open/focus (catch-up replay capped at 400 boundaries). `changeResetHour(save, hour, now)`. |
-| `save.ts` | `createNewSave`, `migrate` (legacy `{name, level, xp}`, v2 and v3 with or without a persist envelope; boards, combos, titles, history, custom templates, proposals and activity are normalised), `exportSave`. Save version 3 added `customTemplates`, `proposals` and `activity`. |
+| `save.ts` | `createNewSave`, `migrate` (legacy `{name, level, xp}`, v2, v3 and v4 with or without a persist envelope; boards, combos, titles, history, custom templates, proposals, activity and the map are normalised), `exportSave`. Save version 3 added `customTemplates`, `proposals` and `activity`. Save version 4 adds `map`: outposts, visits and domain snapshots. A save that has no map is given an empty one, seeded with one snapshot of the current state. |
 | `template.ts` | `resolveTemplate(save, id)` (shipped or `c-` custom), `customToTemplate`, effort tiers and caps (`effortTier`, `maxTier`, `resolveTier`), recurrence and weekday helpers. |
 | `custom.ts` | Custom quests: `addCustomTemplate`, `updateCustomTemplate`, `archiveCustomTemplate`, `addCustomQuestToBoard`, `previewCustomRewards`, recurrence (`recurrenceDue`, `placeRecurringDraft`). Max two on a board, never the Bonus. |
 | `adapt.ts` | "The Haven notices": `recordActivityDraft`, `evaluateProposals` (five rules), `computeProposalsDraft` (limits, snoozes), `acceptProposal`, `dismissProposal`. |
+| `mapGeometry.ts` | The 17×17 city grid: which cells belong to the island, `zoneOfCell`, `wallRadius(dp)`, compass rays. Shared by the engine and the map screen. |
+| `outposts.ts` | Outposts on the City Map: create, edit, move, retire, restore, forget, check-ins and quest tags. Caps, quiet and perks are read from `content/outposts.json`. |
+| `map.ts` | Domain snapshots (one per settled wave, quiet weeks included), `markMapSeen`, the 7-day compare, and the wave marks left on the wall. |
 | `compose/` | `parseQuestDraft` (on-device, English and French, no network) and its keyword tables. |
 | `draft.ts` | Internal clone/log helpers behind the contract. |
 | `index.ts` | Public re-exports. |

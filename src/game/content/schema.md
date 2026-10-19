@@ -7,6 +7,8 @@ Cross-file references:
 - `quests[].minRing`, `titles[].condition.ring` must be a `rings[].id` (1-7).
 - `habits[].utility`, `titles[].effect.utility` must be `"power" | "water" | "gas"` or `null`.
 - `strings.proposals.footInDoor.titles` must have a key for every habit id.
+- `outposts.types[].habits[]` must be a `habits[].id`. Empty only for type `other`.
+- `outposts.states[].id` must be `marked`, `scouted`, `corridor`, `stronghold`, in that order.
 
 ## habits.json
 
@@ -130,6 +132,61 @@ Effect types (`effect.type`):
 | `flavor` | string | One line. |
 | `legendary` | boolean, optional | Shown with special styling; still obeys the rules. |
 
+## outposts.json
+
+```
+{ version, rules, states: OutpostState[], types: OutpostType[] }
+```
+
+Rules and the catalogue of place-types for the City Map (`docs/design/CITY-MAP.md` section 4.4). A player's own places are not in this file. They live on the save, `SaveFile.map`, from version 4: outposts, a visit log and domain snapshots. `migrate` in `save.ts` fills that object for an older save. State names and place-type names live here. The Map tab's sentences (buttons, errors, toasts, and the perk lines on a place's sheet) live in `strings.json` under `map`.
+
+### rules
+
+| Field | Type | Meaning |
+|---|---|---|
+| `baseCap` | integer | Active outposts allowed before the ring is added (3). |
+| `capPerRing` | integer | Added once per ring (1). The cap is `baseCap + capPerRing * ring`. |
+| `maxCap` | integer | The cap never rises above this (10, the City). |
+| `perZone` | integer | Active outposts allowed in one zone (3). The Room holds none. |
+| `minSpacing` | integer | Minimum distance, in cells, between two active outposts (3). |
+| `quietAfterDays` | integer | Days since the last visit before a place looks quiet (14). Quiet changes the look only. |
+| `quietIfNeverVisitedAfterDays` | integer | Days after it was marked, when it has never been visited (7). |
+| `rerollDiscount` | integer | Settlement taken off a swap when a related outpost is Scouted or better (5). The best outpost wins; it does not stack. |
+| `corridorCoinMult` | number | Added to the settlement multiplier when a related outpost is a Corridor or better (0.1). It does not stack, and it sits outside the title cap. |
+| `strongholdDefense` | integer | Wave defense from one Stronghold (2). |
+| `strongholdDefenseCap` | integer | Most defense all Strongholds can add together (6). |
+| `nameMax` | integer | Name length after the text is tidied (24). Unique among active outposts, ignoring case. |
+| `noteMax` | integer | Note length (80). |
+| `visitLogMax` | integer | Visit records kept, newest last (400). The count stored on the outpost keeps going after the log is trimmed. |
+
+### states
+
+Exactly 4, in this order. `minVisits` is strictly ascending and the first is 0. The ids are the `OutpostState` union in `types.ts`. A save stores them on `peak` and in `stateDays`, so a shipped id is never renamed.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `id` | `"marked" \| "scouted" \| "corridor" \| "stronghold"` | Stable state id. |
+| `minVisits` | integer | Counted visits at which the state is reached: 0, 3, 10, 30. |
+| `label` | string | Name shown for the state ("Scouted"). |
+| `perk` | string | One line for what the state gives. Placeholders `{aHabits}`, `{habits}`, `{discount}` where the line needs them. |
+
+Reached states stay reached. `peak` on an outpost never drops, and the perks read `peak`.
+
+### types
+
+Exactly 11, in `OutpostTypeId` order: `gym`, `park`, `library`, `friend`, `family`, `cafe`, `clinic`, `market`, `pool`, `class`, `other`. A save stores the id on each outpost. Never rename one.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `id` | outpost type id | Stable. |
+| `label` | string | Kind of place ("Friend's home", "Somewhere else"). |
+| `icon` | string | Icon key. The picture is `src/assets/outposts/<icon>.svg`. |
+| `habits` | habit id[] | Default related habits: 1 or 2. Empty only for `other`, which asks the player to choose. An outpost itself always keeps 1 or 2. |
+| `placeholder` | string | Example name in the empty name field ("Riverside Gym"). |
+| `visitLines` | string[] | At least one line for a visit to this kind of place. Placeholders `{name}` and `{visits}`. |
+
+`validateContent()` checks all of the following. The 11 type ids are exactly `OutpostTypeId`, each once. Habits are real habit ids, with no repeats: none only on `other`, otherwise 1 or 2. Every type has an icon key, a placeholder and at least one visit line. The four states are in engine order, the first at 0 visits, each `minVisits` above the one before it. The cap, spacing, defense and quiet numbers are consistent (`maxCap` covers a City ring, defense cap covers at least one Stronghold, quiet days are positive). Every value under `strings.map.errors` is a non-empty string.
+
 ## strings.json
 
 UI copy. Every array is a pool; the UI picks with a seeded index (e.g. `hash(gameDay + eventIndex) % pool.length`) so the same event shows the same line on re-render. Placeholders are listed in `placeholders` and are replaced with simple string substitution (no plural logic in v1).
@@ -150,3 +207,4 @@ UI copy. Every array is a pool; the UI picks with a seeded index (e.g. `hash(gam
 | `ui.*` | object | Button and label copy. |
 | `compose.*` | object | The Compose sheet (custom quests, see `docs/design/CUSTOM-QUESTS.md`). `open`, `title`, `intro`, `textLabel`, `textPlaceholder`, `speak`, `stop`, `listening`, `hearing`, `heard`, `parsedHeading`, `emptyHint`: sheet copy. `voicePrivacy`: the privacy line next to the microphone (must say that the browser vendor's speech service may hear the audio, in Chrome while online, that Haven records nothing, and that nothing else leaves the device). `unsupported`, `denied`, `noMic`, `noSpeech`, `offline`: the voice fallbacks, each ending in the way forward (type it). `labels.*` field labels, `kinds.*` (`check`, `timer`, `count`), `slots.*` (`any`, `morning`, `afternoon`, `evening`), `tiers[]` (names of tiers 1 to 3), `tierSuggested`, `tierCap` (`{kind}`, `{max}`), `questions.*` (`habit`, `amount`, `title`, `empty`: what the parser asks when unsure), `actions.*` (`board`, `recurring`, `later`, `cancel`), `notes.*` (`full`, `habitOff` with `{habit}`, `away` with `{name}`), `toasts.*` (`saved`, `boarded`, `updated`, `archived`, all with `{title}`), `myQuests.*` (the Ledger section: `title`, `empty`, `addToday`, `onBoard`, `archive`, `stats` with `{issued}`, `{done}`, `{tried}`, `archiveTitle`, `archiveBody`, `sources.*` for `voice`, `text`, `proposal`). |
 | `proposals.*` | object | "The Haven notices". `heading`, `intro`, `accept`, `dismiss`: section copy. `titles.*`: card headings per rule (`smaller`, `stepUp`, `makeRecurring`, `footInDoor`, `pinWeekday`). `reasons.*`: per rule, a pool of reason sentences picked with a seed (placeholders `{vassal}`, `{habit}`, `{quest}`, `{n}`, `{recurrence}`, `{weekday}`; never a verdict, always a way forward or "no pressure"). `footInDoor.titles.<habit>`: the 5-minute check quest title per habit (Title Case, at most 40 characters); `footInDoor.description`. `toasts.accepted` (`{title}`), `toasts.dismissed`. |
+| `map.*` | object | The City Map. `title`, `chip`, `seeOnMap`, `ringLine`: the tab and the way back to a ring. `a11y.*`: the map, a zone band, a pin. `hud.*`, `since.*`, `domain.*`, `zone.*`, `list.*`: the screen, the 7-day compare, a zone and the list. `outposts.*`: rows, visits, quiet, retire, restore, forget. `form.*`: marking or editing a place, including `directions.*` for the eight compass points. `errors.*`: warm lines keyed by the engine's short refusal codes (`name required`, `cap reached`, `already logged today`, and the rest). `toasts.*`: created, visited, a new state, retired, restored, forgotten, the wall reaching a place. `settlement.*`: "Where were you?" after a quest. Perk sentences the sheet shows are `outposts.perkScouted`, `perkCorridor` and `perkStronghold`. |

@@ -196,3 +196,50 @@ changes nothing else.
   seed includes the name, as 6.3 step 1 specifies).
 - The vassal receives the post-multiplier `xp` (6.4), not `baseXp`; the
   content schema note now says so.
+
+## 20. Save version 4 adds the City Map
+
+`SAVE_VERSION` is 4. `SaveFile.map` holds the City Map as specified in
+`docs/design/CITY-MAP.md`: outposts (active and retired), the visit log,
+domain snapshots, `lastSeen` and `nextSeq`. A wave breakdown gains
+`outposts` (Stronghold defense, capped). A custom template may name an
+`outpostId`, and a completion of that quest tags the place. The map never
+changes Domain Points or the ring.
+
+A v2 or v3 save has no map. `migrate` gives it an empty one seeded with one
+snapshot of the current state (`periodIndex` is `week.index - 1`, `day` is
+`lastOpenDay`, plus Domain Points, ring, and the last wave result, or
+`quiet` when there is no history), so the 7-day compare has a baseline. Every
+stored wave breakdown gets `outposts: 0`. A brand-new save starts with
+`snapshots: []`; the seed is only for a save that arrived without a map. A v4
+save round-trips through `exportSave` and `migrate`.
+
+Where the code departs from CITY-MAP section 4, it stays as written:
+
+- A damaged map drops an outpost whose id, type, cell, name or habits cannot
+  be kept, and clamps the text, raises `peak` to at least what the visits
+  earn, rebuilds `nextSeq` and drops visits whose outpost is gone (4.1). An
+  outpost that is valid but breaks an active rule (the same name, the zone
+  cap, or the three-cell gap) is retired and kept, visits included, so a
+  hand-merged save does not lose the place.
+- A custom template keeps `outpostId` on migrate only while that outpost is
+  still on the map and not retired.
+- Refusal codes (4.3). A retired outpost refuses a visit, a move or a quest
+  tag with `outpost is retired`. Creating one also refuses `pick a habit`
+  when no related habit resolves (type `other` with none chosen) and
+  `unknown outpost` when the type is not one of the eleven. Restoring one
+  whose old cell is taken, when the caller did not pass a cell, places it on
+  a free cell in the same zone, which is the reading in CITY-MAP 3.5.
+  `cell taken` remains the refusal when no free cell is left, or when the
+  caller chose that cell. Restore also refuses `name taken`.
+- Undoing a tagged quest removes that quest's visit (4.3). When another log
+  for the same outpost and day was uncounted, that log becomes the counted
+  visit and the counter stays. Otherwise the counted visit is taken back.
+  `peak` never drops either way.
+- The functions (4.3). Outpost actions live in `outposts.ts`. Snapshots,
+  `markMapSeen` and `compareSnapshot` live in `map.ts`. `wallRadius` and
+  `zoneOfCell` live in `mapGeometry.ts`.
+- `validateContent()` requires each type's `icon` to be a non-empty string,
+  and checks habits, state order and the rule numbers (4.4). It does not open
+  `src/assets/outposts/<icon>.svg`. Those pictures are in the tree under that
+  path.
