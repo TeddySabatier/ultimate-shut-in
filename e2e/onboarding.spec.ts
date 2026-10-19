@@ -63,5 +63,5 @@ test('reload keeps the save and skips onboarding', async ({ page }) => {
   await expect(page.getByTestId('ring-header').getByText('Tester', { exact: true })).toBeVisible();
   const raw = await page.evaluate(() => localStorage.getItem('haven.save'));
   expect(raw).not.toBeNull();
-  expect(JSON.parse(raw as string).version).toBe(2);
+  expect(JSON.parse(raw as string).version).toBe(3);
 });

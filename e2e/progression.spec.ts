@@ -19,7 +19,7 @@ test('eight full days: wave window after the 7th boundary, DP rises, a level-up 
       if (day === 7) {
         // Boundary 6 -> 7 closes the first wave period.
         expect(tally.waves).toBe(1);
-        const dialog = page.getByRole('dialog');
+        const dialog = page.getByRole('dialog', { name: /^Wave 1/ });
         await expect(dialog).toBeVisible();
         await expect(dialog.getByText(/^Wave 1 · The Room$/)).toBeVisible();
         await expect(dialog.getByRole('progressbar', { name: 'Attack' })).toBeVisible();

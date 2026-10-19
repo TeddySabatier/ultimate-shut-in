@@ -22,4 +22,4 @@ Run `npm run e2e` for UI changes and look at the screenshots in `e2e/__screensho
 ## Docs map
 - Design: `docs/design/GDD.md` (+ `GDD-errata.md`), `ART.md`, `CITY-MAP.md`, `CUSTOM-QUESTS.md`
 - Reviews: `docs/review/` (engine review, QA report, responsive review)
-- Player and ops: `docs/PLAYER-GUIDE.md`, `docs/ARCHITECTURE.md`, `docs/DEPLOY.md`
+- Player and ops: `docs/PLAYER-GUIDE.md`, `docs/ARCHITECTURE.md`, `docs/DEPLOY.md`, `docs/PARALLEL-WORK.md`

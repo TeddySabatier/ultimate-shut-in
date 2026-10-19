@@ -19,6 +19,11 @@ export interface SaveLike {
   week: { history: { index: number; result: string; attack: number; defense: number }[] };
   titles: { titleId: string }[];
   stats: { questsTotal: number; questDayStreak: number };
+  map: {
+    outposts: { id: string; name: string; visits: number; retired: boolean }[];
+    visits: { outpostId: string; counted: boolean }[];
+    lastSeen: { day: number; domainPoints: number } | null;
+  };
   lastOpenDay: number;
   firstPlayDay: number;
 }
@@ -218,7 +223,9 @@ async function visible(l: Locator): Promise<boolean> {
 export async function settleOverlays(page: Page, opts: { keepWave?: boolean } = {}): Promise<OverlayTally> {
   const tally = emptyTally();
   for (let i = 0; i < 60; i++) {
-    const dialog = page.getByRole('dialog').first();
+    // Native <dialog> without [open] is not an overlay. MapSheet (CITY-MAP 5.2)
+    // keeps closed dialogs in the tree with display:flex, so role=dialog matches them.
+    const dialog = page.locator('dialog[open], [role="dialog"]:not(dialog)').first();
     const toastClose = page.getByRole('button', { name: 'Dismiss' }).first();
     if (await visible(dialog)) {
       const titleId = (await dialog.getAttribute('aria-labelledby')) ?? '';

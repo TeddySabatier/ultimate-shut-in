@@ -7,21 +7,22 @@ Haven Protocol turns real-life habits into a small fortress-building game. You d
 ## Contents
 
 1. [First launch](#first-launch)
-2. [The four tabs](#the-four-tabs)
-3. [The eight vassals](#the-eight-vassals)
-4. [Difficulty](#difficulty)
-5. [The board](#the-board)
-6. [Settlement: what a quest pays](#settlement-what-a-quest-pays)
-7. [Utilities](#utilities)
-8. [The weekly wave](#the-weekly-wave)
-9. [Rings](#rings)
-10. [Titles](#titles)
-11. [Combos](#combos)
-12. [Resurrection token](#resurrection-token)
-13. [Benevolent and Strict modes](#benevolent-and-strict-modes)
-14. [Missing days](#missing-days)
-15. [Export and import](#export-and-import)
-16. [FAQ](#faq)
+2. [The five tabs](#the-five-tabs)
+3. [The City Map and outposts](#the-city-map-and-outposts)
+4. [The eight vassals](#the-eight-vassals)
+5. [Difficulty](#difficulty)
+6. [The board](#the-board)
+7. [Settlement: what a quest pays](#settlement-what-a-quest-pays)
+8. [Utilities](#utilities)
+9. [The weekly wave](#the-weekly-wave)
+10. [Rings](#rings)
+11. [Titles](#titles)
+12. [Combos](#combos)
+13. [Resurrection token](#resurrection-token)
+14. [Benevolent and Strict modes](#benevolent-and-strict-modes)
+15. [Missing days](#missing-days)
+16. [Export and import](#export-and-import)
+17. [FAQ](#faq)
 
 ## First launch
 
@@ -33,14 +34,40 @@ A short three-step setup opens the first time:
 
 Then your first board is issued. You can install the game to your home screen: on Android Chrome use "Install app" from the menu, on iPhone use Safari, Share, "Add to Home Screen". It then works offline.
 
-## The four tabs
+## The five tabs
 
 | Tab | What is there |
 | --- | --- |
-| **Haven** | The ring map, Domain Points progress, the three utilities, the wave countdown, your vassals and a short recent log. |
+| **Haven** | The ring scene, Domain Points progress, the three utilities, the wave countdown, your vassals and a short recent log. |
 | **Board** | Today's quests and how long until the day resets. |
-| **Ledger** | Level, settlement, titles, vassal details, forged combo items, wave history with replayable battle logs, lifetime stats, story vignettes and (when relevant) the Resurrection token. |
+| **Map** | The City Map: a lit island that grows with Domain Points, and the outposts you name. |
+| **Ledger** | Level, settlement, titles, vassal details, forged combo items, wave history with replayable battle logs, lifetime stats, story vignettes, retired outposts and (when relevant) the Resurrection token. |
 | **Settings** | Name, difficulty, benevolence, enabled habits, reset hour, reduced motion, export/import, reset. |
+
+## The City Map and outposts
+
+The Map tab turns Domain Points into a place. The Haven sits at the centre of a small night-time island. As you complete quests the amber wall creeps outward, and each new ring lights another neighbourhood. A *7 days* toggle draws last week's wall as a ghost, so you can see what the week actually moved.
+
+The city is not a street map. It never asks where you are, never uses GPS, and never stores an address. You place a spot by how far it *feels* from home and which way, and that is enough.
+
+**Outposts** are real places you keep going back to: a gym, a park, a friend's door, a library chair. Tap *Mark an outpost*, give it a name and a type, and it appears on the island. Visits themselves pay **no XP, coins or Domain Points**. They are an honour-system check-in, cheap on purpose. What grows is the outpost's state.
+
+| State | After | What it gives |
+| --- | --- | --- |
+| **Marked** | 0 visits | It is on the map. Nothing else yet. |
+| **Scouted** | 3 visits | Swapping a related-habit quest costs a little less settlement. |
+| **Corridor** | 10 visits | Related-habit quests return a little more settlement, and the wall reaches toward that pin. |
+| **Stronghold** | 30 visits | A small extra defense in every weekly wave, and a Haven annex stands there. |
+
+A state, once reached, is kept. Undoing a visit never takes a perk away. Two gyms that are both Scouted still give one discount, not two.
+
+You can log a visit two ways: tap *I was there* on the pin or its row, or tag a finished quest in the settlement window (*Where were you?*). One counted visit per outpost per game day; a second log that day is kept for the Ledger only. Undoing the tagged quest the same day takes the visit back.
+
+**Quiet is not a penalty.** If you have not been to a place for a while, its pin dims and the sheet says it is quiet. Visits, state and perks stay exactly as they were. One visit wakes it. Nothing here fades, and the Haven never falls.
+
+You can retire an outpost to the Ledger (its visits are kept) and restore it later. *Forget* is a two-step privacy delete for retired outposts only; the game never suggests it.
+
+A *List* toggle swaps the picture for seven zone rows, so every action works without tapping the drawing. Reduced motion skips the wall march and the ripple; the layout is the same.
 
 ## The eight vassals
 
@@ -128,6 +155,7 @@ Every 7 days from your first day, a wave of monsters (Dust Bunny, Doomscroll Wyr
 - your ring's wall bonus,
 - the combo items you forged this week (at most 6 count, strongest first),
 - title bonuses (flat defense, capped at +12),
+- Stronghold outposts (+2 each, at most +6),
 - the Well-kept Haven bonus.
 
 **Result** compares defense to the wave's attack (which grows with the week number up to week 52, with your ring and with difficulty):
@@ -263,6 +291,9 @@ At the "Day starts at" hour in Settings (04:00 by default). Changing it keeps to
 
 **Does it send notifications?**
 No. The app never reaches out; you open it when you want to.
+
+**Does the Map use my location?**
+No. Outposts are a name and a feeling of distance. There is no GPS, no address and no geofence.
 
 **Does it work offline?**
 Yes, once loaded and installed. The game runs entirely on your device.

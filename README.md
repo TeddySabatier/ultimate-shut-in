@@ -16,6 +16,7 @@
 - **Utilities.** Power, Water and Gas are fed by Sleep, Hygiene and Eat. They fade a little when neglected and are purely mood plus a wave bonus: an Out utility costs nothing.
 - **Weekly wave.** Every 7 days a wave of silly monsters (Dust Bunny, Doomscroll Wyrm...) attacks. Your week's effort, vassal levels, walls, titles and forged combo items are the defense. A win pays more Domain Points; a "loss" still pays and takes nothing away.
 - **Rings.** Domain Points push the boundary outward through seven rings (The Room, The Flat, The Floor, The Building, The Block, The District, The City). Each ring unlocks facilities, harder quests, a story vignette and a bigger wall.
+- **City Map.** A fifth tab shows the island and the wall. You name outposts (a gym, a park, a friend's door) with no GPS. Visits pay nothing themselves; states (Scouted, Corridor, Stronghold) give small perks. Quiet is not a penalty.
 
 New here? Read the [Player guide](docs/PLAYER-GUIDE.md).
 
@@ -23,13 +24,13 @@ New here? Read the [Player guide](docs/PLAYER-GUIDE.md).
 
 Captured by the Playwright end-to-end suite (`npm run e2e`) on a 390x844 mobile viewport.
 
-| Haven | Board | Wave result | Ledger |
+| Haven | Board | Map | Ledger |
 | --- | --- | --- | --- |
-| ![Haven home screen](e2e/__screenshots__/mobile-chromium-05-home.png) | ![Daily quest board](e2e/__screenshots__/mobile-chromium-06-board.png) | ![Weekly wave result window](e2e/__screenshots__/mobile-chromium-13-wave-result.png) | ![Ledger with vassals and titles](e2e/__screenshots__/mobile-chromium-09-ledger.png) |
+| ![Haven home screen](e2e/__screenshots__/mobile-chromium-05-home.png) | ![Daily quest board](e2e/__screenshots__/mobile-chromium-06-board.png) | ![City Map with the lit Room](e2e/__screenshots__/mobile-chromium-06b-map.png) | ![Ledger with vassals and titles](e2e/__screenshots__/mobile-chromium-09-ledger.png) |
 
-| Onboarding | Level up | Settings | Home after a week |
+| Onboarding | Wave result | Settings | Home after a week |
 | --- | --- | --- | --- |
-| ![Onboarding habit selection](e2e/__screenshots__/mobile-chromium-04-onboarding-habits.png) | ![Level up window](e2e/__screenshots__/mobile-chromium-12-level-up.png) | ![Settings screen](e2e/__screenshots__/mobile-chromium-10-settings.png) | ![Home after the first wave](e2e/__screenshots__/mobile-chromium-14-home-after-week.png) |
+| ![Onboarding habit selection](e2e/__screenshots__/mobile-chromium-04-onboarding-habits.png) | ![Weekly wave result window](e2e/__screenshots__/mobile-chromium-13-wave-result.png) | ![Settings screen](e2e/__screenshots__/mobile-chromium-10-settings.png) | ![Home after the first wave](e2e/__screenshots__/mobile-chromium-14-home-after-week.png) |
 
 ## Quick start
 
@@ -70,12 +71,12 @@ docs/
 public/              favicon.svg, icons/ (PWA icons)
 scripts/             gen-icons.mjs, gen-logo.mjs
 src/
-  assets/            SVG art: habits, haven, logo, monsters, ui, vassals
-  components/        shared UI (AppShell, QuestCard, VassalCard, overlays/ ...)
-  game/              pure engine, no React; content/ holds the JSON data
+  assets/            SVG art: habits, haven, logo, monsters, outposts, ui, vassals
+  components/        shared UI (AppShell, QuestCard, VassalCard, map/CityMapSvg, overlays/ ...)
+  game/              pure engine, no React; content/ holds the JSON data (including outposts.json); map.ts, mapGeometry.ts, outposts.ts
   hooks/             useGameTick, useNow, useInstallPrompt ...
   pwa/               service worker registration
-  screens/           Home (Haven), Quests (Board), Character (Ledger), Settings, Onboarding
+  screens/           Home (Haven), Quests (Board), Map, Character (Ledger), Settings, Onboarding
   state/             the zustand store (gameStore.ts) and the app clock
   styles/            tokens.css and global.css
   test/              vitest setup and helpers
@@ -86,6 +87,7 @@ src/
 
 - [Player guide](docs/PLAYER-GUIDE.md): how the game works, in plain words.
 - [Game design document](docs/design/GDD.md) and its [errata](docs/design/GDD-errata.md): the rules and where the implementation reads them.
+- [City Map](docs/design/CITY-MAP.md): the fifth tab, outposts and the island map.
 - [Art guide](docs/design/ART.md): palette, geometry and asset inventory.
 - [Architecture](docs/ARCHITECTURE.md): layers, save format, time model, PWA and testing strategy.
 - [Engine README](src/game/README.md) and [content schema](src/game/content/schema.md).

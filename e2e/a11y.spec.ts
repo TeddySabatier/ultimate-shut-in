@@ -66,6 +66,23 @@ test('Board tap targets are at least 44px tall', async ({ page }) => {
   expect(small).toEqual([]);
 });
 
+test('Map tap targets are at least 44px', async ({ page }) => {
+  await onboard(page, { name: 'Tester' });
+  await gotoTab(page, 'Map');
+  const small = await page.evaluate(() =>
+    Array.from(document.querySelectorAll('main button, main a, nav a, main summary, main input, main select, main [role="button"]'))
+      .map((el) => ({ el, r: el.getBoundingClientRect() }))
+      .filter(({ el, r }) => {
+        if (r.width <= 0 || r.height <= 0) return false;
+        // CITY-MAP 5.3 / 6.3: zone bands follow the zone ellipses; 44px is for pins.
+        if (el.tagName === 'path' && el.getAttribute('role') === 'button') return false;
+        return r.height < 44 || r.width < 44;
+      })
+      .map(({ el, r }) => `${el.tagName.toLowerCase()} "${(el.getAttribute('aria-label') ?? el.textContent ?? '').trim().slice(0, 40)}" ${Math.round(r.width)}x${Math.round(r.height)}`),
+  );
+  expect(small).toEqual([]);
+});
+
 test('settings checkboxes expose their habit names', async ({ page }) => {
   await onboard(page, { name: 'Tester' });
   await gotoTab(page, 'Settings');

@@ -28,6 +28,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('screens and overlays', async ({ page }, testInfo) => {
+  test.setTimeout(180_000);
   const p = testInfo.project.name;
 
   await shoot(page, p, '01-onboarding-opening');
@@ -49,7 +50,31 @@ test('screens and overlays', async ({ page }, testInfo) => {
   await gotoTab(page, 'Map');
   await shoot(page, p, '06b-map', { full: true });
 
+  // City Map extras (CITY-MAP 7): list, zone sheet, an outpost pin, 7-days ghost.
+  await page.getByRole('button', { name: 'Show the map as a list' }).click();
+  await shoot(page, p, '16-map-list', { full: true });
+  await page.getByRole('list', { name: 'Zones of the city' }).getByRole('button').nth(1).click();
+  await expect(page.getByRole('dialog', { name: 'The Flat' })).toBeVisible();
+  await shoot(page, p, '17-map-zone');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'The Flat' })).toBeHidden();
+  await page.getByRole('button', { name: /Mark an outpost/ }).click();
+  const form = page.getByRole('dialog', { name: 'Mark a place' });
+  await form.getByLabel('Name').fill('Hollow Park');
+  await form.getByText('Park', { exact: true }).click();
+  await form.getByLabel('How far does it feel?').selectOption('4');
+  await form.getByRole('button', { name: 'Mark outpost' }).click();
+  await expect(form).toBeHidden();
+  await settleOverlays(page);
+  await page.getByRole('button', { name: 'Show the map' }).click({ force: true });
+  await expect(page.locator('#city-map')).toBeVisible();
+  await shoot(page, p, '18-map-outpost', { full: true });
+  await page.getByRole('button', { name: 'Compare with 7 days ago' }).click({ force: true });
+  await shoot(page, p, '19-map-7days');
+  await page.getByRole('button', { name: 'Compare with 7 days ago' }).click();
+
   // One settlement toast, then the board with a settled card.
+  await gotoTab(page, 'Board');
   const { card: firstCard } = await pinCard(page, openCards(page));
   await firstCard.getByRole('button', { name: 'Done' }).click();
   await expect(page.getByRole('status')).toBeVisible();
@@ -80,7 +105,7 @@ test('screens and overlays', async ({ page }, testInfo) => {
   await advanceToDay(page, 7);
   const tally = await settleOverlays(page, { keepWave: true });
   expect(tally.waves).toBe(1);
-  const dialog = page.getByRole('dialog');
+  const dialog = page.getByRole('dialog', { name: /^Wave 1/ });
   const skip = dialog.getByRole('button', { name: 'Skip' });
   if (await skip.isVisible().catch(() => false)) await skip.click();
   await expect(dialog.getByRole('list', { name: 'Battle log' }).getByRole('listitem').first()).toBeVisible();
