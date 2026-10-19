@@ -22,6 +22,8 @@ Phase 0 is done and merged: the plug-in contract, the auto-discovering registry,
 - `docs/games/img/<id>-*.png`: at most three screenshots, 150 KB in total, taken with the `shootGame` helper from the games e2e helpers (see `docs/design/games/CONTRACT.md`)
 - `docs/review/notes/game-<id>.md`: departures, open questions, anything you needed from a file you do not own
 
+**Keep your game's TypeScript files flat** directly in `src/games/<id>/` (assets and content data may sit in sub-folders): the lint rule that stops games importing each other would flag a `.ts` file in a sub-folder that imports `../engine`.
+
 **Hands off:** `scripts/**`, `package.json` and the lockfile (**no new dependencies**, use the platform), `src/games/contract.ts`, `registry.ts`, `lab/`, `testing/`, `sample/`, `src/game/**`, `src/state/**`, `src/screens/**`, `src/components/**` (you may import presentational components, you may not edit them), `strings.json`, `.github/**`, configs, `docs/PARALLEL-WORK.md`, other games. If you need a change in a file you do not own, write it in your notes file and work around it.
 
 ## Quality bar

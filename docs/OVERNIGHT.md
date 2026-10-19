@@ -59,8 +59,9 @@ Start order does not matter. Prompts: for the Arena use the prompt at the end of
 
 ## Status (the maintainer fills this in before handing over)
 
-- Foundation merged to `main`: see the log of `docs/design/games/CONTRACT.md`.
-- `integration/arena` created from that commit and the auto-merge workflow verified.
+- **Foundation merged to `main`** (PR #20, independently reviewed by following its own recipe with two throwaway games; 3 critical and 8 major findings fixed before merge). CI and deploy green on `main`.
+- **`integration/arena` exists** and is kept identical to `main` at launch time. Agents read their briefs from this branch, so any change to a brief, `AGENTS.md` or `OVERNIGHT.md` must be merged into `integration/arena` too (do not edit docs once agents are running).
+- **The auto-merge workflow was tested end to end** on a throwaway integration branch: it merged a PR and retargeted and merged a PR stacked on it.
 
 ## What can go wrong, and what to do
 
