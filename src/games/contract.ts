@@ -193,8 +193,14 @@ export function fledOutcome(log: string[] = ['Left the game.']): Outcome {
  * (`FIXED_DT_MS`); the Screen dispatches ticks, the engine never reads a clock.
  */
 export interface GameEngine<S, A> {
-  /** The starting state. All randomness derives from `seed` (see `turnRng`). */
-  initial(seed: number, party: Party, run: RunContext): S;
+  /**
+   * The starting state. All randomness derives from `seed` (see `turnRng`).
+   * `locale` is the player's language: an engine whose content depends on it
+   * (word lists, passages) uses it; any other engine ignores it, and may
+   * declare only three parameters. Never read `navigator` instead. Every
+   * caller passes it; tests default to 'en' and also play 'fr'.
+   */
+  initial(seed: number, party: Party, run: RunContext, locale: Locale): S;
   /** Apply one action. Invalid actions, and any action once the game is over, return the state unchanged; never throw. */
   reduce(state: S, action: A): S;
   /** `null` while the game is running; the final outcome once it is over (and from then on). */
@@ -205,6 +211,13 @@ export interface GameEngine<S, A> {
    * Use `rng` for the bot's own choices (never `Math.random`).
    */
   botPlay(state: S, rng: () => number): A | null;
+  /**
+   * Optional: the game's own leave action for `state` (for example
+   * `{ type: 'forfeit' }`). Reducing it must end the game as `fled` with a
+   * valid outcome (a partial score is fine). The contract kit plays it on a
+   * game in progress and validates that outcome, since the bot never leaves.
+   */
+  forfeit?(state: S): A;
 }
 
 /** Fixed time step for real-time games: one `tick` action is 50 ms of game time. */

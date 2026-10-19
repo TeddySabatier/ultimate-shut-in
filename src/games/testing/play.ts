@@ -3,7 +3,7 @@
  * Pure TypeScript, no vitest import: the Games Lab uses it for "Bot play".
  */
 import { fnv1a, mulberry32 } from '../../game/rng';
-import type { GameModule, Outcome, Party, RunContext } from '../contract';
+import type { GameModule, Locale, Outcome, Party, RunContext } from '../contract';
 
 export const DEFAULT_MAX_STEPS = 20_000;
 
@@ -23,6 +23,8 @@ export interface PlayResult<S, A> {
 export interface PlayOptions {
   /** Deep-freeze every state before handing it to `reduce` and `botPlay` (purity check). */
   freeze?: boolean;
+  /** The player's language passed to `initial` (default 'en'). */
+  locale?: Locale;
   /** Called with every state reached, the initial one included (step 0). */
   inspect?: (state: unknown, step: number) => void;
 }
@@ -45,7 +47,7 @@ export function deepFreeze<T>(value: T): T {
 }
 
 /**
- * Play `module` with its bot from `initial(seed, party, run)` until the
+ * Play `module` with its bot from `initial(seed, party, run, locale)` until the
  * outcome is non-null, the bot returns `null`, or `maxSteps` actions were
  * applied. Never throws on its own; engine exceptions propagate.
  */
@@ -60,7 +62,7 @@ export function playToEnd<S, A>(
   const { engine } = module;
   const rng = botRng();
   const guard = options.freeze ? deepFreeze : <T>(v: T) => v;
-  let state = guard(engine.initial(seed, guard(party), guard(run)));
+  let state = guard(engine.initial(seed, guard(party), guard(run), options.locale ?? 'en'));
   const actions: A[] = [];
   for (let steps = 0; ; steps++) {
     options.inspect?.(state, steps);
