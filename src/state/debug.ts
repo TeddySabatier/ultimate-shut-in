@@ -6,7 +6,6 @@
 import { useGameStore } from './gameStore';
 import { getNowOffsetMs, now, setNowOffsetMs } from './clock';
 import type { SaveFile } from '../game';
-import { listGames, validateRegistry } from '../games/registry';
 
 export interface HavenDebug {
   getSave: () => SaveFile | null;
@@ -19,8 +18,6 @@ export interface HavenDebug {
   reset: () => void;
   /** Drop queued overlays (level-ups, toasts) without presenting them. */
   clearEvents: () => void;
-  /** Registered mini games (dev-only ones included) and registry problems (src/games/registry.ts). */
-  games: () => { ids: string[]; problems: string[] };
 }
 
 declare global {
@@ -56,7 +53,6 @@ export function createDebugApi(): HavenDebug {
       useGameStore.getState().resetSave();
     },
     clearEvents: () => useGameStore.setState({ pendingEvents: [], notice: null }),
-    games: () => ({ ids: listGames({ includeDev: true }).map((g) => g.manifest.id), problems: validateRegistry() }),
   };
 }
 

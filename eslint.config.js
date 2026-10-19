@@ -37,6 +37,16 @@ const PURE_PROPERTIES = [
   { object: 'performance', property: 'now', message: 'engines never read a clock: model time as tick actions' },
 ];
 
+// The registry imports every manifest, engine and strings object eagerly, so it
+// must stay out of the main bundle: only lazily loaded routes may import it
+// (the Games Lab now, the Arena host under src/components/arena/ later).
+const LAZY_REGISTRY = [
+  'error',
+  {
+    patterns: [{ group: ['**/games/registry', '**/games/registry.ts'], message: 'the registry is lazy: import it only from a lazily loaded route' }],
+  },
+];
+
 export default tseslint.config(
   { ignores: ['dist', 'dev-dist', 'node_modules', 'coverage'] },
   {
@@ -81,6 +91,11 @@ export default tseslint.config(
       'no-restricted-properties': ['error', ...PURE_PROPERTIES],
       'no-restricted-syntax': ['error', { selector: "NewExpression[callee.name='Date']", message: 'engines never read a clock: model time as tick actions' }],
     },
+  },
+  {
+    files: ['src/App.tsx', 'src/main.tsx', 'src/state/**/*.{ts,tsx}', 'src/components/**/*.{ts,tsx}'],
+    ignores: ['src/components/arena/**'],
+    rules: { 'no-restricted-imports': LAZY_REGISTRY },
   },
   {
     files: ['scripts/**/*.{js,mjs}', '*.config.{js,mjs,ts}'],

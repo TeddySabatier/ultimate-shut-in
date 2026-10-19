@@ -1,6 +1,6 @@
 /**
- * The ESLint boundary for mini games (eslint.config.js) really fires: each
- * snippet is linted as if it lived in a game folder.
+ * The ESLint boundaries for mini games (eslint.config.js) really fire: each
+ * snippet is linted as if it lived at the given path.
  */
 import { ESLint } from 'eslint';
 import { dirname, resolve } from 'node:path';
@@ -71,6 +71,23 @@ describe('ESLint boundary for src/games', () => {
     const code = "import { describeGameContract } from '../testing/contract';\nexport const d = describeGameContract;";
     expect(await ruleHits(code, 'src/games/fake-game/Screen.tsx')).toEqual([expect.stringMatching(/test files only/)]);
     expect(await ruleHits(code, 'src/games/fake-game/contract.test.ts')).toEqual([]);
+  });
+
+  it('keeps the registry out of the main bundle: only lazy routes import it', async () => {
+    const code = (from: string) => `import { listGames } from '${from}';\nexport const x = listGames;`;
+    for (const [file, from] of [
+      ['src/App.tsx', './games/registry'],
+      ['src/main.tsx', './games/registry'],
+      ['src/state/arenaStore.ts', '../games/registry'],
+      ['src/components/RingHeader.tsx', '../games/registry'],
+      ['src/components/overlays/ArenaToast.tsx', '../../games/registry'],
+    ] as const) {
+      expect(await ruleHits(code(from), file), file).toEqual([expect.stringMatching(/the registry is lazy: import it only from a lazily loaded route/)]);
+    }
+    // The Arena host is loaded lazily and lives in src/components/arena/.
+    expect(await ruleHits(code('../../../games/registry'), 'src/components/arena/host/ArenaHost.tsx')).toEqual([]);
+    // Types from the contract are fine anywhere.
+    expect(await ruleHits("import type { Outcome } from './games/contract';\nexport type O = Outcome;", 'src/App.tsx')).toEqual([]);
   });
 
   it('lets the Games Lab use the router, never the store', async () => {
