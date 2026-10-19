@@ -13,14 +13,14 @@ Haven Protocol builds to a folder of static files (`dist/`). Anything that can s
 Workflows live in `.github/workflows/`:
 
 - `ci.yml` runs on every push and pull request: lint, typecheck, tests, build, a check that `dist/manifest.webmanifest` and `dist/sw.js` exist, then a Playwright e2e job.
-- `deploy.yml` ("Deploy to GitHub Pages") is **manual only** (`workflow_dispatch`). It builds and publishes `dist/` to Pages. It never runs on its own.
+- `deploy.yml` ("Deploy to GitHub Pages") runs on every push to `main` and can also be started by hand (`workflow_dispatch`). It builds and publishes `dist/` to Pages. Live URL: https://teddysabatier.github.io/ultimate-shut-in/
 
-GitHub Pages requires the repository to be public (or a paid GitHub plan). The repository, `github.com/TeddySabatierLimpide/ultimate-shut-in`, is private at the moment, so before the first deploy:
+GitHub Pages requires the repository to be public (or a paid GitHub plan). The repository `github.com/TeddySabatier/ultimate-shut-in` is public and Pages is already enabled. If you fork it or start over, do this once:
 
 1. **Make the repo public** (skip if you are on a plan that allows private Pages): Settings > General > Danger zone > Change visibility > Public.
 2. **Enable Pages from Actions**: Settings > Pages > Source: **GitHub Actions**.
-3. **Run the workflow**: Actions > "Deploy to GitHub Pages" > Run workflow (choose the branch, usually `main`).
-4. When the run finishes, the job summary shows the URL, normally `https://teddysabatierlimpide.github.io/ultimate-shut-in/`.
+3. **Push to `main`** (or Actions > "Deploy to GitHub Pages" > Run workflow).
+4. When the run finishes, the job summary shows the URL: `https://teddysabatier.github.io/ultimate-shut-in/`.
 
 Re-run the workflow whenever you want to publish a new version. Installed copies update themselves: the service worker uses `autoUpdate`, so the next online launch picks up the new build.
 

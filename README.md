@@ -60,7 +60,7 @@ To try it on your phone over the local network, see [docs/DEPLOY.md](docs/DEPLOY
 ## Project layout
 
 ```
-.github/workflows/   ci.yml (every push and PR), deploy.yml (manual, GitHub Pages)
+.github/workflows/   ci.yml (every push and PR), deploy.yml (GitHub Pages on push to main)
 e2e/                 Playwright end-to-end tests
 docs/
   design/            GDD.md (rules), GDD-errata.md (where code departs), ART.md
@@ -93,7 +93,7 @@ src/
 
 ## Deploy
 
-CI (`.github/workflows/ci.yml`) lints, typechecks, tests and builds on every push and pull request, then runs the Playwright e2e suite. Publishing is manual: `.github/workflows/deploy.yml` is a `workflow_dispatch` workflow that builds `dist/` and publishes it to GitHub Pages. Pages needs the repository to be public (or a paid plan), with Settings > Pages > Source set to "GitHub Actions". The app uses `base: './'` and hash routing, so it works under `/ultimate-shut-in/`. Any static host works too: upload `dist/`. Full steps in [docs/DEPLOY.md](docs/DEPLOY.md).
+CI (`.github/workflows/ci.yml`) lints, typechecks, tests and builds on every push and pull request, then runs the Playwright e2e suite. `.github/workflows/deploy.yml` builds `dist/` and publishes it to GitHub Pages on every push to `main` (it can also be run by hand). The live app is at [https://teddysabatier.github.io/ultimate-shut-in/](https://teddysabatier.github.io/ultimate-shut-in/). The app uses `base: './'` and hash routing, so it works under `/ultimate-shut-in/`. Any static host works too: upload `dist/`. Full steps in [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## Privacy
 
@@ -116,4 +116,4 @@ Haven Protocol is inspired by the Korean web novel and webtoon *Ultimate Shut-in
 
 Built by an orchestrated team of Claude agents (researcher, game designer, engineers, artist, QA, reviewer, technical writer) directed by an orchestrator. Design decisions are logged in `docs/`: [ORCHESTRATION.md](docs/ORCHESTRATION.md), the [GDD](docs/design/GDD.md), its [errata](docs/design/GDD-errata.md) and the [engine review](docs/review/engine-review.md).
 
-Repository: [github.com/TeddySabatierLimpide/ultimate-shut-in](https://github.com/TeddySabatierLimpide/ultimate-shut-in) (private at the moment).
+Repository: [github.com/TeddySabatier/ultimate-shut-in](https://github.com/TeddySabatier/ultimate-shut-in). Live app: [https://teddysabatier.github.io/ultimate-shut-in/](https://teddysabatier.github.io/ultimate-shut-in/).
