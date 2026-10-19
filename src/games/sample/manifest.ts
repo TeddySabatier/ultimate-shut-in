@@ -10,7 +10,7 @@ export default defineGame({
   manifest: {
     id: 'sample',
     name: { en: 'Coin Duel', fr: 'Duel de pièces' },
-    tagline: { en: 'Three weighted coin flips. Send the right ally each round.', fr: 'Trois lancers pipés. Envoyez le bon allié à chaque manche.' },
+    tagline: { en: 'Three weighted coin flips. Send the right ally each round.', fr: 'Trois lancers pipés. Envoie le bon allié à chaque manche.' },
     category: 'strategy',
     minRing: 1,
     rosterSize: { min: 1, max: 8 },

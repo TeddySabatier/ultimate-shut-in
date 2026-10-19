@@ -29,7 +29,7 @@ describe('Coin Duel screen', () => {
     const p = props();
     render(<CoinDuelScreen {...p} />);
     const clicks = playFirstAlly();
-    let s = engine.initial(42, parties.full, runs.plain);
+    let s = engine.initial(42, parties.full, runs.plain, 'en');
     for (let i = 0; i < clicks; i++) s = engine.reduce(s, { type: 'send', memberId: 'move' });
     const expected = engine.outcome(s);
 

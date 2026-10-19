@@ -6,7 +6,10 @@
  *   router, no storage, no network. Shared presentational components from
  *   `src/components` are welcome.
  * - State comes only from the engine, through `useEngine` (which also calls
- *   `onFinish` exactly once, with the log in the player's language).
+ *   `onFinish` exactly once). The engine writes the log in `locale` itself.
+ * - To end with a score, dispatch the engine's own leave action (Forfeit)
+ *   and keep showing the board. Leave is a separate button that calls
+ *   `exit()` from `useEngine`, never in the same handler as the forfeit.
  * - Playable by touch (buttons of at least 44px) and keyboard (every control
  *   is a button; shortcuts are a bonus, never the only way).
  * - `reducedMotion` turns animation off; the layout stays the same.
@@ -17,7 +20,7 @@ import { SystemWindow } from '../../components/SystemWindow';
 import { cx } from '../../utils/cx';
 import { formatText, type GameScreenProps } from '../contract';
 import { useEngine } from '../ui/useEngine';
-import { FATIGUE, ROUNDS, chanceFor, effectivePower, engine, isOver, outcomeLog, tally } from './engine';
+import { FATIGUE, ROUNDS, chanceFor, effectivePower, engine, isOver, tally } from './engine';
 import game from './manifest';
 import { strings } from './strings';
 import styles from './Screen.module.css';
@@ -27,11 +30,9 @@ function isTyping(target: EventTarget | null): boolean {
 }
 
 export default function CoinDuelScreen(props: GameScreenProps) {
-  const { locale, reducedMotion, onExit } = props;
+  const { locale, reducedMotion } = props;
   const s = strings[locale];
-  const { state, dispatch, outcome } = useEngine(engine, props, {
-    localize: (o, st) => ({ ...o, log: outcomeLog(st, strings[locale]) }),
-  });
+  const { state, dispatch, outcome, exit } = useEngine(engine, props);
   const { wins, losses } = tally(state);
   const over = isOver(state);
   const last = state.flips[state.flips.length - 1];
@@ -67,7 +68,7 @@ export default function CoinDuelScreen(props: GameScreenProps) {
               {s.forfeit}
             </button>
           )}
-          <button type="button" className="btn" onClick={onExit}>
+          <button type="button" className="btn" onClick={exit}>
             {s.leave}
           </button>
         </>
@@ -83,7 +84,7 @@ export default function CoinDuelScreen(props: GameScreenProps) {
       </p>
 
       <h3 className={styles.subtitle}>{s.rivalTitle}</h3>
-      <ol className={styles.rivals}>
+      <ol className={styles.rivals} data-testid="coin-duel-rivals">
         {state.rivals.map((power, i) => {
           const flip = state.flips[i];
           const status = flip ? (flip.won ? 'won' : 'lost') : i === state.flips.length && !over ? 'current' : 'next';

@@ -10,7 +10,7 @@ import { FATIGUE, MAX_CHANCE, MIN_CHANCE, chanceFor, engine, outcomeLog, tally, 
 import game from './manifest';
 import { strings } from './strings';
 
-const start = (seed = 1, run: RunContext = runs.plain) => engine.initial(seed, parties.full, run);
+const start = (seed = 1, run: RunContext = runs.plain) => engine.initial(seed, parties.full, run, 'en');
 const send = (s: CoinDuelState, memberId: string) => engine.reduce(s, { type: 'send', memberId });
 
 describe('coin duel engine', () => {
@@ -18,7 +18,7 @@ describe('coin duel engine', () => {
     const a = start(1);
     expect(a.rivals).toHaveLength(3);
     expect(start(1).rivals).toEqual(a.rivals);
-    const hard = engine.initial(1, parties.full, emptyRun(5));
+    const hard = engine.initial(1, parties.full, emptyRun(5), 'en');
     expect(hard.rivals.every((p, i) => p > (a.rivals[i] ?? 0))).toBe(true);
   });
 
@@ -77,12 +77,19 @@ describe('coin duel engine', () => {
     expect(withRevive.revivesLeft).toBe(0);
   });
 
-  it('writes the log in both languages from the same state', () => {
-    const r = playToEnd(game, 9, parties.starter, runs.plain);
-    expect(outcomeLog(r.state, strings.en)).toEqual(r.outcome?.log);
-    const fr = outcomeLog(r.state, strings.fr);
-    expect(fr).toHaveLength(r.outcome?.log.length ?? 0);
-    expect(fr[0]).toMatch(/^Manche 1/);
+  it('writes the log in the locale it was given; the duel itself does not depend on it', () => {
+    const en = playToEnd(game, 9, parties.starter, runs.plain);
+    const fr = playToEnd(game, 9, parties.starter, runs.plain, 100, { locale: 'fr' });
+    expect(en.outcome?.log).toEqual(outcomeLog(en.state, strings.en));
+    expect(fr.outcome?.log[0]).toMatch(/^Manche 1/);
+    expect(fr.outcome?.log).toHaveLength(en.outcome?.log.length ?? 0);
+    expect(fr.actions).toEqual(en.actions);
+    expect({ ...fr.outcome, log: [] }).toEqual({ ...en.outcome, log: [] });
+  });
+
+  it('forfeit is the leave action the kit plays', () => {
+    const s = start(6);
+    expect(engine.forfeit?.(s)).toEqual({ type: 'forfeit' });
   });
 
   it('the bot picks the ally with the best odds', () => {

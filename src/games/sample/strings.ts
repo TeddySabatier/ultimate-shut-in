@@ -49,9 +49,9 @@ export const strings = defineStrings({
     },
   },
   fr: {
-    intro: "Trois lancers contre le Rival. Envoyez un allié par manche : plus il est fort, plus la pièce penche de votre côté.",
+    intro: "Trois lancers contre le Rival. Envoie un allié par manche : plus il est fort, plus la pièce penche de ton côté.",
     round: 'Manche {n} sur {total}',
-    score: 'Vous {wins}, Rival {losses}',
+    score: 'Toi {wins}, Rival {losses}',
     rivalTitle: 'Les adversaires',
     rivalRound: 'Manche {n}',
     rivalPower: 'Puissance {power}',
@@ -79,13 +79,13 @@ export const strings = defineStrings({
       won: 'gagnée',
       lost: 'perdue',
       revived: 'Manche {n} : une relance a offert un second lancer à {name}.',
-      endWon: 'Vous gagnez le duel {wins} à {losses}.',
+      endWon: 'Tu gagnes le duel {wins} à {losses}.',
       endLost: 'Le Rival remporte le duel {losses} à {wins}. La pièce tournera encore.',
-      endFled: 'Vous quittez le duel à {wins} contre {losses}.',
+      endFled: 'Tu quittes le duel à {wins} contre {losses}.',
     },
     learned: {
       topic: 'Probabilités',
-      note: 'Une chance de 60 % rate encore quatre fois sur dix. Les bons choix améliorent les chances, ils ne promettent jamais le lancer.',
+      note: 'Une chance de 60 % rate encore quatre fois sur dix. Les bons choix améliorent tes chances, ils ne promettent jamais le lancer.',
     },
   },
 });

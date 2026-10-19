@@ -11,8 +11,12 @@ import { fontsReady, freshApp } from '../helpers';
 export interface LabOptions {
   seed?: number;
   lang?: 'en' | 'fr';
-  party?: 'full' | 'starter';
-  run?: 'plain' | 'buffed';
+  /** The fixtures: full (8 vassals, level 12), starter (3, level 1), single (1, level 5), mixed (a citizen and 4 vassals). */
+  party?: 'full' | 'starter' | 'single' | 'mixed';
+  /** plain (difficulty 2), buffed (attack, time, hint; difficulty 2), hard (room 4, difficulty 5). */
+  run?: 'plain' | 'buffed' | 'hard';
+  /** 1..5: overrides the run's difficulty. */
+  difficulty?: 1 | 2 | 3 | 4 | 5;
   reducedMotion?: boolean;
 }
 
@@ -25,6 +29,7 @@ export function labPath(id: string, o: LabOptions = {}): string {
     run: o.run ?? 'plain',
     rm: o.reducedMotion === false ? '0' : '1',
   });
+  if (o.difficulty !== undefined) q.set('difficulty', String(o.difficulty));
   return `/lab/${id}?${q.toString()}`;
 }
 
@@ -50,6 +55,38 @@ export async function readOutcome(page: Page): Promise<{ result: string; score: 
     score: (await panel.getByTestId('lab-outcome-score').innerText()).trim(),
     log: (await panel.getByTestId('lab-outcome-log').innerText()).trim(),
   };
+}
+
+/**
+ * Play the game to its end with the Lab's Bot play button (the engine plays
+ * itself headlessly) and return the outcome. Use it for long or real-time
+ * games: each e2e test must stay under about 20 s.
+ */
+export async function botPlayToOutcome(page: Page): Promise<{ result: string; score: string; log: string }> {
+  await page.getByRole('button', { name: 'Bot play' }).click();
+  await expect(outcomePanel(page).getByText(/^Bot play \(\d+ actions\)$/)).toBeVisible();
+  return readOutcome(page);
+}
+
+/**
+ * Replay the same seed and check that it gives the same outcome: `play` is
+ * called twice (before and after "Replay same seed") and must reach an
+ * outcome each time, for example by clicking the same controls.
+ */
+export async function replaySameSeed(page: Page, play: () => Promise<void>): Promise<{ result: string; score: string; log: string }> {
+  await play();
+  const first = await readOutcome(page);
+  await page.getByRole('button', { name: 'Replay same seed' }).click();
+  await expect(outcomePanel(page)).toContainText('No outcome yet');
+  await play();
+  expect(await readOutcome(page)).toEqual(first);
+  await expect(page.getByTestId('lab-compare')).toHaveText('Matches the previous run.');
+  return first;
+}
+
+/** No outcome problem was reported by the Lab (an invalid outcome shows in red). */
+export async function expectValidOutcome(page: Page): Promise<void> {
+  await expect(outcomePanel(page).getByTestId('lab-outcome-problems')).toHaveCount(0);
 }
 
 /** No serious or critical axe violation on the current page (same tags as e2e/a11y.spec.ts). */
@@ -83,7 +120,8 @@ export async function expectResponsiveGame(page: Page): Promise<void> {
 /**
  * Screenshot of the game (the Lab stage only) to `docs/games/img/<id>-<name>.png`,
  * downscaled to 480px wide like e2e/visual.spec.ts. Mobile project only, to keep
- * the images small; keep each game under 150 KB of images.
+ * the images small. At most three per game, 150 KB in total (src/games/registry.test.ts
+ * checks it). This is the only screenshot rule for games: never write to e2e/__screenshots__.
  */
 export async function shootGame(page: Page, testInfo: TestInfo, id: string, name: string): Promise<void> {
   if (testInfo.project.name !== 'mobile-chromium') return;

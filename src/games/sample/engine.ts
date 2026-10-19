@@ -12,12 +12,17 @@
  * - Pure: no React, no DOM, no clock, no Math.random, no storage. ESLint
  *   enforces it for `engine.ts`, `manifest.ts` and `strings.ts`.
  * - The state is plain JSON data. It keeps the seed and a step counter, and
- *   `turnRng(seed, step)` gives a fresh generator inside each `reduce`.
+ *   `turnRng(seed, step)` gives a fresh generator inside each `reduce`. Setup
+ *   randomness is salted with the game id: `mulberry32(fnv1a('<id>:' + seed))`.
+ * - The player's language comes in through `initial(..., locale)` and stays
+ *   in the state, so the outcome log is written in it.
  * - Never mutate: return new objects (spread), share the untouched parts.
  * - Invalid actions, and any action after the end, return the state as is.
+ * - `forfeit(state)` returns the game's own leave action, so the kit can
+ *   check the `fled` outcome the bot never produces.
  */
 import { fnv1a, mulberry32, rngInt, rngPick } from '../../game/rng';
-import { buffAmount, clampScore, formatText, turnRng, type GameEngine, type Outcome, type Party, type RunContext } from '../contract';
+import { buffAmount, clampScore, formatText, turnRng, type GameEngine, type Locale, type Outcome, type Party, type RunContext } from '../contract';
 import { strings, type CoinDuelStrings } from './strings';
 
 export const ROUNDS = 3;
@@ -61,6 +66,8 @@ export interface CoinDuelState {
   edge: number;
   revivesLeft: number;
   forfeited: boolean;
+  /** The player's language, for the outcome log. */
+  locale: Locale;
 }
 
 export type CoinDuelAction = { type: 'send'; memberId: string } | { type: 'forfeit' };
@@ -94,7 +101,7 @@ export function isOver(state: CoinDuelState): boolean {
   return state.forfeited || wins >= WINS_NEEDED || losses >= WINS_NEEDED || state.flips.length >= ROUNDS;
 }
 
-/** The outcome log in one language. The engine writes English; the Screen re-writes it in the player's language. */
+/** The outcome log in one language (the engine uses `state.locale`; tests may ask for either). */
 export function outcomeLog(state: CoinDuelState, s: CoinDuelStrings): string[] {
   const lines: string[] = [];
   for (const f of state.flips) {
@@ -120,9 +127,9 @@ export function outcomeLog(state: CoinDuelState, s: CoinDuelStrings): string[] {
 // The engine
 // ---------------------------------------------------------------------------
 
-function initial(seed: number, party: Party, run: RunContext): CoinDuelState {
-  // Setup randomness: one generator for the whole setup, derived from the seed.
-  const rng = mulberry32(fnv1a(`coin-duel:${seed >>> 0}`));
+function initial(seed: number, party: Party, run: RunContext, locale: Locale): CoinDuelState {
+  // Setup randomness: one generator for the whole setup, derived from the seed and salted with the game id.
+  const rng = mulberry32(fnv1a(`sample:${seed >>> 0}`));
   const base = 16 + run.difficulty * 6;
   const rivals = Array.from({ length: ROUNDS }, (_, i) => base + i * 4 + rngInt(rng, 16));
   return {
@@ -133,6 +140,7 @@ function initial(seed: number, party: Party, run: RunContext): CoinDuelState {
     edge: buffAmount(run, 'attack') + buffAmount(run, 'luck'),
     revivesLeft: buffAmount(run, 'revive'),
     forfeited: false,
+    locale,
   };
 }
 
@@ -173,7 +181,7 @@ function outcome(state: CoinDuelState): Outcome | null {
   return {
     result,
     score: clampScore(score),
-    log: outcomeLog(state, strings.en),
+    log: outcomeLog(state, strings[state.locale]),
     troopsUsed: [...new Set(state.flips.map((f) => f.memberId))],
     learned: {
       topic: { en: strings.en.learned.topic, fr: strings.fr.learned.topic },
@@ -192,4 +200,9 @@ function botPlay(state: CoinDuelState, rng: () => number): CoinDuelAction | null
   return { type: 'send', memberId: pick.id };
 }
 
-export const engine: GameEngine<CoinDuelState, CoinDuelAction> = { initial, reduce, outcome, botPlay };
+/** The game's own leave action: ends the duel as `fled`, keeping the rounds already played in the log. */
+function forfeit(): CoinDuelAction {
+  return { type: 'forfeit' };
+}
+
+export const engine: GameEngine<CoinDuelState, CoinDuelAction> = { initial, reduce, outcome, botPlay, forfeit };
