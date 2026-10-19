@@ -65,6 +65,9 @@ test('screens and overlays', async ({ page }, testInfo) => {
   await shoot(page, p, '11-settings-reset-dialog');
   await page.getByRole('dialog', { name: 'Reset everything?' }).getByRole('button', { name: 'Cancel' }).click();
 
+  await gotoTab(page, 'Map');
+  await shoot(page, p, '16-city-map', { full: true });
+
   // Level-up window: finishing the first board is usually enough XP.
   await completeAllQuestsUntilLevelUp(page, p);
 
