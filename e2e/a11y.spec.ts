@@ -1,15 +1,25 @@
+/**
+ * Accessibility audit: axe runs once per screen on the mobile project only
+ * (playwright.config.ts skips this spec on desktop; the markup is the same and
+ * the responsive spec already covers the desktop layout). One test walks the
+ * onboarding and then the five tabs on a single save, so the app is set up once
+ * instead of once per screen. Thresholds are unchanged: no serious or critical
+ * axe violation (wcag2a, wcag2aa, wcag21aa, best-practice) and every visible
+ * button has an accessible name; expect.soft collects every failing screen in
+ * one run.
+ */
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { freshApp, gotoTab, onboard, skipOpening, type Tab } from './helpers';
+import { freshApp, gotoTab, settleOverlays, skipOpening, type Tab } from './helpers';
 
 async function expectNoSeriousViolations(page: Page, screen: string) {
   const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'best-practice']).analyze();
   const bad = results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
   const summary = bad.map((v) => `${v.id} (${v.impact}): ${v.help}\n  ${v.nodes.map((n) => n.target.join(' ')).join('\n  ')}`).join('\n');
-  expect(bad, `${screen}: ${summary}`).toEqual([]);
+  expect.soft(bad, `${screen}: ${summary}`).toEqual([]);
 }
 
-async function expectButtonsNamed(page: Page) {
+async function expectButtonsNamed(page: Page, screen: string) {
   const unnamed = await page.evaluate(() =>
     Array.from(document.querySelectorAll('button'))
       .filter((b) => {
@@ -21,55 +31,59 @@ async function expectButtonsNamed(page: Page) {
       })
       .map((b) => b.outerHTML.slice(0, 120)),
   );
-  expect(unnamed).toEqual([]);
+  expect.soft(unnamed, `${screen}: unnamed buttons`).toEqual([]);
 }
 
-test.beforeEach(async ({ page }) => {
+async function audit(page: Page, screen: string) {
+  await expectNoSeriousViolations(page, screen);
+  await expectButtonsNamed(page, screen);
+}
+
+test('every screen: no serious axe violations, named controls, 44px tap targets', async ({ page }) => {
+  test.setTimeout(120_000);
   await freshApp(page);
-});
 
-test('onboarding has no serious axe violations and named controls', async ({ page }) => {
-  await expectNoSeriousViolations(page, 'onboarding step 1');
-  await expectButtonsNamed(page);
-  await skipOpening(page);
-  await page.getByRole('button', { name: 'Continue' }).click();
-  await expectNoSeriousViolations(page, 'onboarding step 2');
-  await page.getByRole('button', { name: 'Continue' }).click();
-  await expectNoSeriousViolations(page, 'onboarding step 3');
-  // Habit checkboxes and pace radios carry their visible labels, not "on".
-  for (const h of ['Move', 'Outside', 'Clean', 'Social', 'Study', 'Sleep', 'Eat', 'Hygiene']) {
-    await expect(page.getByRole('checkbox', { name: h, exact: true })).toBeVisible();
-  }
-  await expect(page.getByRole('radio', { name: 'Steady', exact: true })).toBeVisible();
-  await expect(page.getByRole('checkbox', { name: 'on', exact: true })).toHaveCount(0);
-});
-
-for (const tab of ['Haven', 'Board', 'Map', 'Ledger', 'Settings'] as Tab[]) {
-  test(`${tab} has no serious axe violations and every button is named`, async ({ page }) => {
-    await onboard(page, { name: 'Tester' });
-    await gotoTab(page, tab);
-    if (tab === 'Ledger') await page.getByRole('button', { name: /Pell the Runner/ }).click();
-    await expectNoSeriousViolations(page, tab);
-    await expectButtonsNamed(page);
+  await test.step('onboarding', async () => {
+    await audit(page, 'onboarding step 1');
+    await skipOpening(page);
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await expectNoSeriousViolations(page, 'onboarding step 2');
+    await page.getByLabel('Name').fill('Tester');
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await expect(page.getByRole('heading', { name: 'Assign the vassals' })).toBeVisible();
+    await expectNoSeriousViolations(page, 'onboarding step 3');
+    // Habit checkboxes and pace radios carry their visible labels, not "on".
+    for (const h of ['Move', 'Outside', 'Clean', 'Social', 'Study', 'Sleep', 'Eat', 'Hygiene']) {
+      await expect(page.getByRole('checkbox', { name: h, exact: true })).toBeVisible();
+    }
+    await expect(page.getByRole('radio', { name: 'Steady', exact: true })).toBeVisible();
+    await expect(page.getByRole('checkbox', { name: 'on', exact: true })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Open the Haven' }).click();
+    await expect(page.getByTestId('ring-header')).toBeVisible();
+    await settleOverlays(page);
   });
-}
 
-test('Board tap targets are at least 44px tall', async ({ page }) => {
-  await onboard(page, { name: 'Tester' });
-  await gotoTab(page, 'Board');
-  const small = await page.evaluate(() =>
-    Array.from(document.querySelectorAll('main button, main a, nav a, main summary, main input, main select'))
-      .map((el) => ({ el, r: el.getBoundingClientRect() }))
-      .filter(({ r }) => r.width > 0 && r.height > 0 && r.height < 44)
-      .map(({ el, r }) => `${el.tagName.toLowerCase()} "${(el.textContent ?? '').trim().slice(0, 30)}" ${Math.round(r.width)}x${Math.round(r.height)}`),
-  );
-  expect(small).toEqual([]);
-});
+  for (const tab of ['Haven', 'Board', 'Map', 'Ledger', 'Settings'] as Tab[]) {
+    await test.step(tab, async () => {
+      await gotoTab(page, tab);
+      if (tab === 'Ledger') await page.getByRole('button', { name: /Pell the Runner/ }).click();
+      await audit(page, tab);
 
-test('settings checkboxes expose their habit names', async ({ page }) => {
-  await onboard(page, { name: 'Tester' });
-  await gotoTab(page, 'Settings');
-  await expect(page.getByRole('checkbox', { name: 'Move', exact: true })).toBeVisible();
-  await expect(page.getByRole('checkbox', { name: 'on', exact: true })).toHaveCount(0);
-  await expect(page.getByRole('radio', { name: 'Hardcore', exact: true })).toBeVisible();
+      if (tab === 'Board') {
+        const small = await page.evaluate(() =>
+          Array.from(document.querySelectorAll('main button, main a, nav a, main summary, main input, main select'))
+            .map((el) => ({ el, r: el.getBoundingClientRect() }))
+            .filter(({ r }) => r.width > 0 && r.height > 0 && r.height < 44)
+            .map(({ el, r }) => `${el.tagName.toLowerCase()} "${(el.textContent ?? '').trim().slice(0, 30)}" ${Math.round(r.width)}x${Math.round(r.height)}`),
+        );
+        expect.soft(small, 'Board tap targets under 44px').toEqual([]);
+      }
+
+      if (tab === 'Settings') {
+        await expect(page.getByRole('checkbox', { name: 'Move', exact: true })).toBeVisible();
+        await expect(page.getByRole('checkbox', { name: 'on', exact: true })).toHaveCount(0);
+        await expect(page.getByRole('radio', { name: 'Hardcore', exact: true })).toBeVisible();
+      }
+    });
+  }
 });
