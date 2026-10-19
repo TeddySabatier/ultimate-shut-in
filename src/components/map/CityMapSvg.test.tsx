@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { CityMapSvg, type PinView, type ZoneBand } from './CityMapSvg';
-import { buildLayout, corridorShapes, inShapes, residueMarkup, tileState } from './layout';
+import { K, buildLayout, corridorShapes, inShapes, residueMarkup, tileState } from './layout';
 
 const BANDS: ZoneBand[] = [1, 2, 3, 4, 5, 6, 7].map((id) => ({ id, label: `Zone ${id}` }));
 
@@ -39,6 +39,9 @@ describe('layout', () => {
     // Landmarks are fixed by zone whatever the seed.
     const at = (l: typeof a, x: number, y: number) => l.tileAt.get(`${x},${y}`)!;
     expect(at(a, 0, 0).building?.family).toBe('haven');
+    // Every anchor is an integer and every building part references a symbol of the defs.
+    expect(a.tiles.every((t) => Number.isInteger(t.x) && Number.isInteger(t.y))).toBe(true);
+    for (const { part } of a.buildingParts) expect(a.defs).toContain(`id="${part.href}"`);
     expect(at(c, 5, -2).building?.family).toBe('civic');
     expect(at(c, 2, -5).building?.family).toBe('civic');
     expect(at(c, -6, 1).building?.family).toBe('tree');
@@ -120,32 +123,40 @@ describe('CityMapSvg', () => {
     const { container } = render(<CityMapSvg {...base} onZone={onZone} onPin={onPin} />);
     fireEvent.keyDown(screen.getByRole('button', { name: 'Zone 6' }), { key: 'Enter' });
     expect(onZone).toHaveBeenLastCalledWith(6, expect.anything());
-    fireEvent.keyDown(screen.getByRole('button', { name: /Place op1/ }), { key: ' ' });
+    fireEvent.keyDown(screen.getByRole('button', { name: /^Place op1,/ }), { key: ' ' });
     expect(onPin).toHaveBeenLastCalledWith('op1', expect.anything());
     fireEvent.click(screen.getByRole('button', { name: /Place op7/ }));
     expect(onPin).toHaveBeenLastCalledWith('op7', expect.anything());
-    // The Haven tower is the first building: tapping its top opens zone 1 (hit-test by cell, not screen position).
+    // Tapping the Haven tower opens zone 1 (hit-test by cell, not screen position).
     const layout = buildLayout(42);
     const groups = container.querySelectorAll('svg > g');
-    const blds = groups[3]!;
-    const havenIndex = layout.buildingTiles.findIndex((t) => t.kind === 'haven');
-    fireEvent.click(blds.children[havenIndex]!.firstElementChild!);
+    const blds = groups[4]!;
+    const havenIndex = layout.buildingParts.findIndex((p) => layout.tiles[p.tile]!.kind === 'haven');
+    fireEvent.click(blds.children[havenIndex]!);
     expect(onZone).toHaveBeenLastCalledWith(1, expect.anything());
-    // A ground tile in The City.
+    // The second part of a two-part building (a tower cap) opens its tile's zone too.
+    const capIndex = layout.buildingParts.findIndex((p) => p.part.href === 'cp');
+    fireEvent.click(blds.children[capIndex]!);
+    expect(onZone).toHaveBeenLastCalledWith(layout.tiles[layout.buildingParts[capIndex]!.tile]!.z, expect.anything());
+    // A ground tile in The City, and a skirt on its front edge.
     const ground = groups[1]!;
     const cityIndex = layout.tiles.findIndex((t) => t.z === 7);
-    fireEvent.click(ground.children[cityIndex]!.firstElementChild!);
+    fireEvent.click(ground.children[cityIndex]!);
     expect(onZone).toHaveBeenLastCalledWith(7, expect.anything());
+    const skirtIndex = layout.extras.findIndex((x) => x.kind === 'sl');
+    fireEvent.click(groups[2]!.children[skirtIndex]!);
+    expect(onZone).toHaveBeenLastCalledWith(layout.tiles[layout.extras[skirtIndex]!.tile]!.z, expect.anything());
   });
 
   it('lights the claimed zones, draws the ghost wall when comparing and skips the ripple under reduced motion', () => {
-    const { container, rerender } = render(<CityMapSvg {...base} ring={2} wallR={1.9} prevWallR={0.82} prevRing={1} compareWallR={null} pins={[]} residue={[]} />);
+    // Ring 2 with the wall at 2.1 cells: the four zone-3 cells at distance 2 are dawn cells.
+    const { container, rerender } = render(<CityMapSvg {...base} ring={2} wallR={2.1} prevWallR={0.82} prevRing={1} compareWallR={null} pins={[]} residue={[]} />);
     const svg = container.querySelector('svg')!;
     expect(svg.querySelectorAll('.pop')).toHaveLength(0);
     expect(svg.querySelector('.ghost')).toBeNull();
     expect(svg.querySelectorAll('.g.s-c').length).toBe(9); // zones 1 and 2
     expect(svg.querySelectorAll('.g.s-d').length).toBeGreaterThan(0); // dawn cells inside the creep
-    rerender(<CityMapSvg {...base} ring={2} wallR={1.9} prevWallR={0.82} prevRing={1} compareWallR={0.82} pins={[]} residue={[]} />);
+    rerender(<CityMapSvg {...base} ring={2} wallR={2.1} prevWallR={0.82} prevRing={1} compareWallR={0.82} pins={[]} residue={[]} />);
     expect(svg.querySelector('.ghost')).not.toBeNull();
     expect(svg.querySelector('.gained')?.getAttribute('d')?.length).toBeGreaterThan(10);
   });
@@ -156,6 +167,6 @@ describe('CityMapSvg', () => {
     const popped = svg.querySelectorAll('.g.pop');
     expect(popped.length).toBeGreaterThan(10);
     expect((popped[popped.length - 1] as HTMLElement).style.getPropertyValue('--dl')).toMatch(/\d+ms/);
-    expect(svg.querySelector('.wall')?.getAttribute('rx')).toBe(String(Math.round(0.82 * 14.5 * Math.SQRT2 * 10) / 10));
+    expect(svg.querySelector('.wall')?.getAttribute('rx')).toBe(String(Math.round(0.82 * K * 10) / 10));
   });
 });

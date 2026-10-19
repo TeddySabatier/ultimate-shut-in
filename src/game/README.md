@@ -60,13 +60,20 @@ current board and its done quests until the index catches up again.
 | `combos.ts` | Forge on same-day habit pairs, unforge on undo, counted items for the wave. |
 | `resurrection.ts` | Token offer, eligibility window, `applyResurrection`. |
 | `tick.ts` | `processBoundaries(save, now)`: the single entry point on app open/focus (catch-up replay capped at 400 boundaries). `changeResetHour(save, hour, now)`. |
-| `save.ts` | `createNewSave`, `migrate` (legacy `{name, level, xp}`, v2 and v3 with or without a persist envelope; boards, combos, titles, history, custom templates, proposals and activity are normalised), `exportSave`. Save version 3 added `customTemplates`, `proposals` and `activity`. |
+| `save.ts` | `createNewSave`, `migrate` (legacy `{name, level, xp}`, v2, v3 and v4 with or without a persist envelope; boards, combos, titles, history, custom templates, proposals, activity and the map are normalised), `exportSave`. Save version 3 added `customTemplates`, `proposals` and `activity`; version 4 added `map` (outposts, visits, domain snapshots) and `breakdown.outposts`. |
+| `mapGeometry.ts` | The City Map's grid, shared with the UI: zone radii, `zoneOfCell`, `cellKind` (streets, river, park, landmarks fixed by zone), `canHoldOutpost`, `ringFraction`, `wallRadius(dp)` (the creeping boundary), `compassVector`. No seed, no DOM. |
+| `outposts.ts` | Outposts (`docs/design/CITY-MAP.md` 3): `createOutpost`, `editOutpost`, `moveOutpost`, `retireOutpost`, `restoreOutpost`, `forgetOutpost`, `logOutpostVisit`, `tagQuestAtOutpost`, `undoOutpostVisit`, `suggestOutpostCell`; selectors for states (`peak` never drops), quiet, caps and the perks read by `board.ts` (swap discount), `economy.ts` (+10% term) and `wave.ts` (stronghold defense). |
+| `map.ts` | Domain snapshots at every settlement (`appendSnapshotDraft`, quiet weeks included), `markMapSeen`, `compareSnapshot` (the 7-days ghost), `waveResidue` (scorch marks and the walls-held flag), `wallsHeld`. |
 | `template.ts` | `resolveTemplate(save, id)` (shipped or `c-` custom), `customToTemplate`, effort tiers and caps (`effortTier`, `maxTier`, `resolveTier`), recurrence and weekday helpers. |
 | `custom.ts` | Custom quests: `addCustomTemplate`, `updateCustomTemplate`, `archiveCustomTemplate`, `addCustomQuestToBoard`, `previewCustomRewards`, recurrence (`recurrenceDue`, `placeRecurringDraft`). Max two on a board, never the Bonus. |
 | `adapt.ts` | "The Haven notices": `recordActivityDraft`, `evaluateProposals` (five rules), `computeProposalsDraft` (limits, snoozes), `acceptProposal`, `dismissProposal`. |
 | `compose/` | `parseQuestDraft` (on-device, English and French, no network) and its keyword tables. |
 | `draft.ts` | Internal clone/log helpers behind the contract. |
 | `index.ts` | Public re-exports. |
+
+## City Map and outposts
+
+The map never changes `player.domainPoints` or `player.ring`: it reads them. `wallRadius(dp)` in `mapGeometry.ts` is the one function both the engine (outpost placement, residue) and the SVG component use for the boundary, so what the player sees is what the rules say. Outposts earn states by counted visits (one per outpost per game day, from a check-in or a tagged quest); perks read the highest state ever reached. Every settlement appends a `DomainSnapshot`, which powers the *7 days* compare and the wave residue. Everything is specified in `docs/design/CITY-MAP.md`.
 
 ## Custom quests and proposals
 

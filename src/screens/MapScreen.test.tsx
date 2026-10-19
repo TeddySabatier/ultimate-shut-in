@@ -1,12 +1,14 @@
-import { fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useGameStore } from '../state/gameStore';
 import { currentSave, renderWithRouter, seedStore } from '../test/storeUtils';
 import { MapScreen } from './MapScreen';
 
 function mark(name: string, cell: { x: number; y: number }, type: 'gym' | 'park' = 'gym') {
-  useGameStore.getState().createOutpost({ name, type, cell });
-  useGameStore.setState({ pendingEvents: [], notice: null });
+  act(() => {
+    expect(useGameStore.getState().createOutpost({ name, type, cell })).toBe(true);
+    useGameStore.setState({ pendingEvents: [], notice: null });
+  });
 }
 
 describe('MapScreen', () => {
@@ -79,7 +81,7 @@ describe('MapScreen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'I was there: log a visit to Hollow Park' }));
     expect(currentSave().map.outposts[0]?.visits).toBe(1);
     expect(screen.getByRole('button', { name: 'Visit to Hollow Park logged today' })).toBeDisabled();
-    expect(screen.getByText('Outposts', { selector: 'span' })).toBeInTheDocument();
+    expect(screen.getByText('/4')).toBeInTheDocument(); // the Domain tile counts 1 of 4
 
     // The outpost sheet from the row.
     fireEvent.click(screen.getByRole('button', { name: /^Hollow Park, Marked/ }));
@@ -105,7 +107,7 @@ describe('MapScreen', () => {
     expect(currentSave().map.outposts[0]?.name).toBe('Riverside Gym');
     const sheet = screen.getByRole('dialog', { name: 'Riverside Gym' });
     fireEvent.click(within(sheet).getByRole('button', { name: 'Retire' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Retire', exact: true }));
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Retire Riverside Gym?' })).getByRole('button', { name: 'Retire' }));
     expect(currentSave().map.outposts[0]?.retired).toBe(true);
     expect(screen.getByText(/No outposts yet/)).toBeInTheDocument();
 

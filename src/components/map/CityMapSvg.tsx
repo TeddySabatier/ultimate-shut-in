@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react';
 import type { OutpostState } from '../../game';
 import { strings } from '../../game';
 import gymRaw from '../../assets/outposts/gym.svg?raw';
@@ -13,26 +13,7 @@ import poolRaw from '../../assets/outposts/pool.svg?raw';
 import classRaw from '../../assets/outposts/class.svg?raw';
 import otherRaw from '../../assets/outposts/other.svg?raw';
 import { cx } from '../../utils/cx';
-import {
-  CX,
-  CY,
-  VIEW_H,
-  VIEW_W,
-  buildLayout,
-  corridorMarkup,
-  corridorShapes,
-  ellipsePath,
-  ellipseRadii,
-  f1,
-  pinBaseMarkup,
-  project,
-  residueMarkup,
-  tileState,
-  type PinLike,
-  type ResidueLike,
-  type Tile,
-  type TileState,
-} from './layout';
+import { CX, CY, VIEW_H, VIEW_W, buildLayout, corridorMarkup, corridorShapes, ellipsePath, ellipseRadii, pinBase, project, residueMarkup, tileState, type PinLike, type ResidueLike } from './layout';
 import styles from './CityMap.module.css';
 
 /* ------------------------------ Icons as symbols ------------------------------ */
@@ -54,7 +35,7 @@ const RAW_ICONS: Record<string, string> = {
 function toSymbol(id: string, raw: string): string {
   const m = /<svg\b([^>]*)>([\s\S]*)<\/svg>/.exec(raw);
   if (!m) return '';
-  const attrs = (m[1] ?? '').replace(/\s*xmlns="[^"]*"/, '');
+  const attrs = (m[1] ?? '').replace(/\s*xmlns="[^"]*"/, '').replace(/\s*(width|height)="[^"]*"/g, '');
   const body = (m[2] ?? '')
     .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/\s+/g, ' ')
@@ -106,30 +87,9 @@ export interface CityMapSvgProps {
   onPin: (id: string, opener: Element) => void;
 }
 
-/* ------------------------------ Tiles ------------------------------ */
+/* ------------------------------ Helpers ------------------------------ */
 
-interface TileGroupProps {
-  className: string;
-  style: CSSProperties | undefined;
-  markup: string;
-}
-
-/** One memoised `<g>`: its markup never changes, only the class and the ripple delay. */
-const TileGroup = memo(function TileGroup({ className, style, markup }: TileGroupProps) {
-  return <g className={className} style={style} dangerouslySetInnerHTML={{ __html: markup }} />;
-});
-
-function groundClass(t: Tile, state: TileState, pop: boolean): string {
-  return `g${t.home ? ' h' : ''}${t.kind !== 'lot' ? ` k-${t.kind}` : ''} s-${state}${pop ? ' pop' : ''}`;
-}
-
-function buildingClass(t: Tile, state: TileState, pop: boolean): string {
-  const b = t.building;
-  if (!b) return '';
-  return `b f-${b.family}${b.variant ? ' vb' : ''} s-${state}${pop ? ' pop' : ''}`;
-}
-
-/** The tile `<g>` under an event target, as an index into its parent group. */
+/** The direct child of `group` under an event target, as an index. */
 function childIndex(group: Element, target: Element | null): number {
   let el = target;
   while (el && el.parentNode !== group) el = el.parentElement;
@@ -144,10 +104,15 @@ function activate(e: KeyboardEvent<SVGElement>): boolean {
   return true;
 }
 
+function delayStyle(dl: number): CSSProperties | undefined {
+  return dl >= 0 ? ({ '--dl': `${dl}ms` } as CSSProperties) : undefined;
+}
+
 /**
  * The City Map: one inline SVG, 221 ground tiles, the seeded buildings, the
  * creeping wall with its ghost and residue, the corridors, the pins and the
- * seven focusable zone bands (docs/design/CITY-MAP.md 2, 5.3, 6).
+ * seven focusable zone bands (docs/design/CITY-MAP.md 2, 5.3, 6). Every
+ * repeated shape is a `<use>`; a DP change only rewrites class names.
  */
 export function CityMapSvg({ seed, ring, wallR, prevWallR, prevRing, compareWallR, pins, residue, bands, selectedPin, selectedZone, reducedMotion, onZone, onPin }: CityMapSvgProps) {
   const layout = useMemo(() => buildLayout(seed), [seed]);
@@ -189,10 +154,15 @@ export function CityMapSvg({ seed, ring, wallR, prevWallR, prevRing, compareWall
     const t = layout.tiles[i];
     if (t) onZone(t.z, e.currentTarget.children[i] as Element);
   };
+  const onExtras = (e: MouseEvent<SVGGElement>) => {
+    const i = childIndex(e.currentTarget, e.target as Element);
+    const x = layout.extras[i];
+    if (x) onZone(layout.tiles[x.tile]!.z, e.currentTarget.children[i] as Element);
+  };
   const onBuildings = (e: MouseEvent<SVGGElement>) => {
     const i = childIndex(e.currentTarget, e.target as Element);
-    const t = layout.buildingTiles[i];
-    if (t) onZone(t.z, e.currentTarget.children[i] as Element);
+    const p = layout.buildingParts[i];
+    if (p) onZone(layout.tiles[p.tile]!.z, e.currentTarget.children[i] as Element);
   };
 
   const orderedPins = useMemo(() => [...pins].sort((a, b) => a.cell.x + a.cell.y - (b.cell.x + b.cell.y) || a.zone - b.zone || a.name.localeCompare(b.name)), [pins]);
@@ -210,7 +180,17 @@ export function CityMapSvg({ seed, ring, wallR, prevWallR, prevRing, compareWall
       <g aria-hidden="true" onClick={onGround}>
         {layout.tiles.map((t, i) => {
           const dl = pops ? pops[i]! : -1;
-          return <TileGroup key={t.index} className={groundClass(t, states[i]!, dl >= 0)} style={dl >= 0 ? ({ '--dl': `${dl}ms` } as CSSProperties) : undefined} markup={t.groundMarkup} />;
+          const s = states[i]!;
+          return <use key={t.index} href="#tt" x={t.x} y={t.y} className={`g${t.home ? ' h' : ''}${t.kind !== 'lot' ? ` k-${t.kind}` : ''} s-${s}${dl >= 0 ? ' pop' : ''}`} style={delayStyle(dl)} />;
+        })}
+      </g>
+      <g aria-hidden="true" onClick={onExtras}>
+        {layout.extras.map((x, i) => {
+          const t = layout.tiles[x.tile]!;
+          const s = states[x.tile]!;
+          if (x.kind === 'rp') return <path key={i} className={`rp s-${s}`} d={`M${t.x - 5} ${t.y}h4m2 2h4`} />;
+          if (x.kind === 'lp') return <use key={i} href="#lp" x={t.x} y={t.y} className={`lp s-${s}`} />;
+          return <use key={i} href={`#${x.kind}`} x={t.x} y={t.y} className={`sk${t.home ? ' h' : ''} s-${s}`} />;
         })}
       </g>
       <g aria-hidden="true">
@@ -218,16 +198,17 @@ export function CityMapSvg({ seed, ring, wallR, prevWallR, prevRing, compareWall
         <ellipse className="wallfill" cx={CX} cy={CY} rx={wall.rx} ry={wall.ry} style={wallStyle} />
       </g>
       <g aria-hidden="true" onClick={onBuildings}>
-        {layout.buildingTiles.map((t) => {
-          const dl = pops ? pops[t.index]! : -1;
+        {layout.buildingParts.map(({ tile, part }, i) => {
+          const t = layout.tiles[tile]!;
+          const dl = pops ? pops[tile]! : -1;
           const hidden = occupied.has(`${t.cell.x},${t.cell.y}`) && t.kind !== 'haven';
-          const style: CSSProperties | undefined = hidden ? { display: 'none' } : dl >= 0 ? ({ '--dl': `${dl}ms` } as CSSProperties) : undefined;
-          return <TileGroup key={t.index} className={buildingClass(t, states[t.index]!, dl >= 0)} style={style} markup={t.building!.markup} />;
+          const style: CSSProperties | undefined = hidden ? { display: 'none' } : delayStyle(dl);
+          return <use key={i} href={`#${part.href}`} x={t.x + part.dx} y={t.y + part.dy} fill={part.fill} className={`${part.cls} s-${states[tile]!}${dl >= 0 ? ' pop' : ''}`} style={style} />;
         })}
       </g>
       <g aria-hidden="true">
         {layout.sparks.map((s, i) => (
-          <g key={i} className={states[s.tile] === 'f' ? 'spark' : 'spark off'} dangerouslySetInnerHTML={{ __html: s.markup }} />
+          <rect key={i} className={states[s.tile] === 'f' ? 'spark' : 'spark off'} x={s.x} y={s.y} width={s.w} height="1" />
         ))}
       </g>
       <g aria-hidden="true" dangerouslySetInnerHTML={{ __html: marks.scorch }} />
@@ -262,30 +243,29 @@ export function CityMapSvg({ seed, ring, wallR, prevWallR, prevRing, compareWall
         {orderedPins.map((p) => {
           const c = project(p.cell.x, p.cell.y);
           const lift = PIN_LIFT[p.state];
-          const base = pinBaseMarkup(p.cell, p.state);
+          const base = pinBase(p.state);
+          const halo = p.state === 'corridor' || p.state === 'stronghold';
           return (
             <g key={p.id}>
-              {base ? <g aria-hidden="true" dangerouslySetInnerHTML={{ __html: base }} /> : null}
+              {base ? <use href={`#${base.href}`} x={c[0]} y={c[1]} className={base.cls} aria-hidden="true" /> : null}
               <g
                 className={cx('pin', `st-${p.state}`, p.quiet && 'quiet', selectedPin === p.id && 'sel')}
                 tabIndex={0}
                 role="button"
                 aria-label={pinLabel(p)}
-                transform={`translate(${f1(c[0])} ${f1(c[1] - lift)})`}
+                transform={`translate(${c[0]} ${c[1] - lift})`}
                 onClick={(e) => onPin(p.id, e.currentTarget)}
                 onKeyDown={(e) => {
                   if (activate(e)) onPin(p.id, e.currentTarget);
                 }}
               >
-                <ellipse rx="5.5" ry="2.2" cy={lift} fill="#000" opacity=".45" />
-                <circle className="halo" cy="-22" r="12" />
-                <rect className="post" x="-.8" y="-16" width="1.6" height={16 + lift} />
+                {halo ? <circle className="halo" cy="-22" r="12" /> : null}
+                <use href="#pn" className="pbody" />
                 <circle className="sel-ring" cy="-22" r="13" />
-                <path className="plaque" d="M-7 -29h14l2 2v10l-2 2h-14l-2-2v-10z" />
                 <use href={`#op-${p.type}`} x="-5.5" y="-27.5" width="11" height="11" className="picon" />
-                {p.state === 'stronghold' ? <path className="crown" d="M-5 -30v-4.5l2.5 2 2.5-3 2.5 3 2.5-2v4.5z" /> : null}
-                {p.quiet ? <path className="zz" d="M9 -33h3.5l-3.5 3.5h3.5M13.5 -38h2.5l-2.5 2.5h2.5" /> : null}
-                <rect className="hit" x="-25" y="-47" width="50" height={50 + lift} fill="transparent" />
+                {p.state === 'stronghold' ? <use href="#cr" /> : null}
+                {p.quiet ? <use href="#zz" /> : null}
+                <rect className="hit" x="-29" y="-52" width="58" height={58 + lift} fill="transparent" />
               </g>
             </g>
           );
@@ -305,4 +285,3 @@ function pinLabel(p: PinView): string {
     .replace('{beyond}', p.beyond ? ', beyond the wall' : '')
     .replace('{visits}', String(p.visits));
 }
-

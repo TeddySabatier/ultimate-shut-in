@@ -4,6 +4,7 @@ import { outpostIcons, uiIcons } from '../assets';
 import { useGameStore, useSave } from '../state/gameStore';
 import { mapView, type OutpostView } from '../state/mapView';
 import { useNow } from '../hooks/useNow';
+import { now as clockNow } from '../state/clock';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { cx } from '../utils/cx';
 import { fmtNum } from '../utils/format';
@@ -48,7 +49,9 @@ function zoneStatusText(z: ReturnType<typeof mapView>['zones'][number]): string 
 /** The City Map tab (docs/design/CITY-MAP.md 2, 5). */
 export function MapScreen() {
   const save = useSave();
-  const now = useNow(false);
+  // Re-render once a minute so "today" (visits, quiet, the wave countdown) stays honest across the reset hour.
+  useNow(true, 60_000);
+  const now = clockNow();
   const reduced = useReducedMotion();
   const markMapSeen = useGameStore((s) => s.markMapSeen);
   const createOutpost = useGameStore((s) => s.createOutpost);
@@ -128,6 +131,21 @@ export function MapScreen() {
 
   return (
     <>
+      {/* The sheets come first in the DOM: they are modal (top layer), so order does not affect the view,
+          and the screen's last child stays the content the tab bar must not cover. */}
+      <ZoneSheet view={view} zone={selectedZone ? (view.zones[selectedZone - 1] ?? null) : null} onClose={close} onOpenOutpost={openPin} />
+      <OutpostSheet
+        view={sheet?.kind === 'pin' ? byId(sheet.id) : null}
+        onClose={close}
+        onVisit={visitOutpost}
+        onUndoVisit={undoOutpostVisit}
+        onEdit={(id) => setSheet({ kind: 'edit', id })}
+        onRetire={(id) => {
+          if (retireOutpost(id)) close();
+        }}
+      />
+      <OutpostForm save={save} open={sheet?.kind === 'new' || sheet?.kind === 'edit'} editing={sheet?.kind === 'edit' ? (byId(sheet.id)?.outpost ?? null) : null} onClose={close} onSubmit={onFormSubmit} />
+
       <header className={styles.top}>
         <div className={styles.title}>
           <h1 className={styles.h1}>{m.title}</h1>
@@ -151,7 +169,11 @@ export function MapScreen() {
                   <b>{m.hud.waveTonight}</b>
                 ) : (
                   <>
-                    <span>Next wave</span> <b>{view.nextWaveDays} days</b>
+                    <span>{m.hud.nextWave.split('{days}')[0]}</span>
+                    <b>
+                      {view.nextWaveDays}
+                      {m.hud.nextWave.split('{days}')[1]}
+                    </b>
                   </>
                 )}
               </span>
@@ -233,6 +255,7 @@ export function MapScreen() {
               ) : (
                 m.domain.subCity.replace('{dp}', fmtNum(view.dp))
               )}
+              {compare && !list ? <span className={styles.compareLine}> {sinceLine}</span> : null}
             </p>
             <div className={styles.stats}>
               <div className={styles.stat}>
@@ -279,19 +302,6 @@ export function MapScreen() {
           </SystemWindow>
         </div>
       </div>
-
-      <ZoneSheet view={view} zone={selectedZone ? (view.zones[selectedZone - 1] ?? null) : null} onClose={close} onOpenOutpost={openPin} />
-      <OutpostSheet
-        view={sheet?.kind === 'pin' ? byId(sheet.id) : null}
-        onClose={close}
-        onVisit={visitOutpost}
-        onUndoVisit={undoOutpostVisit}
-        onEdit={(id) => setSheet({ kind: 'edit', id })}
-        onRetire={(id) => {
-          if (retireOutpost(id)) close();
-        }}
-      />
-      <OutpostForm save={save} open={sheet?.kind === 'new' || sheet?.kind === 'edit'} editing={sheet?.kind === 'edit' ? (byId(sheet.id)?.outpost ?? null) : null} onClose={close} onSubmit={onFormSubmit} />
     </>
   );
 }

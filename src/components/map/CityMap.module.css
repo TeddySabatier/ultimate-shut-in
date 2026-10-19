@@ -1,9 +1,13 @@
 /*
  * City Map SVG styling (docs/design/CITY-MAP.md 6). The inner class names are
  * global on purpose and one or two characters long: 221 ground tiles and
- * ~160 buildings carry them, and the serialised map must stay under 60 KB.
- * They are scoped under `.svg`, so nothing leaks. Colours are the ART.md
- * palette plus derived steps of the same hues, kept here, not in tokens.css.
+ * ~200 building parts carry them, and the serialised map must stay under
+ * 60 KB. They are scoped under `.svg`, so nothing leaks. Every tile and
+ * building is a `<use>` of a shared symbol; the faces inside the symbols
+ * (`.l`, `.r`, `.t`) and the lamp parts read custom properties that the
+ * `<use>` sets by class, since inherited values cross into a use's shadow
+ * tree while selectors do not. Colours are the ART.md palette plus derived
+ * steps of the same hues, kept here, not in tokens.css.
  */
 .svg {
   display: block;
@@ -13,15 +17,16 @@
   background: #0f0f14;
 }
 
-/* ---- ground: three `<use>`s (tile, two skirts) plus a lamp or ripples ---- */
-.svg :global(.g use) {
+/* ---- ground tiles: one `<use>` each, filled by --gt; skirts on the front edge ---- */
+.svg :global(.g),
+.svg :global(.sk) {
   stroke: #0f0f14;
   stroke-width: 0.6;
   stroke-linejoin: miter;
 }
 .svg :global(.g) {
   --gt: #20202c;
-  --gs: #16161e;
+  fill: var(--gt);
 }
 .svg :global(.g.h) {
   --gt: #29214e;
@@ -53,53 +58,66 @@
 }
 .svg :global(.g.s-f) {
   --gt: url(#fG);
-  --gs: #0c0c11;
 }
 .svg :global(.g.s-f.k-river),
 .svg :global(.g.s-f.k-pond) {
   --gt: url(#fW);
 }
-.svg :global(.g > use:first-child) {
-  fill: var(--gt);
+.svg :global(.sk) {
+  fill: #16161e;
 }
-.svg :global(.g > use + use:not(.lp)) {
-  fill: var(--gs);
+.svg :global(.sk.h) {
+  fill: #1c1838;
 }
-.svg :global(.g .lp) {
-  stroke: none;
+.svg :global(.sk.s-f) {
+  fill: #0c0c11;
 }
-.svg :global(.g.s-d) {
+
+/* lamps on claimed streets; dim at dawn, out in the fog */
+.svg :global(.lp) {
+  --lh: #ffb84d;
+  --lo: 0.22;
+  --lc: #ffcf87;
+}
+.svg :global(.lp.s-d) {
   --lc: #8a6a3a;
   --lo: 0.06;
 }
-.svg :global(.g.s-f) {
+.svg :global(.lp.s-f) {
   --lc: #262631;
   --lo: 0;
 }
-.svg :global(.g .rp) {
+.svg :global(.rp) {
   fill: none;
   stroke: #5ba7d9;
   stroke-width: 0.7;
   opacity: 0.45;
 }
-.svg :global(.g.s-f .rp) {
+.svg :global(.rp.s-f) {
   opacity: 0.08;
 }
 
-/* ---- buildings: three paths per box in the order left, right, top; windows live in the side fills ---- */
-.svg :global(.b > path) {
+/* ---- buildings: a `<use>` per box; the symbol's faces are .l .r .t, windows live in the side fills ---- */
+.svg :global(.b) {
   stroke: #0f0f14;
   stroke-width: 0.7;
   stroke-linejoin: miter;
+  --x: #e8e8f0;
 }
-.svg :global(.b > :nth-child(3n + 1)) {
+/* Faces inside the building symbols. Bare global selectors on purpose: inside a `<use>` shadow tree
+   Chrome matches a class but not an ancestor combinator, while the custom properties inherit from the use. */
+:global(.cm-l) {
   fill: var(--l);
 }
-.svg :global(.b > :nth-child(3n + 2)) {
+:global(.cm-r) {
   fill: var(--r);
 }
-.svg :global(.b > :nth-child(3n)) {
+:global(.cm-t) {
   fill: var(--t);
+}
+:global(.cm-x) {
+  fill: var(--x);
+  stroke: none;
 }
 .svg :global(.f-bld),
 .svg :global(.f-shop),
@@ -179,35 +197,24 @@
   --t: url(#fT);
   --l: url(#fL);
   --r: url(#fR);
+  --x: #2c2c3c;
 }
-.svg :global(.b .aw) {
-  fill: var(--aw);
+.svg :global(.aw) {
   stroke: none;
 }
-.svg :global(.b .cross) {
-  fill: #e8e8f0;
-  stroke: none;
-}
-.svg :global(.b .ant) {
-  fill: #a08cff;
-  stroke: none;
-}
-.svg :global(.b.s-d .aw) {
+.svg :global(.aw.s-d) {
   fill: #3a3442;
 }
-.svg :global(.b.s-f .aw) {
+.svg :global(.aw.s-f) {
   fill: #23232d;
 }
-.svg :global(.b.s-f .cross) {
-  fill: #2c2c3c;
-}
 
-/* ---- motion: newly lit buildings switch on in a ripple following the wall ---- */
-.svg :global(.pop > path) {
+/* ---- motion: newly lit tiles and buildings switch on in a ripple following the wall ---- */
+.svg :global(.pop) {
   animation: winOn 0.9s steps(3, end) both;
   animation-delay: var(--dl, 0ms);
 }
-.svg :global(.g.pop > use:first-child) {
+.svg :global(.g.pop) {
   animation: gOn 0.9s ease-out both;
   animation-delay: var(--dl, 0ms);
 }
@@ -227,9 +234,10 @@
     opacity: 1;
   }
 }
-.svg :global(.beacon) {
+:global(.cm-beacon) {
   fill: #ffb84d;
   animation: blink 2.4s steps(1, end) infinite;
+  animation-play-state: var(--play, running);
 }
 @keyframes blink {
   0%,
@@ -270,9 +278,6 @@
     opacity: 0.3;
   }
 }
-.svg :global(.star) {
-  fill: #e8e8f0;
-}
 .svg :global(.tw) {
   animation: tw 4s steps(2, end) infinite;
 }
@@ -286,9 +291,6 @@
   50% {
     opacity: 0.15;
   }
-}
-.svg:global(.obs) :global(.star) {
-  opacity: 0.9;
 }
 
 /* ---- guides, wall, compare ---- */
@@ -380,11 +382,11 @@
   stroke-dasharray: 6 2;
 }
 
-/* ---- wave residue ---- */
-.svg :global(.scorch .em) {
+/* ---- wave residue: the symbols carry their colours; only the embers animate ---- */
+.svg :global(.em) {
   animation: ember 1.6s steps(2, end) infinite;
 }
-.svg :global(.scorch .em:nth-child(odd)) {
+.svg :global(.scorch:nth-child(odd) .em) {
   animation-delay: 0.5s;
 }
 @keyframes ember {
@@ -392,96 +394,51 @@
     opacity: 0.25;
   }
 }
-.svg :global(.held .flag) {
-  fill: #1a1a24;
-  stroke: #ffb84d;
-  stroke-width: 1.1;
-}
-.svg :global(.held .mark) {
-  fill: none;
-  stroke: #4dff9a;
-  stroke-width: 1.2;
-}
-.svg :global(.held.r-loss .mark) {
-  stroke: #e8e8f0;
-}
-.svg :global(.held .pole) {
-  fill: #8a8a9e;
-}
 
-/* ---- pins ---- */
+/* ---- pins: plaque colours through --pf/--ps/--pw, icon through currentColor ---- */
 .svg :global(.pin) {
   cursor: pointer;
   outline: none;
-}
-.svg :global(.pin .post) {
-  fill: #8a8a9e;
-}
-.svg :global(.pin .plaque) {
-  fill: #22222f;
-  stroke: #8a8a9e;
-  stroke-width: 1.2;
-}
-.svg :global(.pin .picon) {
   color: #d0d0dc;
+  --pf: #22222f;
+  --ps: #8a8a9e;
+  --pw: 1.2;
 }
 .svg :global(.pin .halo) {
-  display: none;
   fill: #ffb84d;
   opacity: 0.2;
-}
-.svg :global(.st-scouted .plaque) {
-  stroke: #ffb84d;
-  stroke-width: 1.5;
-}
-.svg :global(.st-scouted .picon) {
-  color: #ffb84d;
-}
-.svg :global(.st-corridor .plaque) {
-  fill: #ffb84d;
-  stroke: #0f0f14;
-}
-.svg :global(.st-corridor .picon) {
-  color: #0f0f14;
-}
-.svg :global(.st-corridor .halo),
-.svg :global(.st-stronghold .halo) {
-  display: inline;
   animation: breathe 3s ease-in-out infinite;
 }
-.svg :global(.st-stronghold .plaque) {
-  fill: #7c5cff;
-  stroke: #ffb84d;
-  stroke-width: 1.6;
+.svg :global(.st-scouted) {
+  color: #ffb84d;
+  --ps: #ffb84d;
+  --pw: 1.5;
 }
-.svg :global(.st-stronghold .picon) {
+.svg :global(.st-corridor) {
+  color: #0f0f14;
+  --pf: #ffb84d;
+  --ps: #0f0f14;
+}
+.svg :global(.st-stronghold) {
   color: #fff;
+  --pf: #7c5cff;
+  --ps: #ffb84d;
+  --pw: 1.6;
 }
 .svg :global(.st-stronghold .halo) {
   fill: #7c5cff;
   opacity: 0.3;
 }
-.svg :global(.pin .crown) {
-  fill: #ffb84d;
-  stroke: #0f0f14;
-  stroke-width: 0.8;
-}
-.svg :global(.pin .zz) {
-  fill: none;
-  stroke: #9a9ab0;
-  stroke-width: 1.1;
-}
-.svg :global(.pin.quiet .plaque),
-.svg :global(.pin.quiet .post) {
+.svg :global(.pin.quiet .pbody) {
   opacity: 0.55;
 }
 .svg :global(.pin.quiet .picon) {
   opacity: 0.6;
 }
-.svg :global(.pin:focus-visible .plaque),
-.svg :global(.pin.sel .plaque) {
-  stroke: #fff;
-  stroke-width: 2.2;
+.svg :global(.pin:focus-visible),
+.svg :global(.pin.sel) {
+  --ps: #fff;
+  --pw: 2.2;
 }
 .svg :global(.pin:focus-visible .sel-ring),
 .svg :global(.pin.sel .sel-ring) {
@@ -518,6 +475,7 @@
 /* ---- reduced motion: no marching, breathing, static, embers or ripple; the wall moves at once ---- */
 @media (prefers-reduced-motion: reduce) {
   .svg :global(*) {
+    --play: paused;
     animation: none !important;
     transition: none !important;
   }
@@ -526,6 +484,7 @@
   }
 }
 :global(:root[data-reduced-motion='true']) .svg :global(*) {
+  --play: paused;
   animation: none !important;
   transition: none !important;
 }

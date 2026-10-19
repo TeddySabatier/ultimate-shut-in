@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   activeCustomTemplates,
   customSlotsLeft,
+  findOutpost,
   formatLine,
   getHabit,
   recurrenceLabel,
@@ -54,6 +55,7 @@ export function MyQuestsSection({ save, onAddToday, onArchive }: Props) {
                       <h3 className={styles.title}>{t.title}</h3>
                       <p className={styles.meta}>
                         {vassalName(t.habit)} · {effortLabel(t.kind, t.durationMin, t.targetCount)} · {recurrenceLabel(t.recurrence, t.pinWeekday)} · Tier {t.tier}
+                        {t.outpostId && findOutpost(save, t.outpostId) ? ` · ${formatLine(c.whereAt, { name: findOutpost(save, t.outpostId)!.name })}` : ''}
                       </p>
                     </div>
                     <span className={styles.source}>{c.myQuests.sources[t.source]}</span>

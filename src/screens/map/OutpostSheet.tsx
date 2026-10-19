@@ -36,7 +36,7 @@ export function OutpostSheet({ view, onClose, onVisit, onUndoVisit, onEdit, onRe
   const first = getHabit((habits[0] ?? 'move') as never).label;
   return (
     <>
-      <MapSheet open={view !== null} kick={`${strings.map.form.editKick.split(' ')[0]} · ${view?.type.label ?? ''}`} title={op?.name ?? ''} titleId={titleId} onClose={onClose}>
+      <MapSheet open={view !== null} kick={`${o.kick} · ${view?.type.label ?? ''}`} title={op?.name ?? ''} titleId={titleId} onClose={onClose}>
         {view && op ? (
           <>
             <div className={styles.statusLine}>

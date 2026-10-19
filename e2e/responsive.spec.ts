@@ -1,7 +1,7 @@
 /**
  * Responsive sweep (docs/RESPONSIVE-RULES.md, rule 18). For every viewport in the
- * matrix it visits onboarding step 3, Haven, Board, Ledger, Settings and the wave
- * result window, and asserts: no horizontal overflow, no element wider than the
+ * matrix it visits onboarding step 3, Haven, Board, Map (with an outpost, its form
+ * and its sheet), Ledger, Settings and the wave result window, and asserts: no horizontal overflow, no element wider than the
  * viewport, every control at least 44px, overlays reachable from the top with their
  * primary button on screen, nothing hidden behind the tab bar, and font floors.
  * A contact sheet per viewport lands in e2e/__screenshots__/responsive-*.png.
@@ -238,6 +238,23 @@ test.describe('responsive sweep', () => {
 
       await gotoTab(page, 'Board');
       await check('board', { tabBar: true });
+
+      // The Map with one outpost, then the outpost form and sheet (bottom sheets, docked on wide screens).
+      await gotoTab(page, 'Map');
+      await page.getByRole('button', { name: 'Mark an outpost' }).click();
+      const form = page.getByRole('dialog', { name: 'Mark a place' });
+      await form.getByLabel('Name').fill('Riverside Gym');
+      await check('map-form', { overlay: true, tabBar: true });
+      await form.getByRole('button', { name: 'Mark outpost' }).click();
+      await expect(form).toBeHidden();
+      await settleOverlays(page);
+      await check('map', { tabBar: true });
+      await page.getByRole('button', { name: /^Riverside Gym, Marked/ }).click();
+      await expect(page.getByRole('dialog', { name: 'Riverside Gym' })).toBeVisible();
+      await check('map-pin', { overlay: true, tabBar: true });
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('dialog', { name: 'Riverside Gym' })).toBeHidden();
+
       await gotoTab(page, 'Ledger');
       await page.getByRole('button', { name: /Pell the Runner/ }).click();
       await check('ledger', { tabBar: true });

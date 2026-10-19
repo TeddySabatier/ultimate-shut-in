@@ -225,7 +225,8 @@
 
 .typeGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* Four columns at 100% text, fewer as the text grows, so "Somewhere else" wraps at the space. */
+  grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr));
   gap: var(--space-2);
 }
 
@@ -270,7 +271,7 @@
 
 .typeLabel {
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .typeOn {
@@ -291,7 +292,7 @@
 
 .habitGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr));
   gap: var(--space-2);
 }
 
@@ -318,7 +319,7 @@
 
 .habitOption > span {
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   text-align: center;
 }
 

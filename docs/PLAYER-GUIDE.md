@@ -7,7 +7,7 @@ Haven Protocol turns real-life habits into a small fortress-building game. You d
 ## Contents
 
 1. [First launch](#first-launch)
-2. [The four tabs](#the-four-tabs)
+2. [The five tabs](#the-five-tabs)
 3. [The eight vassals](#the-eight-vassals)
 4. [Difficulty](#difficulty)
 5. [The board](#the-board)
@@ -15,13 +15,14 @@ Haven Protocol turns real-life habits into a small fortress-building game. You d
 7. [Utilities](#utilities)
 8. [The weekly wave](#the-weekly-wave)
 9. [Rings](#rings)
-10. [Titles](#titles)
-11. [Combos](#combos)
-12. [Resurrection token](#resurrection-token)
-13. [Benevolent and Strict modes](#benevolent-and-strict-modes)
-14. [Missing days](#missing-days)
-15. [Export and import](#export-and-import)
-16. [FAQ](#faq)
+10. [The City Map and outposts](#the-city-map-and-outposts)
+11. [Titles](#titles)
+12. [Combos](#combos)
+13. [Resurrection token](#resurrection-token)
+14. [Benevolent and Strict modes](#benevolent-and-strict-modes)
+15. [Missing days](#missing-days)
+16. [Export and import](#export-and-import)
+17. [FAQ](#faq)
 
 ## First launch
 
@@ -33,12 +34,13 @@ A short three-step setup opens the first time:
 
 Then your first board is issued. You can install the game to your home screen: on Android Chrome use "Install app" from the menu, on iPhone use Safari, Share, "Add to Home Screen". It then works offline.
 
-## The four tabs
+## The five tabs
 
 | Tab | What is there |
 | --- | --- |
-| **Haven** | The ring map, Domain Points progress, the three utilities, the wave countdown, your vassals and a short recent log. |
+| **Haven** | The ring scene, Domain Points progress, the three utilities, the wave countdown, your vassals and a short recent log. A *Map* chip in the header jumps to the City Map. |
 | **Board** | Today's quests and how long until the day resets. |
+| **Map** | The City Map: the seven zones around the Haven, the wall creeping outward with every Domain Point, your outposts, last week's wall and the marks the wave left. |
 | **Ledger** | Level, settlement, titles, vassal details, forged combo items, wave history with replayable battle logs, lifetime stats, story vignettes and (when relevant) the Resurrection token. |
 | **Settings** | Name, difficulty, benevolence, enabled habits, reset hour, reduced motion, export/import, reset. |
 
@@ -156,6 +158,35 @@ Domain Points move you outward through seven rings. Crossing a threshold plays a
 | 7 | The City | 2,500 | +23 | Observatory (the map shows the whole city at night); Open Sky (nothing further to unlock; waves and DP continue) |
 
 Rings never go down. Even undoing a quest leaves a ring you already reached.
+
+## The City Map and outposts
+
+The **Map** tab turns the Domain Points number into territory: a small isometric city at night, seven zones around the Haven tower, one per ring. The amber dashed **wall** is your boundary. It does not jump once per ring: it creeps outward with every Domain Point, up to 85% of the way to the next zone, and crosses when the ring unlocks. Buildings inside the wall light up; the zone just beyond it wakes up ("dawn") as the wall gets close; everything further out sits in static, so you can always see the shape of what is coming. The map is not geographic and never asks where you are.
+
+- **Tap a zone or a building** for its sheet: status (claimed, current, next with the DP still to go, or beyond the wall), the facilities it holds, the outposts in it and its story vignette (claimed zones can replay it). On a keyboard, Tab reaches seven zone bands and every pin; Enter opens, Escape closes.
+- **7 days** draws last week's wall as a dashed ghost and hatches the new ground: "+78 DP in 7 days. The wall moved 0.4 streets." One cell is one street.
+- **List** swaps the map for seven zone rows with their outposts; everything on the map can be done from the list. The choice is remembered on this device.
+- **Since your last look**: opening the tab animates the wall from where it stood last time and shows the DP you gained meanwhile.
+- **Walls held**: every settled wave, won or lost, leaves scorch marks on the wall as it stood that week (fading over two weeks) and a shield flag for seven days. The Domain window counts them.
+
+**Outposts** are real places you keep going back to: a gym, a park, a library, a friend's door. *Mark an outpost* asks for a name, a type, the related habits (one or two), how far it feels (a zone, beyond the wall included) and which way; nothing else, no address, no GPS. Then log visits:
+
+- **I was there**: one tap on the outpost's row or sheet. Ten minutes on a park bench counts.
+- **Where were you?** After a quest settles, the toast offers up to three related outposts. One tap tags the quest; it never blocks anything.
+- A custom quest (Compose, "Where does it happen?") can default to an outpost, so a "gym session" quest tags itself.
+
+**One counted visit per outpost per game day**, whichever route. Visits pay nothing by themselves; the states do:
+
+| State | Visits | What it gives |
+| --- | --- | --- |
+| Marked | 0 | It is on the map. |
+| Scouted | 3 | Swapping a quest of a related habit costs 5 less settlement (so 10 instead of 15; 5 with the Corner Shop). |
+| Corridor | 10 | Quests of related habits return +10% settlement, and the wall reaches out to the outpost on the map. |
+| Stronghold | 30 | +2 defense in every weekly wave (at most +6 across all strongholds) and a small Haven annex stands on the map. |
+
+States never drop, and perks are per habit with the best outpost winning (two Scouted gyms give one discount, not two). An outpost with no visit for 14 days (7 if never visited) is shown as **quiet**: dimmed, with a "zz". Nothing fades; one visit wakes it.
+
+Caps: **3 + your ring** active outposts (4 at The Room, 10 at The City), at most 3 per zone, and pins keep three cells apart. **Retire** an outpost from its sheet when you stop going; it leaves the map and keeps its visits in the Ledger, where you can **Restore** it (if there is a free slot) or, for privacy, **Forget** it, which deletes it and its visits after you type FORGET.
 
 ## Titles
 

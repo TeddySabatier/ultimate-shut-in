@@ -41,10 +41,16 @@
   color: currentColor;
 }
 
-/* Pixel font, 9px floor, capped at 10px so "SETTINGS" never wraps or clips at 150% text. */
+/*
+ * Five columns: on phones the label is Inter 800 at 10px ("SETTINGS" is about 55px, the widest column
+ * is 78px at 390px); the pixel font (9px floor, capped at 10px so nothing clips at 150% text) needs
+ * 72-80px for "SETTINGS" and only fits from 480px wide in the taller bar (CITY-MAP 5.1, resolution 9).
+ */
 .label {
-  font-family: var(--font-heading);
-  font-size: clamp(9px, 0.5625rem, 10px);
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
   line-height: 1.2;
   text-transform: uppercase;
   white-space: nowrap;
@@ -52,13 +58,12 @@
   overflow: hidden;
 }
 
-/* Five 64px columns at 375px still take Press Start 2P at 9px; below that Inter 800 is narrower (CITY-MAP 5.1). */
-@media (max-width: 374px) {
+@media (min-width: 480px) and (min-height: 501px) {
   .label {
-    font-family: var(--font-body);
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 0.03em;
+    font-family: var(--font-heading);
+    font-size: clamp(9px, 0.5625rem, 10px);
+    font-weight: 400;
+    letter-spacing: 0;
   }
 }
 

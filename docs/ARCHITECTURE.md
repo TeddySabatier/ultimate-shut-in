@@ -12,12 +12,12 @@ src/game/content  src/game        src/state          src/screens        src/comp
 | Layer | Where | Responsibility |
 | --- | --- | --- |
 | Content | `src/game/content/*.json` | All data and copy: habits and vassals, 79 quest templates, 7 rings, 21 titles, combos, UI strings. Typed loaders and `validateContent()` live in `content/index.ts`. Schema in [`content/schema.md`](../src/game/content/schema.md). |
-| Engine | `src/game/*.ts` | The rules, as pure functions over a `SaveFile`: board generation, rewards, loyalty and trust, utilities, waves, titles, combos, resurrection, day boundaries, save migration. No React, no DOM, no `Date.now()`. |
-| Store | `src/state/gameStore.ts` | One persisted zustand store (with immer) holding the engine's `SaveFile`. Every action calls an engine function and applies the result. No rule lives here. |
-| Screens | `src/screens/` | Haven (home), Board (quests), Ledger (character), Settings, Onboarding. Hash routing (`react-router-dom` `HashRouter`), mounted once a save exists and onboarding is done. |
+| Engine | `src/game/*.ts` | The rules, as pure functions over a `SaveFile`: board generation, rewards, loyalty and trust, utilities, waves, titles, combos, resurrection, day boundaries, save migration, and the City Map (`mapGeometry.ts`, `outposts.ts`, `map.ts`: zones and the creeping wall, outposts and their perks, domain snapshots). No React, no DOM, no `Date.now()`. |
+| Store | `src/state/gameStore.ts` | One persisted zustand store (with immer) holding the engine's `SaveFile`. Every action calls an engine function and applies the result. No rule lives here. `src/state/mapView.ts` arranges engine results into the Map screen's read-only view model. |
+| Screens | `src/screens/` | Haven (home), Board (quests), Map (`MapScreen.tsx` with the sheets in `screens/map/`), Ledger (character), Settings, Onboarding. Hash routing (`react-router-dom` `HashRouter`), mounted once a save exists and onboarding is done. |
 | Overlays | `src/components/overlays/` | `OverlayHost` shows queued engine events one at a time: settlement toast, level-up, ring unlock, wave result, vassal windows. |
 
-Shared UI pieces (`QuestCard`, `VassalCard`, `Meter`, `SystemWindow`, `TabBar`...) are in `src/components/`. Art is SVG under `src/assets/`, exported as URLs from `src/assets/index.ts`.
+Shared UI pieces (`QuestCard`, `VassalCard`, `Meter`, `SystemWindow`, `TabBar`...) are in `src/components/`. The City Map itself is `src/components/map/`: `layout.ts` builds the seeded city once per save (symbols, tiles, building parts) and `CityMapSvg.tsx` renders one inline SVG from it, rewriting only class names when Domain Points change (budget: 60 KB and 1,500 elements serialised, see `docs/design/CITY-MAP.md` 5.4). Art is SVG under `src/assets/`, exported as URLs from `src/assets/index.ts`.
 
 ## The "pure, immutable, events-out" contract
 
@@ -34,7 +34,8 @@ The store's one clock is `src/state/clock.ts` (`now()`), which accepts a debug o
 ## Save file, versioning and migration
 
 - **Where.** `localStorage`, key `haven.save`, written by zustand's `persist` middleware as `{ state: { save, onboarded }, version: 2 }`.
-- **Shape.** `SaveFile` (type in `src/game/types.ts`, described in GDD section 4): `version: 3`, `player`, `settings`, `vassals`, `utilities`, `board`, `week`, `combos`, `titles`, `stats`, `log`, `customTemplates`, `proposals`, `activity` (custom quests and adaptive proposals, see `docs/design/CUSTOM-QUESTS.md`), `firstPlayDay`, `lastOpenDay`. Content is referenced by stable ids (never rename an id once shipped).
+- **Shape.** `SaveFile` (type in `src/game/types.ts`, described in GDD section 4): `version: 4`, `player`, `settings`, `vassals`, `utilities`, `board`, `week`, `combos`, `titles`, `stats`, `log`, `customTemplates`, `proposals`, `activity` (custom quests and adaptive proposals, see `docs/design/CUSTOM-QUESTS.md`), `map` (outposts, visits, domain snapshots, the last look at the map; see `docs/design/CITY-MAP.md` 4.1), `firstPlayDay`, `lastOpenDay`. Content is referenced by stable ids (never rename an id once shipped).
+- **Versions.** v2 was the first `haven.save`; v3 added `customTemplates`, `proposals` and `activity`; v4 added `map` and `breakdown.outposts` on every wave record. A v3 save migrates with an empty map seeded with one snapshot of its current state, so the *7 days* compare has a baseline on day one.
 - **Migration.** `migrate(raw, now)` in `src/game/save.ts` is the single entry point for anything that comes from outside the running engine: a persisted blob, an imported file, a legacy blob. It accepts the legacy `usi.player` shape (`{ name, level, xp }`) and v2 saves with or without a persist envelope, recognises v2 by shape (`player`, `settings`, `vassals`, `utilities`) so an old envelope version never downgrades a v2 save, fills missing fields with defaults, and normalises boards, combos, titles, wave history and the log so no `NaN` can reach the arithmetic.
 - **Store side.** The persist envelope's own `migrate` and `merge` call `hydrateSlice`, which sends only the inner `save` through the engine's `migrate`. A legacy `usi.player` key is read once, migrated, then removed.
 - **Export and import.** Settings exports `exportSave(save)` (plain JSON) as `haven-save-YYYY-MM-DD.json`; import parses the file, confirms with the player, and runs it through `migrate`. This is the only "sync".
@@ -67,11 +68,11 @@ Configured in `vite.config.ts` with `vite-plugin-pwa` (Workbox `generateSW`):
 
 | Level | Where | What it protects |
 | --- | --- | --- |
-| Unit (engine) | `src/game/*.test.ts` | Each rule module with fixed `now`, seed and timezone: board generation, rewards, undo, loyalty, utilities, waves, titles, combos, resurrection, time, save migration. |
+| Unit (engine) | `src/game/*.test.ts` | Each rule module with fixed `now`, seed and timezone: board generation, rewards, undo, loyalty, utilities, waves, titles, combos, resurrection, time, save migration, map geometry, outposts (caps, visits, perks, immutability, DP and ring never touched) and domain snapshots. |
 | Content validation | `src/game/content/content.test.ts` | `validateContent()` runs at test time, so a broken JSON cross-reference or invariant fails CI. |
 | Engine review regressions | `src/game/review.test.ts` | One regression test per finding of [`review/engine-review.md`](review/engine-review.md). |
 | Pacing simulation | `src/game/pacing.test.ts` | A seeded 365-day simulation through the public API asserts ring arrival weeks within tolerance of the GDD table and zero wave losses at 90% adherence, so economy tweaks are caught. |
-| Component and store | `src/**/*.test.tsx`, `src/state/*.test.ts` | Testing Library tests for screens, `QuestCard`, overlays and the store, using `src/test/` helpers (`localStorage` cleared after each test). |
+| Component and store | `src/**/*.test.tsx`, `src/state/*.test.ts` | Testing Library tests for screens, `QuestCard`, overlays and the store, using `src/test/` helpers (`localStorage` cleared after each test). `src/components/map/CityMapSvg.test.tsx` asserts the serialised map's size budget on the worst-case fixture (ring 7, ten outposts, two waves of residue). |
 | Assets | `src/assets/assets.test.ts` | SVG rules from the [art guide](design/ART.md): `xmlns` and `viewBox`, no scripts or text, gradient limits. |
 | End to end | `e2e/`, Playwright (`playwright.config.ts`) | Browser flows against a production build served by `vite preview`, at a phone and a desktop viewport, using the debug hook for time travel. |
 | Accessibility | `@axe-core/playwright` (dev dependency) | Automated axe checks, run from e2e specs against each screen. |

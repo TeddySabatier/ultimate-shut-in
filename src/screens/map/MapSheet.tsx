@@ -53,6 +53,8 @@ export function MapSheet({ open, kick, title, titleId, onClose, children, classN
   return (
     <dialog
       ref={ref}
+      role="dialog"
+      aria-modal="true"
       className={cx(styles.dialog, className)}
       aria-labelledby={titleId}
       onClick={(e) => {

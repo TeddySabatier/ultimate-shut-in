@@ -274,8 +274,12 @@
       "recurrence": "How often",
       "timeSlot": "Time of day",
       "tier": "Effort",
-      "rewards": "Pays about"
+      "rewards": "Pays about",
+      "where": "Where does it happen?"
     },
+    "whereNone": "Nowhere in particular",
+    "whereHint": "Settling it counts as a visit there, so the outpost grows on its own.",
+    "whereAt": "at {name}",
     "kinds": {
       "check": "Check",
       "timer": "Timer",
@@ -422,6 +426,7 @@
     },
     "outposts": {
       "title": "Outposts",
+      "kick": "Outpost",
       "subtitle": "places you go back to",
       "empty": "No outposts yet. Mark a place you keep going back to: a gym, a park, a friend's door.",
       "mark": "Mark an outpost",

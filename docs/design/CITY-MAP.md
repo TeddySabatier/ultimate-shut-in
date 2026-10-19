@@ -538,3 +538,22 @@ Acceptance criteria:
 20. **Custom quests can default to an outpost** (`outpostId`), so "gym session" quests tag themselves.
 21. **List view preference is per device** (localStorage), not in the save, like other view settings.
 22. **Tablet layout is two columns** with docked sheets, not a phone frame in a void (RESPONSIVE-RULES 8).
+
+## 9. Resolution (as built, 2026-10-19)
+
+What shipped follows this document except where noted here. Each departure has a reason; nothing below changes a rule in section 3 or 4.
+
+| Spec | As built | Why |
+|---|---|---|
+| 6.2: `s = 14.5`, viewBox `360 x 264` | `s = 14`, same viewBox | With 14 every cell centre projects to an integer, so all 221 ground anchors and every building anchor serialise as integers (budget, 5.4). The island is 3% smaller on screen. |
+| 5.4: each box is three relative `<path>`s styled by `:nth-child` | Each box is one `<use>` of a shared symbol (`layout.ts`); heights are quantised to a short ladder per family (homes 6-17 units, blocks 13-31, shops 8-14, towers 27-57); trees, hills, the landmarks, the Haven, the annex, the pins, the scorch marks and the flags are symbols too | Three paths per building serialised at 23 KB for the buildings alone and 75 KB / 1,559 elements in all; symbols bring the worst case to about 55 KB / 930 elements. The faces inside a symbol are filled through custom properties (`--l`, `--r`, `--t`) inherited from the `<use>`, so one symbol serves every state. Chrome matches only bare class selectors inside a `<use>` shadow tree, so those inner classes are global single-class rules. |
+| 6.5: 4 window rects per pattern | 3 per pattern | Budget; the look is the same at this scale. |
+| 6.3: hit area "a transparent 17-unit circle (44 px at 390 px wide)" | A 58 x 58 unit transparent rect per pin, and a 56 x 74 unit box around the Haven tower for the zone-1 band | The SVG is narrower than the viewport (frame padding), so 50 units was under 44 px at 320 px; 58 units keeps the pins and the zone bands at or above 44 px everywhere the responsive sweep runs. |
+| 3.1: *Place on map* (tap a free cell) as an optional extra | Not built; the zone and direction selects are the only placement path, and the engine picks the cell | Optional in the spec; the selects are the accessible default and keep the form short on a phone. Can be added without a schema change. |
+| 2.5 / 6.6: the Domain line reads "+78 DP in 7 days. The wall moved 0.4 streets." | The line appears in the Domain window while *7 days* is on, and the chip under the map shows the legend | As specified, once the compare is on; off, the chip shows the "since your last look" delta. |
+| 4.4: `visitLines` per type | Present in the content and validated, not yet spoken by a toast | The visit toast uses one neutral line with the count and the distance to the next state (`strings.map.toasts.visited`); the flavour pool is kept for a later pass so the toast stays short. |
+| 5.3: list view preference per device | `localStorage['haven.mapList']` | As specified. |
+| 4.1: snapshot seed on migration | A v3 save migrates with one snapshot of its current state; a brand-new save starts with no snapshot and the compare falls back to DP 0 on the first play day | A new save has nothing older than itself to compare with. |
+| 5.1: tab labels in Press Start 2P 9 px from 375 px, Inter 10 px 800 below | Inter 10 px 800 on every phone width and in landscape; Press Start 2P (9-10 px) from 480 px wide in the tall bar; labels hide below 340 px | Measured in the responsive sweep: "SETTINGS" in the pixel font is 72-80 px, wider than the 70 px a fifth column leaves at 390 px, so it clipped; Inter is 55 px. |
+
+Verified at the end of the build: `npm run lint`, `npm run typecheck`, `npx vitest run` (543 tests), `npm run build`, `npx playwright test` on the phone and desktop projects (`e2e/map.spec.ts`, the responsive sweep with the Map, its form and its sheet at six viewports, axe on every tab, the visual walkthrough with six Map screenshots).

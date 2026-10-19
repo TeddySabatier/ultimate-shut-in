@@ -342,3 +342,27 @@ describe('ComposeQuestSheet: voice path', () => {
     expect(within(dialog).getByRole('button', { name: c.stop })).toHaveProperty('tabIndex', 0);
   });
 });
+
+describe('ComposeQuestSheet: outposts', () => {
+  it("offers the map's outposts, related ones first, and saves the chosen one on the template", () => {
+    act(() => {
+      expect(useGameStore.getState().createOutpost({ name: 'Corner Cafe', type: 'cafe', cell: { x: 2, y: 1 } })).toBe(true);
+      expect(useGameStore.getState().createOutpost({ name: 'Riverside Gym', type: 'gym', cell: { x: -2, y: 1 } })).toBe(true);
+      useGameStore.setState({ pendingEvents: [], notice: null });
+    });
+    const { onClose } = renderSheet();
+    type('do 20 pushups');
+    const where = screen.getByLabelText(c.labels.where);
+    expect(within(where).getAllByRole('option').map((o) => o.textContent)).toEqual([c.whereNone, 'Riverside Gym', 'Corner Cafe']);
+    fireEvent.change(where, { target: { value: currentSave().map.outposts[1]!.id } });
+    fireEvent.click(screen.getByRole('button', { name: c.actions.board }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(currentSave().customTemplates[0]).toMatchObject({ title: 'Do 20 Pushups', outpostId: currentSave().map.outposts[1]!.id });
+  });
+
+  it('shows no Where field on a map without outposts', () => {
+    renderSheet();
+    type('do 20 pushups');
+    expect(screen.queryByLabelText(c.labels.where)).toBeNull();
+  });
+});

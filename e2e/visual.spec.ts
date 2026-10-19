@@ -28,6 +28,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('screens and overlays', async ({ page }, testInfo) => {
+  test.slow(); // a week of play, every screen, the overlays and the Map
   const p = testInfo.project.name;
 
   await shoot(page, p, '01-onboarding-opening');
@@ -89,6 +90,33 @@ test('screens and overlays', async ({ page }, testInfo) => {
   await gotoTab(page, 'Ledger');
   await page.getByRole('button', { name: /^Wave 1 · / }).click();
   await shoot(page, p, '15-ledger-wave-log', { full: true });
+
+  // The City Map after a week: residue on the wall, an outpost with a visit, its sheet, a zone, the compare and the list.
+  await gotoTab(page, 'Map');
+  await page.getByRole('button', { name: 'Mark an outpost' }).click();
+  const form = page.getByRole('dialog', { name: 'Mark a place' });
+  await form.getByLabel('Name').fill('Riverside Gym');
+  await shoot(page, p, '16-map-form');
+  await form.getByRole('button', { name: 'Mark outpost' }).click();
+  await expect(form).toBeHidden();
+  await settleOverlays(page);
+  await page.getByRole('button', { name: 'I was there: log a visit to Riverside Gym' }).click();
+  await settleOverlays(page);
+  await shoot(page, p, '17-map', { full: true });
+  await page.getByRole('button', { name: /^Riverside Gym, Marked/ }).click();
+  await expect(page.getByRole('dialog', { name: 'Riverside Gym' })).toBeVisible();
+  await shoot(page, p, '18-map-pin');
+  await page.keyboard.press('Escape');
+  // Zone bands are keyboard targets (taps go to the tiles underneath): focus one and press Enter.
+  await page.getByRole('button', { name: /^Zone 2,/ }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('dialog', { name: 'The Flat' })).toBeVisible();
+  await shoot(page, p, '19-map-zone');
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Compare with 7 days ago' }).click();
+  await shoot(page, p, '20-map-compare');
+  await page.getByRole('button', { name: 'Show the map as a list' }).click();
+  await shoot(page, p, '21-map-list', { full: true });
 });
 
 async function completeAllQuestsUntilLevelUp(page: Page, project: string): Promise<void> {
