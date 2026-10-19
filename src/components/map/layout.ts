@@ -231,7 +231,7 @@ function noisePattern(id: string, bg: string, seed: number, dots: number): strin
 /** Windows as a pattern inside a side fill, with the face colour as background. */
 function winPattern(id: string, side: 'l' | 'r', bg: string, cells: (string | null)[]): string {
   const m = side === 'l' ? `matrix(${S},${S / 2},0,${-S},${CX},${CY})` : `matrix(${-S},${S / 2},0,${-S},${CX},${CY})`;
-  let s = `<pattern id="${id}" patternUnits="userSpaceOnUse" width="0.5" height="0.62" patternTransform="${m}"><rect width="0.5" height="0.62" fill="${bg}"/>`;
+  let s = `<pattern id="${id}" patternUnits="userSpaceOnUse" width=".5" height=".62" patternTransform="${m}"><rect width=".5" height=".62" fill="${bg}"/>`;
   const pos = [
     [0.07, 0.1],
     [0.3, 0.1],
@@ -471,10 +471,10 @@ export function residueMarkup(residue: ResidueLike[]): { scorch: string; flags: 
       const y = f1(c[1]);
       scorch +=
         `<g class="scorch" opacity="${op}" transform="translate(${x} ${y})">` +
-        '<ellipse rx="9" ry="3.8" fill="#3a1a1e" opacity=".55"/><ellipse rx="7" ry="2.9" fill="#050507" opacity=".9"/><ellipse rx="3.8" ry="1.5" cx="1.5" cy="-.3" fill="#1a0c0e"/>' +
-        '<path d="M-7 0l-4 1.5M6 -1l5 -1.5M2 2l2.5 2.5M-3 -2l-1.5 -2" stroke="#5a2a30" stroke-width=".9"/>' +
+        '<ellipse rx="9" ry="3.8"/><ellipse rx="7" ry="2.9"/><ellipse rx="3.8" ry="1.5" cx="1.5" cy="-.3"/>' +
+        '<path d="M-7 0l-4 1.5M6 -1l5 -1.5M2 2l2.5 2.5M-3 -2l-1.5 -2"/>' +
         (w.age < 7
-          ? '<rect class="em" x="-3" y="-1.5" width="1.5" height="1.5" fill="#ff6b85"/><rect class="em" x="2" y=".2" width="1.5" height="1.5" fill="#ffb84d"/><rect class="em" x="-.5" y="1" width="1" height="1" fill="#ffb84d"/>'
+          ? '<rect class="em" x="-3" y="-1.5" width="1.5" height="1.5"/><rect class="em a" x="2" y=".2" width="1.5" height="1.5"/><rect class="em a" x="-.5" y="1" width="1" height="1"/>'
           : '') +
         '</g>';
       if (i === 0 && w.age < 7) {
@@ -501,4 +501,4 @@ export function pinBaseMarkup(cell: MapCell, state: PinLike['state']): string {
   return '';
 }
 
-export { ISLAND_RADIUS };
+export { ISLAND_RADIUS, ZONE_RADII };

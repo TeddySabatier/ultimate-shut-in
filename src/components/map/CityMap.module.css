@@ -349,6 +349,10 @@
   stroke-dasharray: 2 2.5;
   opacity: 0.75;
 }
+.svg :global(.gained),
+.svg :global(.band) {
+  fill-rule: evenodd;
+}
 .svg :global(.gained) {
   fill: url(#hatch);
 }
@@ -381,8 +385,28 @@
 }
 
 /* ---- wave residue ---- */
+.svg :global(.scorch > ellipse:nth-child(1)) {
+  fill: #3a1a1e;
+  opacity: 0.55;
+}
+.svg :global(.scorch > ellipse:nth-child(2)) {
+  fill: #050507;
+  opacity: 0.9;
+}
+.svg :global(.scorch > ellipse:nth-child(3)) {
+  fill: #1a0c0e;
+}
+.svg :global(.scorch > path) {
+  fill: none;
+  stroke: #5a2a30;
+  stroke-width: 0.9;
+}
 .svg :global(.scorch .em) {
+  fill: #ff6b85;
   animation: ember 1.6s steps(2, end) infinite;
+}
+.svg :global(.scorch .em.a) {
+  fill: #ffb84d;
 }
 .svg :global(.scorch .em:nth-child(odd)) {
   animation-delay: 0.5s;
@@ -413,6 +437,10 @@
 .svg :global(.pin) {
   cursor: pointer;
   outline: none;
+}
+.svg :global(.pin .sh) {
+  fill: #000;
+  opacity: 0.45;
 }
 .svg :global(.pin .post) {
   fill: #8a8a9e;
@@ -496,6 +524,7 @@
 }
 .svg :global(.pin .hit) {
   pointer-events: all;
+  fill: transparent;
 }
 
 /* ---- zone bands: transparent, keyboard reachable; taps go to the tiles underneath ---- */
@@ -525,10 +554,12 @@
     display: none;
   }
 }
-:global(:root[data-reduced-motion='true']) .svg :global(*) {
+:global(:root[data-reduced-motion='true']) .svg :global(*),
+.svg:global(.rm) :global(*) {
   animation: none !important;
   transition: none !important;
 }
-:global(:root[data-reduced-motion='true']) .svg :global(.spark) {
+:global(:root[data-reduced-motion='true']) .svg :global(.spark),
+.svg:global(.rm) :global(.spark) {
   display: none;
 }
