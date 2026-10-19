@@ -83,13 +83,29 @@ describe.each(gameFolders)('game folder %s', (folder) => {
     expect(existsSync(file) && readFileSync(file, 'utf8').includes('describeGameContract(')).toBe(true);
   });
 
-  it('has docs/games/<id>.md with Party and Buffs sections, and e2e/games/<id>.spec.ts', () => {
+  it('has docs/games/<id>.md about this game, with Party and Buffs sections', () => {
     const doc = join(root, 'docs', 'games', `${folder}.md`);
     expect(existsSync(doc), `docs/games/${folder}.md`).toBe(true);
     const text = existsSync(doc) ? readFileSync(doc, 'utf8') : '';
-    expect(text, `docs/games/${folder}.md needs a "## Party" section`).toMatch(/^## Party/m);
-    expect(text, `docs/games/${folder}.md needs a "## Buffs" section`).toMatch(/^## Buffs/m);
-    expect(existsSync(join(root, 'e2e', 'games', `${folder}.spec.ts`)), `e2e/games/${folder}.spec.ts`).toBe(true);
+    expect(text.split(/\r?\n/)[0], `docs/games/${folder}.md must start with "# <Name> (\`${folder}\`)"`).toContain(`(\`${folder}\`)`);
+    expect(text, `docs/games/${folder}.md needs a "## Party" section`).toMatch(/^## Party$/m);
+    expect(text, `docs/games/${folder}.md needs a "## Buffs" section`).toMatch(/^## Buffs$/m);
+    if (folder !== 'sample') expect(text, `docs/games/${folder}.md still describes Coin Duel (copied from the sample)`).not.toMatch(/Coin Duel/);
+  });
+
+  it("has e2e/games/<id>.spec.ts that opens this game in the Lab", () => {
+    const spec = join(root, 'e2e', 'games', `${folder}.spec.ts`);
+    expect(existsSync(spec), `e2e/games/${folder}.spec.ts`).toBe(true);
+    const text = existsSync(spec) ? readFileSync(spec, 'utf8') : '';
+    expect(text, `e2e/games/${folder}.spec.ts must open '${folder}' (openLab(page, '${folder}', ...))`).toContain(`'${folder}'`);
+  });
+
+  it('keeps its screenshots to docs/games/img/<id>-*.png: at most three, 150 KB in total', () => {
+    const imgDir = join(root, 'docs', 'games', 'img');
+    const shots = existsSync(imgDir) ? readdirSync(imgDir).filter((f) => f.startsWith(`${folder}-`) && f.endsWith('.png')) : [];
+    const bytes = shots.reduce((n, f) => n + statSync(join(imgDir, f)).size, 0);
+    expect(shots.length, `docs/games/img/${folder}-*.png: ${shots.join(', ')}`).toBeLessThanOrEqual(3);
+    expect(bytes, `docs/games/img/${folder}-*.png: ${(bytes / 1024).toFixed(1)} KB`).toBeLessThanOrEqual(150 * 1024);
   });
 
   it('is registered with a valid manifest and strings', () => {
