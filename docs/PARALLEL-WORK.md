@@ -40,13 +40,13 @@ The code layout and the contracts are in `CLAUDE.md`, `docs/ARCHITECTURE.md` and
 
 ### Wave 2: start now, all in parallel, all against `main`
 
-No two briefs below edit the same lines of the same file (section 4.4 explains how the few shared files are split). Merge order does not matter.
+Briefs edit different files. A few collision points are unavoidable and are listed after the diagram with a merge order. Development order does not matter; merge order does for the briefs that change the save format.
 
 | ID | Brief | File | Save version | Size | Kind |
 | --- | --- | --- | --- | --- | --- |
 | E | French localisation groundwork (catalog, `t()`, French strings, not wired) | `docs/briefs/E-i18n-groundwork.md` | none | medium | new files only |
-| F | Citizens: design and prototype | `docs/briefs/F-citizens-design.md` | plans v6 | medium | docs only |
-| G | Arena, Armory, plug-in mini games, Roguelike Chess: design and prototypes | `docs/briefs/G-arena-design.md` | plans v7 | large | docs only |
+| F | Citizens. **F1:** design, content, engine. **F2:** residents panel and citizen window (stacked on F1) | `docs/briefs/F-citizens.md` | **v6** | large | feature, two PRs |
+| G | The Arena. **G1:** design, Armory, runs, lottery, plug-in contract, Roguelike Chess rules. **G2:** Arena screen and mini-game host (stacked on G1) | `docs/briefs/G-arena.md` | **v7** | large | feature, two PRs |
 | H | "What I learned" notes on quests (finish an existing branch) | `docs/briefs/H-quest-notes.md` | **v5** | medium | feature |
 | J | Weekly recap card (shareable image) | `docs/briefs/J-weekly-recap-card.md` | none | medium | feature |
 | K | Stop the end-to-end navigation hangs | `docs/briefs/K-e2e-stability.md` | none | small | test infrastructure |
@@ -56,21 +56,30 @@ No two briefs below edit the same lines of the same file (section 4.4 explains h
 
 | ID | Brief | Waits for | Save version |
 | --- | --- | --- | --- |
-| M | i18n wiring (every screen) | E merged, and H, J, L merged or parked | next free |
-| N | Citizens build | F and M merged | **v6** |
-| O | Arena build | G and N merged | **v7** |
-| P | Roguelike Chess | O merged | none |
+| M | i18n wiring (every screen) | E merged, and every wave 2 UI PR (H, J, L, F2, G2) merged or parked | next free |
+| P | Roguelike Chess, the first plug-in game | G2 merged | none |
 
 Details are in `docs/briefs/wave-3.md`. The maintainer writes each full brief when its prerequisites merge.
 
 ```
-Wave 2 (parallel, base main):   E   F   G   H   J   K   L
-                                |   |   |
-Wave 3 (sequential, base main): +---+---+--> M --> N --> O --> P
-                                    (E)  (F)     (G)
+Wave 2 (start now, base main):   E    F1 -> F2    G1 -> G2    H    J    K    L
+                                 (F2 and G2 are second runs, stacked on F1 and G1)
+Wave 3 (base main):              M (after E and every wave 2 UI PR)      P (after G2)
 ```
 
-Later ideas, not briefs yet: shop registration, a sun-crow familiar, optional cloud sync (`docs/design/GDD.md`, "Out of v1"), editing Map outposts from quests.
+**Merge order for wave 2.** K, E, J and L can merge in any order, any time. The briefs that change the save format merge in version order: **H (v5), then F1 and F2 (v6), then G1 and G2 (v7)**. Each later one will need `main` merged into its branch once the earlier one lands; the maintainer comments when it is time.
+
+**Known collision points** (the later PR merges `main`, keeps both sides, re-runs the checks):
+
+| Where | Why it collides |
+| --- | --- |
+| `src/game/save.ts` | The `SAVE_VERSION` line and the end of the migration chain change in H, F1 and G1. |
+| `src/game/types.ts` | Each adds a field to `SaveFile` at its own anchor (H after `proposals`, F1 after `activity`, G1 after `map`), plus events; F1 and G1 may each add a term to `WaveBreakdown`. |
+| `src/game/wave.ts` | The defense sum gains a `citizens` term (F1, only if citizen buffs touch defense) and an `arena` term (G1). |
+| `src/state/gameStore.ts` | Each adds an action block at its own anchor. |
+| `src/assets/index.ts`, `assets.test.ts`, `eventText.ts`, `OverlayHost.tsx`, `e2e/responsive.spec.ts` | Additive blocks from F2 and G2. |
+
+Later ideas, not briefs yet: citizens joining the Arena roster (a small follow-up once F and G are merged), shop registration, a sun-crow familiar, optional cloud sync (`docs/design/GDD.md`, "Out of v1"), editing Map outposts from quests.
 
 ## 4. Rules of the road
 
@@ -79,7 +88,7 @@ Later ideas, not briefs yet: shop registration, a sun-crow familiar, optional cl
 - Branch from the latest `main`: `git fetch origin && git checkout -b <branch> origin/main`.
 - Branch name: `<type>/<ID>-<slug>`, for example `feat/J-weekly-recap-card`. Cursor's automatic `cursor/...` names are accepted when the brief says so (brief H continues an existing one). Types: `feat`, `fix`, `docs`, `chore`, `test`.
 - Commit messages: conventional (`feat(recap): ...`), small and logical, in English, no ticket ids from other systems.
-- One brief is one PR. Split only when a change is over about 1,500 lines **and** crosses two areas; then open two PRs, each green on its own, and say so in both descriptions.
+- One brief is one PR, except briefs F and G, which are written as two PRs each (engine, then screens; the second is stacked on the first and run by a second agent). Otherwise split only when a change is over about 1,500 lines **and** crosses two areas; then open two PRs, each green on its own, and say so in both descriptions.
 
 ### 4.2 Pull requests
 
@@ -115,7 +124,9 @@ Your brief lists what you may edit. Everything else is off limits. These shared 
 | `src/state/gameStore.ts` | Add new actions next to related ones, never reorder or reformat. Briefs list when they may. |
 | `src/game/index.ts` | Additive exports only. |
 | `src/game/content/strings.json` | Own **one new top-level key** and insert it at the anchor your brief names (immediately before an existing key). Do not edit anyone else's keys. The anchors are spread out so edits do not collide. |
-| `docs/PLAYER-GUIDE.md`, `docs/ARCHITECTURE.md` | Edit only the section or anchor your brief names. `README.md` is maintainer-only. |
+| `docs/PLAYER-GUIDE.md` | Edit only the section or anchor your brief names. |
+| `docs/ARCHITECTURE.md`, `README.md` | Maintainer-only. Write your architecture paragraph in your notes file; the maintainer folds it in at the end of the wave. |
+| `src/assets/index.ts`, `src/assets/assets.test.ts`, `src/components/overlays/eventText.ts`, `OverlayHost.tsx`, `e2e/responsive.spec.ts` | Additive blocks only, with a comment header naming your brief. Expect to merge `main` when another brief touched the same file. |
 | `e2e/helpers.ts` | Brief K may change existing helpers. Everyone else may only append new exports; never change a signature. |
 | `e2e/__screenshots__/**` | Regenerate only for screens **you changed**. Never commit more than 0.5 MB of images in one PR. Run `npm run screenshots:check` before pushing. |
 | `package.json`, `package-lock.json` | No new dependency unless your brief lists it. Say why in the PR if it does. |
@@ -125,7 +136,7 @@ Your brief lists what you may edit. Everything else is off limits. These shared 
 
 ### 4.5 The save file and content
 
-- A change to the shape of `SaveFile` needs a **reserved version number**. Reservations: **v5 = brief H, v6 = brief N, v7 = brief O**. Two briefs never share a number. If a brief is dropped its number is simply skipped; `migrate` accepts any older version.
+- A change to the shape of `SaveFile` needs a **reserved version number**. Reservations: **v5 = brief H, v6 = brief F (F1), v7 = brief G (G1)**. Lower versions merge first. Two briefs never share a number. If a brief is dropped its number is simply skipped; `migrate` accepts any older version.
 - Your PR must include: the bump in `SAVE_VERSION`, the migration in `src/game/save.ts` that fills defaults for older saves, and tests for each earlier version you support (see `src/game/save.test.ts`).
 - Content (quests, titles, strings) lives in `src/game/content/*.json` and is documented in `schema.md`. Document every new field there.
 - Original content only: no names, art, text or systems copied from the source work.
@@ -184,17 +195,33 @@ Give the agent the repository and this single instruction (replace `X` and the f
 
 > You are agent X on Haven Protocol. Read `AGENTS.md`, then `docs/PARALLEL-WORK.md` sections 1 and 4, then follow `docs/briefs/<file>.md` exactly. Branch from the latest `main`, open a draft PR against `main` after your first commit using the PR template, and mark it ready only when every acceptance item in the brief passes. Do not merge anything.
 
-| Agent | Brief file | Branch to start from |
-| --- | --- | --- |
-| E | `docs/briefs/E-i18n-groundwork.md` | `main` |
-| F | `docs/briefs/F-citizens-design.md` | `main` |
-| G | `docs/briefs/G-arena-design.md` | `main` |
-| H | `docs/briefs/H-quest-notes.md` | the existing `cursor/quest-learned-notes-40d2` |
-| J | `docs/briefs/J-weekly-recap-card.md` | `main` |
-| K | `docs/briefs/K-e2e-stability.md` | `main` |
-| L | `docs/briefs/L-polish-pack.md` | `main` |
+| Agent | Start when | Brief file | Starting branch |
+| --- | --- | --- | --- |
+| E | now | `docs/briefs/E-i18n-groundwork.md` | `main` |
+| F1 | now | `docs/briefs/F-citizens.md`, section F1 | `main` |
+| G1 | now | `docs/briefs/G-arena.md`, section G1 | `main` |
+| H | now | `docs/briefs/H-quest-notes.md` | the existing `cursor/quest-learned-notes-40d2` |
+| J | now | `docs/briefs/J-weekly-recap-card.md` | `main` |
+| K | now | `docs/briefs/K-e2e-stability.md` | `main` |
+| L | now | `docs/briefs/L-polish-pack.md` | `main` |
+| F2 | after F1 has a green CI run | `docs/briefs/F-citizens.md`, section F2 | `feat/F1-citizens-engine` |
+| G2 | after G1 has a green CI run | `docs/briefs/G-arena.md`, section G2 | `feat/G1-arena-engine` |
 
-Run seven agents at once if you like: that is what the plan is for. If an agent reports a collision this document did not predict, stop that agent, fix the document, then continue.
+The exact prompt for each agent is at the end of its brief (F and G have one prompt per run).
+
+### 6.1 Launching on Cursor
+
+Cursor's cloud agents clone the GitHub repository, work on their own branch, can open a pull request, and read `AGENTS.md`. Steps:
+
+1. **One-time setup.** In Cursor, connect GitHub for `TeddySabatier/ultimate-shut-in` with read and write access (an agent already pushed `cursor/...` branches here, so this is probably done). Set a spend limit when prompted. Let Cursor's guided environment setup run once so a Build exists with Node 24 and `npm ci`; you can then commit the generated `.cursor/environment.json`. Cursor's docs say a saved environment is used before the committed file.
+2. **Start an agent.** Open https://cursor.com/agents (or choose "Cloud" in the dropdown under the agent input in the desktop app). Pick the repository, set the **starting branch** from the table above, paste the agent's prompt, and start it. Start the seven "now" agents together; Cursor runs as many in parallel as you start.
+3. **Watch.** Each agent should open a **draft PR against `main`** (F2 and G2: against the F1 or G1 branch) after its first commit. If Cursor opens a PR against the wrong base, the agent may fix its own PR's base; nobody else retargets it.
+4. **Hand over.** When an agent marks its PR ready, tell the maintainer; the review and merge procedure is section 5. Do not merge from Cursor.
+5. **Follow-ups.** To ask an agent for a fix after review, send a follow-up message in the same agent run rather than starting a new one, so it keeps its context and its branch.
+
+Cursor's interface changes. The steps above come from its public documentation; if a control has moved, the principle is the same: repository, starting branch, prompt.
+
+Run the seven "now" agents at once: that is what the plan is for. If an agent reports a collision this document did not predict, stop that agent, fix the document, then continue.
 
 ## 7. Housekeeping
 

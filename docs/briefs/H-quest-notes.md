@@ -20,7 +20,7 @@ A short "What I learned" note on every quest card, kept per quest template so it
 
 ## Step 0: bring the branch up to date
 
-The branch forked from `31689ea` and conflicts with today's `main` in `docs/ARCHITECTURE.md`, `docs/design/GDD-errata.md` and `src/game/save.ts`. Run `git fetch origin && git merge origin/main` (a merge, not a rebase), resolve those three files keeping both sides (the save version is 5 on top of main's 4, the errata and architecture lines are appended, not replaced), run the full checks, push. Do this first and mention it in the PR description.
+The branch forked from `31689ea` and conflicts with today's `main` in `docs/ARCHITECTURE.md`, `docs/design/GDD-errata.md` and `src/game/save.ts`. Run `git fetch origin && git merge origin/main` (a merge, not a rebase), resolve them: in `src/game/save.ts` keep both (the version is 5 on top of main's 4); in `docs/design/GDD-errata.md` keep both (append, renumber after main's last entry); in `docs/ARCHITECTURE.md` **take main's version** and move the draft's added text into your notes file. Then run the full checks and push. Do this first and mention it in the PR description.
 
 ## You may edit
 
@@ -32,7 +32,7 @@ The branch forked from `31689ea` and conflicts with today's `main` in `docs/ARCH
 - `src/state/gameStore.ts`: add the notes actions next to the custom quest actions, nothing else
 - `src/game/content/strings.json`: **only your own top-level key `notes`**, inserted immediately before the existing `"proposals"` key (your anchor; it keeps your edit away from other briefs' edits). Move any strings the draft put elsewhere into it.
 - `e2e/notes.spec.ts` (new). The draft touched `e2e/helpers.ts` and `e2e/settings.spec.ts`: keep those edits minimal and backward compatible.
-- `docs/PLAYER-GUIDE.md`: a new `## What I learned notes` section placed right after `## The board` (your anchor). `docs/ARCHITECTURE.md`: one bullet in `## Save file, versioning and migration` for version 5. Nothing else in either file.
+- `docs/PLAYER-GUIDE.md`: a new `## What I learned notes` section placed right after `## The board` (your anchor). Do **not** edit `docs/ARCHITECTURE.md` or `README.md`: write the architecture paragraph for version 5 in your notes file and the maintainer folds it in at the end of the wave.
 - `docs/review/notes/H.md`
 
 ## Hands off
