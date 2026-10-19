@@ -23,13 +23,26 @@ function vassal(habit: HabitId, level: number, loyalty: number, traits: string[]
 }
 
 /** The parties every game is tested with. */
-export const parties: { readonly full: Party; readonly starter: Party; readonly single: Party } = deepFreeze({
+export const parties: { readonly full: Party; readonly starter: Party; readonly single: Party; readonly mixed: Party } = deepFreeze({
   /** All eight vassals, level 12, loyalty 80 (power 44), some titles. */
   full: { members: HABIT_IDS.map((h) => vassal(h, 12, 80, FULL_TRAITS[h] ?? [])) },
   /** A new player's first three vassals, level 1, loyalty 50 (power 8). */
   starter: { members: (['move', 'outside', 'clean'] as const).map((h) => vassal(h, 1, 50)) },
   /** One vassal, level 5, loyalty 60 (power 21). */
   single: { members: [vassal('study', 5, 60, ['stairwell_scholar'])] },
+  /**
+   * A citizen first (`habit: null`, as later citizens will be), then four vassals at mixed levels.
+   * No `move`: a game that hard-codes a member id fails here.
+   */
+  mixed: {
+    members: [
+      makeMember({ id: 'citizen-ada', name: 'Ada', habit: null, level: 6, loyalty: 40 }),
+      vassal('eat', 3, 30),
+      vassal('sleep', 20, 95, ['night_warden']),
+      vassal('hygiene', 8, 55),
+      vassal('social', 1, 10, ['herald']),
+    ],
+  },
 });
 
 /** The runs every game is tested with. */

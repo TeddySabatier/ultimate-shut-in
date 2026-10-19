@@ -50,9 +50,25 @@ describe('contract kit: each failure mode is caught by its check', () => {
   });
 
   it('mutating engine fails purity', () => {
-    expect(() => checkPurity(fakes.mutating)).toThrow(/purity:[\s\S]*deep-frozen state, so it mutates its input/);
-    // It slips through the unfrozen checks: only the purity check sees it.
-    expect(() => checkTermination(fakes.mutating)).not.toThrow();
+    expect(() => checkPurity(fakes.mutating)).toThrow(/purity:[\s\S]*deep-frozen states, so it mutates its input/);
+  });
+
+  it('a mutation on buffed runs only fails purity (the whole matrix is frozen)', () => {
+    expect(() => checkPurity(fakes.mutatesOnBuffedOnly)).toThrow(/runs\.buffed, en: threw while playing on deep-frozen states/);
+  });
+
+  it('a Map on the hard run only, or only in the middle of a game, fails purity', () => {
+    expect(() => checkPurity(fakes.mapOnHardOnly)).toThrow(/runs\.hard, en: state \(step 0\)\.cache is a Map instance/);
+    expect(() => checkPurity(fakes.mapMidGame)).toThrow(/state \(step 3\)\.cache is a Map instance/);
+  });
+
+  it('a sparse array fails purity', () => {
+    expect(() => checkPurity(fakes.sparseArray)).toThrow(/history\[0\] is a hole/);
+  });
+
+  it('a game that never ends in French fails termination', () => {
+    expect(() => checkTermination(fakes.frenchNeverEnds, fast)).toThrow(/, fr: no outcome after 500 steps/);
+    expect(() => checkTermination(fakes.frenchNeverEnds, fast)).not.toThrow(/, en: /);
   });
 
   it('a Map in the state fails purity', () => {
@@ -111,6 +127,7 @@ describe('contract kit: each failure mode is caught by its check', () => {
     expect(problems).toMatch(/fr\.title is an empty string/);
     expect(problems).toMatch(/turn: placeholders differ \(en \{n\} vs fr \{m\}\)/);
     expect(problems).toMatch(/en\.count must be a string/);
+    expect(problems).toMatch(/tips: 3 entries in en but 2 in fr/);
   });
 
   it('invalid outcomes fail outcomes', () => {
@@ -118,6 +135,15 @@ describe('contract kit: each failure mode is caught by its check', () => {
     const problems = outcomeProblems({ result: 'won', score: 10, log: ['ok'], troopsUsed: ['ghost', 'move', 'move'] }, ['move']).join('\n');
     expect(problems).toMatch(/"ghost", which is not in the party/);
     expect(problems).toMatch(/lists "move" twice/);
+  });
+
+  it('a forfeit path is validated although the bot never forfeits', () => {
+    expect(() => checkOutcomes(fakes.badForfeit)).toThrow(/forfeit at step 0: score 1500 must be an integer[\s\S]*log must have at least one line/);
+    expect(() => checkOutcomes(fakes.forfeitDoesNothing)).toThrow(/reducing engine\.forfeit\(state\) must end the game/);
+  });
+
+  it('hard-coded troops fail outcomes on the mixed party', () => {
+    expect(() => checkOutcomes(fakes.hardCodedTroops)).toThrow(/parties\.mixed[^\n]*troopsUsed has "move", which is not in the party/);
   });
 
   it('a seed that changes nothing fails seeds', () => {
@@ -142,6 +168,7 @@ describe('contract kit: each failure mode is caught by its check', () => {
 
 describe('contract kit: helpers', () => {
   it('playToEnd returns the final state, outcome, steps and actions', () => {
+    expect(playToEnd(goodGame, 1, parties.full, runs.plain, 100, { locale: 'fr' }).outcome?.log[0]).toMatch(/ sur /);
     const r = playToEnd(goodGame, 1, parties.full, runs.plain);
     expect(r.outcome?.result).toBe('won');
     expect(r.steps).toBe(r.actions.length);
@@ -166,6 +193,8 @@ describe('contract kit: helpers', () => {
     expect(parties.starter.members).toHaveLength(3);
     expect(parties.starter.members.every((m) => m.level === 1)).toBe(true);
     expect(parties.single.members).toHaveLength(1);
+    expect(parties.mixed.members[0]).toMatchObject({ habit: null, id: 'citizen-ada' });
+    expect(parties.mixed.members.some((m) => m.id === 'move')).toBe(false);
     expect(runs.plain.buffs).toEqual([]);
     expect(runs.buffed.buffs.map((b) => b.kind)).toEqual(['attack', 'time', 'hint']);
   });
