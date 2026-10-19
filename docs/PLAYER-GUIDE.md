@@ -284,12 +284,12 @@ Once on, there are three reminders, each with its own toggle:
 | Reminder | When | Default |
 | --- | --- | --- |
 | **Board issued** | Every day at the time you choose, never before your day starts. | 08:30 |
-| **Wave tomorrow** | The evening of the last day of a wave week, the day before the wave settles. | 19:00 |
-| **Timer finished** | The moment a running timer quest reaches its time. | on |
+| **Wave tomorrow** | The calendar day before a wave settles (the wave week ends at your day-start hour). | 19:00 |
+| **Timer finished** | The moment a running timer quest reaches its time, if it is still the same day's board. | on |
 
 They read like a system window: the title is "SYSTEM", then one warm line. Nothing is sent between your **Lights out** and **Wake** hours (Settings, Hours): a board reminder waits for the wake hour, the other two are skipped.
 
-**What reminders cannot do.** There is no server and no push service, so reminders are scheduled by the app on your device and only arrive **while Haven Protocol is open**, in a tab or as an installed app. When the app is closed nothing fires, and a reminder missed while your phone slept is not sent later. A few browsers can schedule notifications themselves; if yours is one, they may also arrive while the app is closed, but do not count on it. The choices are kept on this device only (not in the save file, so they are not exported).
+**What reminders cannot do.** There is no server and no push service, so reminders are scheduled by the app on your device and only arrive **while Haven Protocol is open on screen, or was left open a moment ago**: phones pause apps in the background. When the app is closed nothing fires, and a reminder missed while your phone slept is not sent later. Tapping a reminder opens the app on the right screen (the Board for a board or timer reminder, the Haven for a wave). The choices are kept on this device only (not in the save file, so they are not exported), and if the browser will not store them the switch stays off with a note.
 
 **App shortcuts.** After you install the app, long-press its icon (Android) or right-click it (desktop) for three shortcuts: **Add my own quest** (opens the Board with the compose sheet ready), **Today's board** and **Map**.
 

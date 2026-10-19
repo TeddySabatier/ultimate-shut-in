@@ -1,5 +1,7 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { HashRouter, MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
+import { strings } from '../game';
 import { useGameStore } from '../state/gameStore';
 import { currentSave, renderWithRouter, seedStore } from '../test/storeUtils';
 import { QuestsScreen } from './QuestsScreen';
@@ -36,5 +38,55 @@ describe('QuestsScreen', () => {
     expect(currentSave().board?.rerolledToday).toBe(true);
     expect(currentSave().player.coins).toBe(85);
     expect(screen.queryByRole('button', { name: /swap quest/i })).toBeNull();
+  });
+});
+
+describe('QuestsScreen compose deep link (#/quests?compose=1, the "Add my own quest" shortcut)', () => {
+  const sheet = () => screen.queryByRole('dialog', { name: strings.compose.title });
+
+  function Search() {
+    return <output data-testid="search">{useLocation().search}</output>;
+  }
+
+  it('opens the Compose sheet once and clears the parameter', () => {
+    seedStore();
+    render(
+      <MemoryRouter initialEntries={['/quests?compose=1']}>
+        <QuestsScreen />
+        <Search />
+      </MemoryRouter>,
+    );
+    expect(sheet()).toBeInTheDocument();
+    expect(screen.getByTestId('search')).toBeEmptyDOMElement();
+    fireEvent.click(screen.getByRole('button', { name: strings.compose.actions.cancel }));
+    expect(sheet()).toBeNull();
+  });
+
+  it('stays closed without the parameter', () => {
+    seedStore();
+    render(
+      <MemoryRouter initialEntries={['/quests']}>
+        <QuestsScreen />
+      </MemoryRouter>,
+    );
+    expect(sheet()).toBeNull();
+  });
+
+  it('works with the real hash URL the shortcut opens', () => {
+    seedStore();
+    window.history.replaceState(null, '', '#/quests?compose=1');
+    try {
+      render(
+        <HashRouter>
+          <Routes>
+            <Route path="quests" element={<QuestsScreen />} />
+          </Routes>
+        </HashRouter>,
+      );
+      expect(sheet()).toBeInTheDocument();
+      expect(window.location.hash).toBe('#/quests');
+    } finally {
+      window.history.replaceState(null, '', '#/');
+    }
   });
 });

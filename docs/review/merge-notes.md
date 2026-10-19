@@ -18,21 +18,16 @@ Departures from the brief:
 
 ## C. Reminders and app shortcuts
 
-**One line to add to `src/screens/QuestsScreen.tsx`** (not owned by brief C). Import the hook and call it right after the `composing` state, so `#/quests?compose=1` (the "Add my own quest" shortcut) opens the compose sheet:
-
-```tsx
-import { useComposeDeepLink } from '../notifications/useDeepLink';
-
-// directly below: const [composing, setComposing] = useState(false);
-useComposeDeepLink(() => setComposing(true));
-```
-
-The hook calls the callback once when `?compose=1` is in the hash and removes the parameter (`replace`), so a refresh does not reopen the sheet. Until the line is added the shortcut still opens the Board, which is the safe fallback.
+The compose deep link is wired: `src/screens/QuestsScreen.tsx` calls `useComposeDeepLink(() => setComposing(true));` right below the `composing` state (screen test and e2e cover `#/quests?compose=1`). If another branch rewrites `QuestsScreen`, keep that one call (plus its import from `../notifications/useDeepLink`) after the `composing` state and before any early return.
 
 Other things to know when merging:
 
 - `src/game/content/strings.json`: the `reminders` key is appended after `map`. If another branch also appends at the end of the file, keep both keys; nothing else in that file changed.
 - `src/main.tsx` and `src/App.tsx` are untouched. The reminder runtime starts from `registerSW()` in `src/pwa/registerSW.ts`, which `main.tsx` already calls.
 - Reminder preferences are device-level and live in `localStorage` key `haven.reminders`, not in the SaveFile (`types.ts` and `save.ts` are reserved), so there is no migration. They are not part of Export save.
-- "Wave tomorrow" fires at its time on the last game day of a wave period (the wave settles at the next reset hour). The brief said "the day before a wave period ends"; the last game day is the evening on which the wave really is tomorrow. One constant, `dayInWavePeriod(...) !== 6` in `src/notifications/scheduler.ts`, changes it to the day before.
+- "Wave tomorrow" fires at its time on the calendar day before the wave settles (the wave settles at the reset hour after the last game day of a period), for every reset hour.
+- `public/sw-notify.js` adds a `notificationclick` handler to the generated service worker through `workbox.importScripts`; `vite.config.ts` only gained that option and the manifest `shortcuts`.
+- The Notification Triggers path was removed (it could not cancel what it scheduled). Reminders only fire while the app is open.
 - The `Map` shortcut targets `#/map`, which exists on main since the Map tab merged.
+
+Review minors from PR #1 that were all done in the follow-up pass; none skipped except: reminders are not kept in an in-memory copy when storage refuses writes. The switch stays off with a note instead, which is simpler and never leaves a hidden "on" state.
