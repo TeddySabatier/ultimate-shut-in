@@ -11,7 +11,7 @@ Wave: <!-- 2 or 3 -->
 
 ## Base and stacking
 
-- [ ] Base branch is `main`
+- [ ] Base branch is the one my brief names (`main`, or `integration/arena` for the overnight program)
 - [ ] Stacked on another PR: <!-- if yes, "Stacked on #N. Merge that one first." and add the `stacked` label; otherwise write "no" -->
 
 ## Scope check

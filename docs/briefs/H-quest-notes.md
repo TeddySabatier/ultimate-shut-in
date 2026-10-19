@@ -7,7 +7,7 @@
 | Base branch | `main` |
 | Branch | **continue `cursor/quest-learned-notes-40d2`** (do not start a second branch) |
 | PR title | `feat(notes): save what you learned on each quest [H]` |
-| Reserved save version | **v5** (`SAVE_VERSION` 4 to 5) |
+| Reserved save version | **v6** (`SAVE_VERSION` goes to 6; the Arena takes v5 first, see `docs/OVERNIGHT.md`) |
 | Size | medium, 24 files already changed |
 
 ## Goal
@@ -20,12 +20,12 @@ A short "What I learned" note on every quest card, kept per quest template so it
 
 ## Step 0: bring the branch up to date
 
-The branch forked from `31689ea` and conflicts with today's `main` in `docs/ARCHITECTURE.md`, `docs/design/GDD-errata.md` and `src/game/save.ts`. Run `git fetch origin && git merge origin/main` (a merge, not a rebase), resolve them: in `src/game/save.ts` keep both (the version is 5 on top of main's 4); in `docs/design/GDD-errata.md` keep both (append, renumber after main's last entry); in `docs/ARCHITECTURE.md` **take main's version** and move the draft's added text into your notes file. Then run the full checks and push. Do this first and mention it in the PR description.
+The branch forked from `31689ea` and conflicts with today's `main` in `docs/ARCHITECTURE.md`, `docs/design/GDD-errata.md` and `src/game/save.ts`. Run `git fetch origin && git merge origin/main` (a merge, not a rebase), resolve them: in `src/game/save.ts` keep both (the draft says 5; renumber to the next free version, see the header); in `docs/design/GDD-errata.md` keep both (append, renumber after main's last entry); in `docs/ARCHITECTURE.md` **take main's version** and move the draft's added text into your notes file. Then run the full checks and push. Do this first and mention it in the PR description.
 
 ## You may edit
 
 - `src/game/notes.ts`, `src/game/notes.test.ts`
-- `src/game/types.ts` and `src/game/save.ts`: only the notes addition and the version 5 migration
+- `src/game/types.ts` and `src/game/save.ts`: only the notes addition and its migration (your reserved version, see the header)
 - `src/game/index.ts`: additive exports
 - `src/components/LearnedField.*`, `src/components/LearnedShelf.*`, `src/components/QuestCard.tsx` (the note box only)
 - `src/screens/QuestsScreen.tsx`, `src/screens/CharacterScreen.tsx` (the notes section only)
@@ -47,7 +47,7 @@ Everything else, especially `src/game/custom.ts`, `src/notifications/**`, `src/c
 4. **Immutability.** The engine function follows the pure contract and does not mutate its input; add a test that fails if it does.
 5. **UI.** Textarea has a visible label; the note saves on blur and on an explicit Save, with an unsaved-changes guard on the card; 44px targets; the responsive rules in `docs/RESPONSIVE-RULES.md` (320px width, 150% text, landscape). The shelf in the Ledger lists notes newest first and is keyboard reachable.
 6. **Tone.** Copy is warm and short and lives under `notes` in `strings.json`.
-7. **Save version.** `SAVE_VERSION` is 5, `STORAGE_VERSION` in the store is bumped only if the persisted envelope shape changed (it should not be), and `src/game/save.test.ts` covers 4 to 5 and 3 to 5.
+7. **Save version.** `SAVE_VERSION` is 6 (if the Arena has not merged yet, it is 5: use the next free number at merge time and say so in the PR), `STORAGE_VERSION` in the store is bumped only if the persisted envelope shape changed (it should not be), and `src/game/save.test.ts` covers the previous version to yours and 3 to yours.
 
 ## Acceptance
 

@@ -32,7 +32,7 @@ Update this section in the same PR that changes it (the maintainer does it at me
 | CI jobs | `Lint, typecheck, test, build`; `E2E mobile 1/2`; `E2E mobile 2/2`; `E2E desktop` (about 3.5 minutes) |
 | Runtime | Node 24 |
 | Closed, superseded | PRs #4 to #16 (a swarm of duplicate Map PRs). Their branches are kept for reference and will be deleted once nobody needs them. |
-| Unmerged work with no PR | `cursor/quest-learned-notes-40d2`: quest notes, save version 5. This is brief H. |
+| Unmerged work with no PR | `cursor/quest-learned-notes-40d2`: quest notes, coded as save version 5 and renumbered to 6 when it lands (the Arena takes 5). This is brief H. |
 
 The code layout and the contracts are in `CLAUDE.md`, `docs/ARCHITECTURE.md` and `src/game/README.md`. The layout rules are in `docs/RESPONSIVE-RULES.md`.
 
@@ -45,9 +45,9 @@ Briefs edit different files. A few collision points are unavoidable and are list
 | ID | Brief | File | Save version | Size | Kind |
 | --- | --- | --- | --- | --- | --- |
 | E | French localisation groundwork (catalog, `t()`, French strings, not wired) | `docs/briefs/E-i18n-groundwork.md` | none | medium | new files only |
-| F | Citizens. **F1:** design, content, engine. **F2:** residents panel and citizen window (stacked on F1) | `docs/briefs/F-citizens.md` | **v6** | large | feature, two PRs |
-| G | The Arena. **G1:** design, Armory, runs, lottery, plug-in contract, Roguelike Chess rules. **G2:** Arena screen and mini-game host (stacked on G1) | `docs/briefs/G-arena.md` | **v7** | large | feature, two PRs |
-| H | "What I learned" notes on quests (finish an existing branch) | `docs/briefs/H-quest-notes.md` | **v5** | medium | feature |
+| F | Citizens. **F1:** design, content, engine. **F2:** residents panel and citizen window (stacked on F1) | `docs/briefs/F-citizens.md` | **v7** | large | feature, two PRs |
+| G | The Arena. **G1:** design, Armory, runs, lottery. **G2:** Arena screen and mini-game host (stacked on G1). Runs in the **overnight program** on `integration/arena`, see `docs/OVERNIGHT.md` | `docs/briefs/G-arena.md` | **v5** | large | feature, two PRs |
+| H | "What I learned" notes on quests (finish an existing branch) | `docs/briefs/H-quest-notes.md` | **v6** | medium | feature |
 | J | Weekly recap card (shareable image) | `docs/briefs/J-weekly-recap-card.md` | none | medium | feature |
 | K | Stop the end-to-end navigation hangs | `docs/briefs/K-e2e-stability.md` | none | small | test infrastructure |
 | L | Polish pack: import preview, calmer toasts | `docs/briefs/L-polish-pack.md` | none | small | feature |
@@ -56,18 +56,17 @@ Briefs edit different files. A few collision points are unavoidable and are list
 
 | ID | Brief | Waits for | Save version |
 | --- | --- | --- | --- |
-| M | i18n wiring (every screen) | E merged, and every wave 2 UI PR (H, J, L, F2, G2) merged or parked | next free |
-| P | Roguelike Chess, the first plug-in game | G2 merged | none |
+| M | i18n wiring (every screen) | E merged, and every wave 2 and overnight UI PR (H, J, L, F2, G2, the games) merged or parked | next free |
 
 Details are in `docs/briefs/wave-3.md`. The maintainer writes each full brief when its prerequisites merge.
 
 ```
 Wave 2 (start now, base main):   E    F1 -> F2    G1 -> G2    H    J    K    L
                                  (F2 and G2 are second runs, stacked on F1 and G1)
-Wave 3 (base main):              M (after E and every wave 2 UI PR)      P (after G2)
+Wave 3 (base main):              M (after E and every UI PR)
 ```
 
-**Merge order for wave 2.** K, E, J and L can merge in any order, any time. The briefs that change the save format merge in version order: **H (v5), then F1 and F2 (v6), then G1 and G2 (v7)**. Each later one will need `main` merged into its branch once the earlier one lands; the maintainer comments when it is time.
+**Merge order for wave 2.** K, E, J and L can merge in any order, any time. The briefs that change the save format merge in version order: **the Arena (v5, through `integration/arena`), then H (v6), then F1 and F2 (v7)**. Each later one will need `main` merged into its branch once the earlier one lands; the maintainer comments when it is time.
 
 **Known collision points** (the later PR merges `main`, keeps both sides, re-runs the checks):
 
@@ -78,6 +77,8 @@ Wave 3 (base main):              M (after E and every wave 2 UI PR)      P (afte
 | `src/game/wave.ts` | The defense sum gains a `citizens` term (F1, only if citizen buffs touch defense) and an `arena` term (G1). |
 | `src/state/gameStore.ts` | Each adds an action block at its own anchor. |
 | `src/assets/index.ts`, `assets.test.ts`, `eventText.ts`, `OverlayHost.tsx`, `e2e/responsive.spec.ts` | Additive blocks from F2 and G2. |
+
+The **overnight program** (the Arena plus eleven mini games, on the `integration/arena` branch) is described in `docs/OVERNIGHT.md` and `docs/briefs/games/`.
 
 Later ideas, not briefs yet: citizens joining the Arena roster (a small follow-up once F and G are merged), shop registration, a sun-crow familiar, optional cloud sync (`docs/design/GDD.md`, "Out of v1"), editing Map outposts from quests.
 
@@ -114,6 +115,15 @@ Stack only when the maintainer wrote "Stacked on <brief or PR>" in your brief. T
 6. The maintainer merges in dependency order with **merge commits** (never squash a branch that something is stacked on), then retargets your PR to `main` and asks you to merge `main` in. Do not retarget it yourself.
 7. Never delete a branch that has an open PR on top of it.
 
+### 4.3b Integration branches (unattended programs)
+
+For overnight or other unattended programs the maintainer creates a branch `integration/<name>` from `main` and every agent in that program starts from it and opens its PR **against it**, never against `main`. The workflow `.github/workflows/integration-automerge.yml` merges a PR into the integration branch by itself when it is **ready (not a draft)**, mergeable and all four CI jobs are green, and retargets a stacked PR when its parent merges. Consequences for an agent:
+
+- Mark your PR **ready** only when your brief's acceptance list passes: that is the moment it merges. A draft never merges.
+- You still never merge anything yourself and never push to `main` or to the integration branch.
+- Nothing is independently reviewed until the maintainer reviews the whole integration branch before it goes to `main` (see `docs/OVERNIGHT.md`), so your own checks are the only safety net: be strict with them.
+- Stop switch: the repository variable `INTEGRATION_AUTOMERGE=off`. A `hold` label on a PR skips that PR.
+
 ### 4.4 Who may touch what
 
 Your brief lists what you may edit. Everything else is off limits. These shared files get extra rules because several briefs need them:
@@ -136,7 +146,7 @@ Your brief lists what you may edit. Everything else is off limits. These shared 
 
 ### 4.5 The save file and content
 
-- A change to the shape of `SaveFile` needs a **reserved version number**. Reservations: **v5 = brief H, v6 = brief F (F1), v7 = brief G (G1)**. Lower versions merge first. Two briefs never share a number. If a brief is dropped its number is simply skipped; `migrate` accepts any older version.
+- A change to the shape of `SaveFile` needs a **reserved version number**. Reservations: **v5 = brief G (the Arena, G1), v6 = brief H, v7 = brief F (F1)**. Lower versions merge first. If your reserved number is already taken at merge time, take the next free one and say so in the PR. Two briefs never share a number. If a brief is dropped its number is simply skipped; `migrate` accepts any older version.
 - Your PR must include: the bump in `SAVE_VERSION`, the migration in `src/game/save.ts` that fills defaults for older saves, and tests for each earlier version you support (see `src/game/save.test.ts`).
 - Content (quests, titles, strings) lives in `src/game/content/*.json` and is documented in `schema.md`. Document every new field there.
 - Original content only: no names, art, text or systems copied from the source work.
@@ -199,13 +209,13 @@ Give the agent the repository and this single instruction (replace `X` and the f
 | --- | --- | --- | --- |
 | E | now | `docs/briefs/E-i18n-groundwork.md` | `main` |
 | F1 | now | `docs/briefs/F-citizens.md`, section F1 | `main` |
-| G1 | now | `docs/briefs/G-arena.md`, section G1 | `main` |
+| G1 | overnight program | `docs/briefs/G-arena.md`, section G1 | `integration/arena` |
 | H | now | `docs/briefs/H-quest-notes.md` | the existing `cursor/quest-learned-notes-40d2` |
 | J | now | `docs/briefs/J-weekly-recap-card.md` | `main` |
 | K | now | `docs/briefs/K-e2e-stability.md` | `main` |
 | L | now | `docs/briefs/L-polish-pack.md` | `main` |
 | F2 | after F1 has a green CI run | `docs/briefs/F-citizens.md`, section F2 | `feat/F1-citizens-engine` |
-| G2 | after G1 has a green CI run | `docs/briefs/G-arena.md`, section G2 | `feat/G1-arena-engine` |
+| G2 | same run as G1, after G1 is pushed with green CI | `docs/briefs/G-arena.md`, section G2 | `feat/G1-arena-engine` |
 
 The exact prompt for each agent is at the end of its brief (F and G have one prompt per run).
 
