@@ -4,7 +4,7 @@ Every game brief in this folder builds **one self-contained mini game** for the 
 
 ## What you are building on
 
-Phase 0 is done and merged: the plug-in contract, the auto-discovering registry, the Games Lab and the contract test kit. **Read `docs/design/games/CONTRACT.md` and copy `src/games/sample/` (the reference game "Coin Duel") before you write anything.** Your game appears in the Arena and in the lab with no edits to any shared file.
+Phase 0 is done and merged: the plug-in contract, the auto-discovering registry, the Games Lab and the contract test kit. **Read `docs/design/games/CONTRACT.md` completely (its recipe, "What the test kit enforces" and "Real-time games" sections) and copy `src/games/sample/` (the reference game "Coin Duel") before you write anything.** Your game appears in the Arena and in the lab with no edits to any shared file. The kit enforces more than this file repeats (for example the required `## Party` and `## Buffs` headings in `docs/games/<id>.md`, `rosterSize.min` at most 3, `learning` required for AI-learning games, a bot that wins at least once, no unknown fields): when CONTRACT.md and this file differ on a mechanical rule, CONTRACT.md wins.
 
 ## Process (non-negotiable)
 
