@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fixedTz, resolveTemplate, type SaveFile } from '../game';
+import { DAY_MS, fixedTz, gameDayStartMs, resolveTemplate, type SaveFile } from '../game';
 import { T0, at, freshWithBoard } from '../game/testUtils';
 import { DEFAULT_PREFS, type ReminderPrefs } from './prefs';
 import { instantAt, isQuiet, localMinutes, nextReminders } from './scheduler';
@@ -97,6 +97,30 @@ describe('nextReminders: board issued', () => {
   });
 });
 
+describe('nextReminders: board re-planned during quiet hours', () => {
+  const save = withSettings(freshWithBoard(), { lightsOutHour: 23, wakeHour: 8 });
+  const early = { ...ON, board: { on: true, minutes: 7 * 60 } };
+
+  it('keeps the slid reminder of today when planning again before it', () => {
+    const first = nextReminders(save, early, at(0, 6, 0), UTC).find((r) => r.kind === 'board');
+    expect(first?.at).toBe(at(0, 8, 0));
+    // The phone wakes at 07:30 (visibilitychange) and the plan is rebuilt.
+    const again = nextReminders(save, early, at(0, 7, 30), UTC).find((r) => r.kind === 'board');
+    expect(again?.at).toBe(at(0, 8, 0));
+  });
+
+  it('keeps a before-midnight time slid to the morning across a midnight re-plan', () => {
+    const late = { ...ON, board: { on: true, minutes: 23 * 60 + 30 } };
+    const evening = nextReminders(save, late, at(0, 22, 0), UTC).find((r) => r.kind === 'board');
+    expect(evening?.at).toBe(at(1, 8, 0));
+    for (const hour of [23, 0, 3, 7]) {
+      const day = hour >= 23 ? 0 : 1;
+      const again = nextReminders(save, late, at(day, hour, 45), UTC).find((r) => r.kind === 'board');
+      expect(again?.at, `planned at ${hour}:45`).toBe(at(1, 8, 0));
+    }
+  });
+});
+
 describe('nextReminders: wave tomorrow', () => {
   // The fixture's first day is Mon 2026-01-05; period 0 ends with its last game day, Sun 2026-01-11.
   it('fires at 19:00 on the last game day of the wave period', () => {
@@ -109,14 +133,27 @@ describe('nextReminders: wave tomorrow', () => {
     expect(r?.at).toBe(at(13, 19, 0));
   });
 
-  it('uses the reset hour to decide which game day a time belongs to', () => {
-    // Reset 20:00, first day Mon 2026-01-05: Sunday 19:00 still belongs to Saturday's game day,
-    // so the last game day's 19:00 is the next calendar day, Monday 2026-01-12 at 19:00.
+  it('fires on the calendar day before the wave settles, whatever the reset hour', () => {
+    // First day Mon 2026-01-05. The wave settles when the next period's first day starts.
+    for (const resetHour of [0, 4, 19, 20, 23]) {
+      const now = at(0, 21);
+      const save = freshWithBoard({ settings: { resetHour, lightsOutHour: 23, wakeHour: 8 } }, now);
+      const r = nextReminders(save, ON, now + 60_000, UTC).find((x) => x.kind === 'wave');
+      const settles = gameDayStartMs(save.firstPlayDay + 7, resetHour, UTC);
+      // The calendar day before the settle, at 19:00: never on the settle's own day.
+      const settleDay = Math.floor(settles / DAY_MS);
+      expect(r?.at, `reset ${resetHour}`).toBe(instantAt(settleDay - 1, 19 * 60, UTC));
+      expect(settles - (r?.at ?? 0), `reset ${resetHour}`).toBeGreaterThanOrEqual(5 * 3_600_000);
+    }
+  });
+
+  it('with reset 20 it is not an hour before the wave on the same day', () => {
     const now = at(0, 21);
-    const late = freshWithBoard({ settings: { resetHour: 20, lightsOutHour: 23, wakeHour: 8 } }, now);
-    expect(nextReminders(late, ON, now + 60_000, UTC).find((x) => x.kind === 'wave')?.at).toBe(at(7, 19, 0));
-    const early = freshWithBoard({ settings: { resetHour: 4 } }, now);
-    expect(nextReminders(early, ON, now + 60_000, UTC).find((x) => x.kind === 'wave')?.at).toBe(at(6, 19, 0));
+    const save = freshWithBoard({ settings: { resetHour: 20, lightsOutHour: 23, wakeHour: 8 } }, now);
+    const r = nextReminders(save, ON, now + 60_000, UTC).find((x) => x.kind === 'wave');
+    const settles = gameDayStartMs(save.firstPlayDay + 7, 20, UTC);
+    expect(settles).toBe(at(7, 20, 0));
+    expect(r?.at).toBe(at(6, 19, 0));
   });
 
   it('is dropped, not moved, when its time falls in quiet hours', () => {
@@ -167,6 +204,19 @@ describe('nextReminders: timer finished', () => {
     const started = at(0, 23, 30) - probe.needed;
     const { save } = withRunningTimer(started);
     expect(nextReminders(save, ON, started + 1, UTC).some((r) => r.kind === 'timer')).toBe(false);
+  });
+
+  it('is dropped when the board rolls over before the timer ends', () => {
+    // No quiet hours here, so only the rollover can drop it.
+    const base = withSettings(freshWithBoard(), { lightsOutHour: 1, wakeHour: 1 });
+    const probe = withRunningTimer(at(0, 0, 0));
+    const timer = base.board?.quests.find((q) => q.kind === 'timer');
+    const quests = (base.board?.quests ?? []).map((q) => (q === timer ? { ...q, timer: { startedAt: at(1, 3, 59) - 60_000, accumulatedMs: 0 } } : q));
+    const save = { ...base, board: base.board ? { ...base.board, quests } : null };
+    expect(probe.needed).toBeGreaterThan(2 * 60_000);
+    // The board is for Jan 5 (game day ends at Jan 6 04:00); the timer would end after that.
+    expect(at(1, 3, 59) - 60_000 + probe.needed).toBeGreaterThan(at(1, 4, 0));
+    expect(nextReminders(save, ON, at(1, 3, 59), UTC).some((r) => r.kind === 'timer')).toBe(false);
   });
 
   it('is skipped when its toggle is off', () => {
