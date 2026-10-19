@@ -1,7 +1,7 @@
 /**
  * Size budgets for every game (docs/design/games/CONTRACT.md, "Size budgets"):
  * the game's own code, minified before gzip, at most 150 KB; the assets in its
- * folder at most 200 KB. Measured by scripts/games-budget.mjs (esbuild, in a
+ * folder at most 200 KB. Measured by scripts/games-budget.mjs (vite's transformWithEsbuild, in a
  * child process because esbuild does not run inside jsdom).
  */
 import { execFileSync } from 'node:child_process';
