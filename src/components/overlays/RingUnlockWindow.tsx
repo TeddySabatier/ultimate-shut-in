@@ -1,5 +1,7 @@
 import { useCallback, useId, useState } from 'react';
-import { getRing, strings, type RingId } from '../../game';
+import { Link, useInRouterContext } from 'react-router-dom';
+import { activeOutposts, getRing, strings, zoneOfCell, type RingId } from '../../game';
+import { useGameStore } from '../../state/gameStore';
 import { havenSceneForRing } from '../../assets';
 import { seededLine } from '../../state/selectors';
 import { SystemWindow } from '../SystemWindow';
@@ -17,6 +19,9 @@ interface RingUnlockWindowProps {
 export function RingUnlockWindow({ ring, onDismiss }: RingUnlockWindowProps) {
   const id = useId();
   const def = getRing(ring);
+  const inRouter = useInRouterContext();
+  const save = useGameStore((s) => s.save);
+  const reached = save ? activeOutposts(save).filter((o) => zoneOfCell(o.cell) === ring) : [];
   const [typing, setTyping] = useState(true);
   const skip = useCallback(() => setTyping(false), []);
   const onDone = useCallback(() => setTyping(false), []);
@@ -43,6 +48,11 @@ export function RingUnlockWindow({ ring, onDismiss }: RingUnlockWindowProps) {
                 Skip
               </button>
             ) : null}
+            {inRouter ? (
+              <Link to="/map" className="btn" onClick={onDismiss}>
+                {strings.map.seeOnMap}
+              </Link>
+            ) : null}
             <button type="button" className="btn btn--primary" onClick={onDismiss}>
               Continue
             </button>
@@ -58,6 +68,7 @@ export function RingUnlockWindow({ ring, onDismiss }: RingUnlockWindowProps) {
           <span className="muted">Unlocked: </span>
           {def.facilities.map((f) => f.name).join(', ')}
         </p>
+        {reached.length > 0 ? <p className={styles.facilities}>{reached.map((o) => strings.map.toasts.withinWalls.replace('{name}', o.name)).join(' ')}</p> : null}
       </SystemWindow>
     </ModalFrame>
   );

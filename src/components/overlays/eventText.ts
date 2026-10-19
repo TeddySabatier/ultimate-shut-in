@@ -3,7 +3,7 @@
  * `strings.json` pools (seeded so a re-render shows the same line) or from a
  * content definition; nothing here computes a number.
  */
-import { formatLine, getCombo, getHabit, getTitle, resolveTemplate, strings, TIED_HABIT, vassalName, type GameEvent, type SaveFile } from '../../game';
+import { formatLine, getCombo, getHabit, getOutpostState, getTitle, nextOutpostState, resolveTemplate, strings, TIED_HABIT, vassalName, type GameEvent, type SaveFile } from '../../game';
 import { seededLine } from '../../state/selectors';
 import type { WindowTone } from '../SystemWindow';
 
@@ -68,6 +68,17 @@ export function eventKey(e: GameEvent): string {
       return `${e.type}:${e.count}`;
     case 'proposalResolved':
       return `${e.type}:${e.id}:${e.accepted ? 'yes' : 'no'}`;
+    case 'outpostCreated':
+    case 'outpostVisitUndone':
+    case 'outpostRetired':
+    case 'outpostRestored':
+      return `${e.type}:${e.outpostId}`;
+    case 'outpostVisited':
+      return `${e.type}:${e.outpostId}:${e.visits}:${e.counted ? 'c' : 'u'}`;
+    case 'outpostStateReached':
+      return `${e.type}:${e.outpostId}:${e.state}`;
+    case 'outpostWithinWalls':
+      return `${e.type}:${e.outpostId}:${e.ring}`;
   }
 }
 
@@ -134,7 +145,33 @@ export function toastCopy(save: SaveFile, e: GameEvent): ToastCopy | null {
         ? { title: strings.proposals.heading, line: formatLine(strings.proposals.toasts.accepted, { title: quest }), tone: 'accent' }
         : { title: strings.proposals.heading, line: strings.proposals.toasts.dismissed, tone: 'default' };
     }
+    case 'outpostCreated':
+      return { title: 'Outpost marked', line: formatLine(strings.map.toasts.created, { name: outpostName(save, e.outpostId) }), tone: 'accent' };
+    case 'outpostVisited': {
+      const o = save.map.outposts.find((x) => x.id === e.outpostId);
+      const name = o?.name ?? 'The outpost';
+      if (!e.counted) return { title: 'Visit logged', line: formatLine(strings.map.toasts.visitedUncounted, { name }), tone: 'default' };
+      const next = o ? nextOutpostState(o.peak) : null;
+      const rest = next ? formatLine(strings.map.toasts.visitedNext, { n: next.minVisits - e.visits, state: next.label }) : strings.map.toasts.visitedHold;
+      return { title: 'Visit logged', line: formatLine(strings.map.toasts.visited, { name, visits: e.visits, s: e.visits === 1 ? '' : 's', next: rest }), tone: 'success' };
+    }
+    case 'outpostVisitUndone':
+      return { title: 'Reverted', line: formatLine(strings.map.toasts.undone, { name: outpostName(save, e.outpostId) }), tone: 'default' };
+    case 'outpostStateReached': {
+      const t = strings.map.toasts;
+      const label = e.state === 'scouted' ? t.stateScouted : e.state === 'corridor' ? t.stateCorridor : e.state === 'stronghold' ? t.stateStronghold : getOutpostState(e.state).label;
+      const perk = e.state === 'scouted' ? t.perkScouted : e.state === 'corridor' ? t.perkCorridor : t.perkStronghold;
+      return { title: `Outpost ${getOutpostState(e.state).label}`, line: formatLine(t.stateReached, { name: outpostName(save, e.outpostId), state: label, perk }), tone: 'accent' };
+    }
+    case 'outpostRetired':
+      return { title: 'Retired', line: formatLine(strings.map.toasts.retired, { name: outpostName(save, e.outpostId) }), tone: 'default' };
+    case 'outpostRestored':
+      return { title: 'Restored', line: formatLine(strings.map.toasts.restored, { name: outpostName(save, e.outpostId) }), tone: 'success' };
     default:
       return null;
   }
+}
+
+function outpostName(save: SaveFile, id: string): string {
+  return save.map.outposts.find((o) => o.id === id)?.name ?? 'The outpost';
 }

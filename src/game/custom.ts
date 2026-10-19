@@ -60,6 +60,8 @@ export interface CleanDraft {
   pinWeekday?: number;
   timeSlot: TimeSlot;
   source: CustomTemplate['source'];
+  /** Outpost that completions tag; undefined when none. */
+  outpostId?: string;
 }
 
 /* ------------------------------ Validation ------------------------------ */
@@ -101,6 +103,7 @@ export function cleanDraft(d: CustomDraft): { draft: CleanDraft } | { error: str
   };
   if (durationMin !== undefined) clean.durationMin = durationMin;
   if (targetCount !== undefined) clean.targetCount = targetCount;
+  if (typeof d.outpostId === 'string' && d.outpostId !== '') clean.outpostId = d.outpostId;
   if (recurrence === 'weekly:1' && d.pinWeekday !== undefined && Number.isInteger(d.pinWeekday) && d.pinWeekday >= 0 && d.pinWeekday <= 6) {
     clean.pinWeekday = d.pinWeekday;
   }
@@ -121,7 +124,15 @@ export function draftOf(c: CustomTemplate): CustomDraft {
     pinWeekday: c.pinWeekday,
     timeSlot: c.timeSlot,
     source: c.source,
+    outpostId: c.outpostId,
   };
+}
+
+/** An outpost a template may default to: on the map and not retired. */
+function outpostUsable(save: Pick<SaveFile, 'map'>, id: string | undefined): boolean {
+  if (id === undefined) return true;
+  const o = save.map.outposts.find((x) => x.id === id);
+  return o !== undefined && !o.retired;
 }
 
 /* ------------------------------ Queries ------------------------------ */
@@ -237,6 +248,7 @@ export function addCustomTemplate(save: SaveFile, now: number, input: CustomDraf
   if (activeCustomTemplates(save).some((c) => c.habit === d.habit && sameTitle(c.title, d.title))) {
     return refuse(save, `you already have "${d.title}" in My quests`);
   }
+  if (!outpostUsable(save, d.outpostId)) return refuse(save, 'unknown outpost');
   const draft = clone(save);
   const id = uniqueId(draft, now, d);
   const t: CustomTemplate = {
@@ -255,6 +267,7 @@ export function addCustomTemplate(save: SaveFile, now: number, input: CustomDraf
   if (d.durationMin !== undefined) t.durationMin = d.durationMin;
   if (d.targetCount !== undefined) t.targetCount = d.targetCount;
   if (d.pinWeekday !== undefined) t.pinWeekday = d.pinWeekday;
+  if (d.outpostId !== undefined) t.outpostId = d.outpostId;
   draft.customTemplates.push(t);
   pushLog(draft, now, draft.lastOpenDay, 'customSaved', `${t.title} saved in My quests.`);
   return { ...ok(draft, [{ type: 'customSaved', templateId: id }]), templateId: id };
@@ -278,6 +291,7 @@ export function updateCustomTemplate(
   for (const [k, v] of Object.entries(patch)) {
     if (v !== undefined) (merged as unknown as Record<string, unknown>)[k] = v;
   }
+  if (patch.outpostId === null) merged.outpostId = undefined;
   if (patch.tier === undefined && (patch.kind !== undefined || patch.durationMin !== undefined || patch.targetCount !== undefined)) merged.tier = undefined;
   if (merged.kind !== 'timer') merged.durationMin = undefined;
   if (merged.kind !== 'count') merged.targetCount = undefined;
@@ -289,6 +303,7 @@ export function updateCustomTemplate(
   if (activeCustomTemplates(save).some((c) => c.id !== templateId && c.habit === d.habit && sameTitle(c.title, d.title))) {
     return refuse(save, `you already have "${d.title}" in My quests`);
   }
+  if (!outpostUsable(save, d.outpostId)) return refuse(save, 'unknown outpost');
   const onBoard = save.board?.quests.some((q) => q.templateId === templateId) ?? false;
   if (onBoard && (d.habit !== current.habit || d.kind !== current.kind)) {
     return refuse(save, 'it is on today\'s board; change its habit or kind from tomorrow');
@@ -309,6 +324,8 @@ export function updateCustomTemplate(
   else delete t.targetCount;
   if (d.pinWeekday !== undefined) t.pinWeekday = d.pinWeekday;
   else delete t.pinWeekday;
+  if (d.outpostId !== undefined) t.outpostId = d.outpostId;
+  else delete t.outpostId;
   pushLog(draft, now, gameDayIndex(now, draft.settings.resetHour, opts?.tz), 'customUpdated', `${t.title} updated.`);
   return { ...ok(draft, [{ type: 'customUpdated', templateId }]), templateId };
 }

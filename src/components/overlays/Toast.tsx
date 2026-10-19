@@ -11,7 +11,7 @@ interface ToastProps {
   tone?: WindowTone | undefined;
   children?: ReactNode;
   /** Auto-dismiss delay in ms; 0 disables. */
-  autoMs?: number;
+  autoMs?: number | undefined;
   onDismiss: () => void;
 }
 

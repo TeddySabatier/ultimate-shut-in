@@ -22,7 +22,8 @@ import {
 import { fnv1a, mulberry32, rngInt, rngWeightedIndex, type Rng } from './rng';
 import { forgeCombosDraft, unforgeBrokenCombosDraft } from './combos';
 import { evaluateTitlesDraft, titleCoinMult, titleLoyaltyFlat, titleXpMult } from './titles';
-import { bumpCustomStatsDraft, isCustomId, resolveTemplate } from './template';
+import { bumpCustomStatsDraft, findCustom, isCustomId, resolveTemplate } from './template';
+import { findOutpost, outpostCoinMult, outpostRerollDiscount, recordVisitDraft, untagQuestDraft } from './outposts';
 import { gameDayIndex, type TimeOptions } from './time';
 import { restoreUtilityDraft, revertUtilityDraft } from './utilities';
 import { gainLoyaltyDraft, markActiveDraft, revertLoyaltyDraft } from './vassals';
@@ -321,6 +322,7 @@ function completeQuestOn(draft: SaveFile, id: string, now: number): ActionResult
     titleXpMult: titleXpMult(draft, q.habit),
     titleCoinMult: titleCoinMult(draft),
     titleLoyaltyFlat: titleLoyaltyFlat(draft),
+    outpostCoinMult: outpostCoinMult(draft, q.habit),
   });
   const vassal = draft.vassals[q.habit];
   const loyaltyApplied = gainLoyaltyDraft(vassal, rewards.loyalty);
@@ -354,6 +356,10 @@ function completeQuestOn(draft: SaveFile, id: string, now: number): ActionResult
   pushLog(draft, now, day, 'questDone', `${t.title}: +${rewards.xp} XP, +${rewards.coins} settlement, +${rewards.dp} DP.`);
   events.push(...forgeCombosDraft(draft, day, now));
   events.push(...evaluateTitlesDraft(draft, now, day));
+  // A custom quest that defaults to an outpost tags itself (CITY-MAP 3.2).
+  const home = isCustomId(q.templateId) ? findCustom(draft, q.templateId)?.outpostId : undefined;
+  const outpost = home === undefined ? undefined : findOutpost(draft, home);
+  if (outpost && !outpost.retired) events.push(...recordVisitDraft(draft, outpost, day, now, 'quest', q.instanceId));
   return ok(draft, events);
 }
 
@@ -418,6 +424,7 @@ export function undoQuest(save: SaveFile, id: string, now: number, opts?: TimeOp
 
   const events: GameEvent[] = [{ type: 'questUndone', instanceId: id, habit: dq.habit }];
   events.push(...unforgeBrokenCombosDraft(draft, day));
+  untagQuestDraft(draft, id); // its outpost visit goes with it; the outpost's peak state stays
   pushLog(draft, now, day, 'questUndone', `${t?.title ?? dq.templateId}: entry reverted.`);
   return ok(draft, events);
 }
@@ -431,7 +438,8 @@ export function rerollQuest(save: SaveFile, id: string, now: number): ActionResu
   if (!board || !q || error) return refuse(save, error ?? 'quest not on board');
   if (board.rerolledToday) return refuse(save, 'already swapped a quest today');
   if (q.status !== 'open') return refuse(save, 'only open quests can be swapped');
-  const price = rerollPrice(save.player.ring);
+  // A Scouted outpost related to the habit makes the swap 5 cheaper (CITY-MAP 3.3).
+  const price = Math.max(0, rerollPrice(save.player.ring) - outpostRerollDiscount(save, q.habit));
   if (save.player.coins < price) return refuse(save, 'not enough settlement');
   if (isCustomId(q.templateId)) return refuse(save, 'your own quests are not swapped; archive it in the Ledger instead');
   const t = getQuest(q.templateId);

@@ -197,13 +197,28 @@
     "nothingToRestore": "Nothing to restore. The Protocol is pleased to report this."
   },
   "difficulty": {
-    "gentle": { "label": "Gentle", "blurb": "Three quests a day, mostly small. Vassals are patient. Waves are mild." },
-    "steady": { "label": "Steady", "blurb": "Four quests a day, a mix. The default pace." },
-    "hardcore": { "label": "Hardcore", "blurb": "Five quests a day, mostly big. Vassals need attention; waves hit harder. Rings roughly twice as fast." }
+    "gentle": {
+      "label": "Gentle",
+      "blurb": "Three quests a day, mostly small. Vassals are patient. Waves are mild."
+    },
+    "steady": {
+      "label": "Steady",
+      "blurb": "Four quests a day, a mix. The default pace."
+    },
+    "hardcore": {
+      "label": "Hardcore",
+      "blurb": "Five quests a day, mostly big. Vassals need attention; waves hit harder. Rings roughly twice as fast."
+    }
   },
   "benevolence": {
-    "benevolent": { "label": "Benevolent", "blurb": "Neglected vassals wait. Loyalty stops at 1; nobody ever leaves." },
-    "strict": { "label": "Strict", "blurb": "At 0 loyalty a vassal takes leave. One completed quest, or a token, brings them back." }
+    "benevolent": {
+      "label": "Benevolent",
+      "blurb": "Neglected vassals wait. Loyalty stops at 1; nobody ever leaves."
+    },
+    "strict": {
+      "label": "Strict",
+      "blurb": "At 0 loyalty a vassal takes leave. One completed quest, or a token, brings them back."
+    }
   },
   "ui": {
     "home": "Haven",
@@ -228,7 +243,8 @@
     "recruit": "Welcome back",
     "resetHour": "Day starts at",
     "lightsOut": "Lights-out hour",
-    "wakeHour": "Wake hour"
+    "wakeHour": "Wake hour",
+    "map": "Map"
   },
   "compose": {
     "open": "Add my own quest",
@@ -260,9 +276,22 @@
       "tier": "Effort",
       "rewards": "Pays about"
     },
-    "kinds": { "check": "Check", "timer": "Timer", "count": "Counter" },
-    "slots": { "any": "Any time", "morning": "Morning", "afternoon": "Afternoon", "evening": "Evening" },
-    "tiers": ["Light", "Steady", "Hard"],
+    "kinds": {
+      "check": "Check",
+      "timer": "Timer",
+      "count": "Counter"
+    },
+    "slots": {
+      "any": "Any time",
+      "morning": "Morning",
+      "afternoon": "Afternoon",
+      "evening": "Evening"
+    },
+    "tiers": [
+      "Light",
+      "Steady",
+      "Hard"
+    ],
     "tierSuggested": "suggested",
     "tierCap": "A {kind} can claim tier {max} at most. A timer over 30 minutes unlocks tier 3.",
     "questions": {
@@ -271,7 +300,12 @@
       "title": "What should it be called?",
       "empty": "Say or type one sentence to start."
     },
-    "actions": { "board": "Add to board today", "recurring": "Save as recurring", "later": "Save for later", "cancel": "Cancel" },
+    "actions": {
+      "board": "Add to board today",
+      "recurring": "Save as recurring",
+      "later": "Save for later",
+      "cancel": "Cancel"
+    },
     "notes": {
       "full": "Two of your own quests are already on today's board. Save it and it starts tomorrow.",
       "habitOff": "{habit} is switched off in Settings. It stays saved and will not appear until you switch it back on.",
@@ -292,7 +326,11 @@
       "stats": "Issued {issued}, settled {done}, attempted {tried}",
       "archiveTitle": "Archive this quest?",
       "archiveBody": "It stops coming back. What you settled stays in the Ledger.",
-      "sources": { "voice": "Spoken", "text": "Typed", "proposal": "From the Haven" }
+      "sources": {
+        "voice": "Spoken",
+        "text": "Typed",
+        "proposal": "From the Haven"
+      }
     }
   },
   "proposals": {
@@ -346,5 +384,187 @@
       "accepted": "Done. {title} is set.",
       "dismissed": "Noted. The Haven will not bring that up for a week."
     }
+  },
+  "map": {
+    "title": "City map",
+    "ringLine": "Ring {ring} of 7 · {name}",
+    "a11y": {
+      "svg": "City map. Seven zones around the Haven. Tab moves between zones and outposts; Enter opens one.",
+      "zoneBand": "Zone {zone}, {name}, {status}",
+      "pin": "{name}, {type}, {state}{quiet}, zone {zone}{beyond}, {visits} visits"
+    },
+    "hud": {
+      "compare": "7 days",
+      "compareLabel": "Compare with 7 days ago",
+      "list": "List",
+      "listLabel": "Show the map as a list",
+      "mapLabel": "Show the map",
+      "mapView": "Map",
+      "nextWave": "Next wave {days} days",
+      "waveTonight": "Wave tonight"
+    },
+    "since": {
+      "gain": "+{dp} DP since your last look",
+      "same": "Same as your last look",
+      "legend": "7 days ago",
+      "legendNew": "new ground",
+      "compare": "+{dp} DP in 7 days. The wall moved {streets} streets.",
+      "compareNone": "No new ground in 7 days. The wall keeps."
+    },
+    "domain": {
+      "title": "Domain",
+      "ringNo": "Ring {ring} / 7",
+      "sub": "{dp} / {next} DP to {name}. The wall is {pct}% of the way there.",
+      "subCity": "The City is registered. Every ring is lit. The Ledger keeps counting: {dp} DP.",
+      "wallsHeld": "Walls held",
+      "wallBonus": "Wall bonus",
+      "outposts": "Outposts"
+    },
+    "outposts": {
+      "title": "Outposts",
+      "subtitle": "places you go back to",
+      "empty": "No outposts yet. Mark a place you keep going back to: a gym, a park, a friend's door.",
+      "mark": "Mark an outpost",
+      "capRoom": "Room for {free} more at {ring}. Up to 3 per zone.",
+      "capFull": "The Ledger holds {cap} outposts at {ring}. Each new ring makes room for one more.",
+      "visit": "I was there",
+      "visitToday": "I was there today",
+      "logged": "Logged",
+      "loggedToday": "Logged today",
+      "visitLabel": "I was there: log a visit to {name}",
+      "loggedLabel": "Visit to {name} logged today",
+      "undoVisit": "Undo today's visit",
+      "beyond": "Beyond",
+      "beyondTheWall": "Beyond the wall",
+      "quiet": "Quiet",
+      "claimed": "Claimed",
+      "current": "Current ring",
+      "next": "Next",
+      "visitsOf": "{visits}/{next} visits",
+      "visitsAll": "{visits} visits",
+      "noVisits": "No visits yet",
+      "visitedToday": "Visited today",
+      "visitedYesterday": "Visited yesterday",
+      "lastVisit": "Last visit {days} days ago",
+      "toNext": "{n} more visit{s} to {state}.",
+      "strongholdLine": "{visits} visits. A Stronghold of the Haven.",
+      "quietLine": "{name} is quiet. It keeps; nothing here fades. One visit wakes it.",
+      "beyondLine": "Beyond the wall for now. The dotted trail is the way you walk there.",
+      "beyondCorridor": "Beyond the wall for now. The corridor already reaches it.",
+      "gives": "What it gives",
+      "related": "Related vassals: {who}. Tag their quests here from the settlement window.",
+      "perkScouted": "Swapping {aHabits} quest costs {discount} less settlement.",
+      "perkCorridor": "{habits} quests return +10% settlement, and the wall reaches out to it on the map.",
+      "perkStronghold": "+2 defense in every weekly wave, and a Haven annex stands here.",
+      "edit": "Edit",
+      "retire": "Retire",
+      "restore": "Restore",
+      "forget": "Forget",
+      "retired": "Retired",
+      "retireTitle": "Retire {name}?",
+      "retireBody": "It leaves the map and keeps its visits in the Ledger. You can restore it later.",
+      "forgetTitle": "Forget {name}?",
+      "forgetBody": "This deletes the outpost and every visit logged there. Nothing else in the Haven changes. There is no undo.",
+      "retiredSection": "Retired outposts",
+      "retiredEmpty": "Nothing retired. Retired outposts rest here with their visits.",
+      "ledgerTitle": "Outposts",
+      "ledgerEmpty": "No outposts yet. Mark one on the Map.",
+      "lastVisitUnknown": "Visited, a while ago"
+    },
+    "zone": {
+      "kick": "Zone {zone} of 7",
+      "claimedAt": "Registered at {dp} DP",
+      "wallsIn": "Walls +{bonus} in every wave",
+      "toGo": "{dp} DP to go",
+      "registersAt": "Registers at {dp} DP",
+      "creep": "The wall creeps toward {name} with every quest. It crosses at {dp} DP.",
+      "facilities": "Facilities",
+      "opensWith": "Opens with {name}.",
+      "outpostsHere": "Outposts here",
+      "vignette": "Vignette",
+      "replay": "Replay vignette",
+      "placeholder": "The Protocol has not written this page yet. It will, the day the wall gets here.",
+      "haven": "The Haven itself"
+    },
+    "list": {
+      "label": "Zones of the city",
+      "claimed": "Claimed",
+      "current": "Current",
+      "toGo": "{dp} DP to go",
+      "beyond": "Beyond the wall"
+    },
+    "form": {
+      "kick": "New outpost",
+      "title": "Mark a place",
+      "editKick": "Edit outpost",
+      "editTitle": "Edit {name}",
+      "intro": "A real place you keep going back to. No address, no GPS: put it as far from home as it feels.",
+      "name": "Name",
+      "type": "Type",
+      "habits": "Related habits",
+      "habitsHint": "One or two. Their quests get the perks.",
+      "zone": "How far does it feel?",
+      "direction": "Which way?",
+      "beyondOption": "(beyond)",
+      "note": "Note (optional)",
+      "notePlaceholder": "Bring the good biscuits.",
+      "submit": "Mark outpost",
+      "save": "Save changes",
+      "cancel": "Cancel",
+      "move": "Move it",
+      "keepPlace": "Keep its place",
+      "directions": {
+        "n": "North",
+        "ne": "North-east",
+        "e": "East",
+        "se": "South-east",
+        "s": "South",
+        "sw": "South-west",
+        "w": "West",
+        "nw": "North-west"
+      }
+    },
+    "errors": {
+      "name required": "Give it a name, even a silly one. The Ledger is not fussy.",
+      "name taken": "There is already an outpost called {name}. Try another name.",
+      "cap reached": "The Ledger holds {cap} outposts at {ring}. Each new ring makes room for one more.",
+      "zone full": "{zone} already has three outposts. Try a ring further out, or closer in.",
+      "cell taken": "Outposts keep a little distance from each other. Try another direction.",
+      "cell invalid": "That spot is not on the map. The Room is the Haven itself and holds no outposts.",
+      "no free cell": "No free spot that way in {zone}. Outposts keep a little distance from each other; try another direction.",
+      "pick a habit": "Pick one or two habits for it, so its perks know whose quests to help.",
+      "already logged today": "Today's visit to {name} is already logged. Tomorrow counts again.",
+      "outpost is retired": "{name} is retired. Restore it from the Ledger first.",
+      "not retired": "Only a retired outpost can be forgotten. Retire it first.",
+      "quest not done": "Finish the quest first, then say where you were.",
+      "already tagged": "That quest already has a place.",
+      "nothing to undo": "Nothing to undo today. A tagged quest keeps its visit.",
+      "unknown outpost": "That outpost is not on the map."
+    },
+    "toasts": {
+      "created": "{name} is on the map. Three visits and it is Scouted.",
+      "visited": "{name}: {visits} visit{s}. {next}",
+      "visitedNext": "{n} to {state}.",
+      "visitedHold": "The Stronghold holds.",
+      "visitedUncounted": "{name}: logged for the Ledger. Today's visit was already counted.",
+      "undone": "Today's visit to {name} is taken back.",
+      "stateReached": "{name} is now {state}. {perk}",
+      "stateScouted": "Scouted",
+      "stateCorridor": "a Corridor",
+      "stateStronghold": "a Stronghold",
+      "perkScouted": "Swaps get cheaper for its vassals.",
+      "perkCorridor": "The wall reaches out to it.",
+      "perkStronghold": "An annex of the Haven stands there now.",
+      "retired": "{name} retired to the Ledger. Its visits are kept.",
+      "restored": "{name} is back on the map.",
+      "forgotten": "Forgotten. Nothing else in the Haven changed.",
+      "withinWalls": "The wall now reaches {name}."
+    },
+    "settlement": {
+      "where": "Where were you?",
+      "elsewhere": "Elsewhere"
+    },
+    "chip": "Map",
+    "seeOnMap": "See it on the map"
   }
 }

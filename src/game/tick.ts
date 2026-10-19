@@ -200,5 +200,16 @@ export function changeResetHour(save: SaveFile, newHour: number, now: number, op
     p.createdDay += delta;
     if (p.snoozeUntil !== null) p.snoozeUntil += delta;
   }
+  for (const o of draft.map.outposts) {
+    o.createdDay += delta;
+    o.lastVisitDay = shift(o.lastVisitDay);
+    for (const k of Object.keys(o.stateDays) as Array<keyof typeof o.stateDays>) {
+      const d = o.stateDays[k];
+      if (d !== undefined) o.stateDays[k] = d + delta;
+    }
+  }
+  for (const v of draft.map.visits) v.day += delta;
+  for (const s of draft.map.snapshots) s.day += delta;
+  if (draft.map.lastSeen) draft.map.lastSeen.day += delta;
   return ok(draft, []);
 }

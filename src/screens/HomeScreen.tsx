@@ -63,6 +63,7 @@ export function HomeScreen() {
             <li>Items +{b.combos}</li>
             <li>Titles +{b.titles}</li>
             <li>Well-kept +{b.wellKept}</li>
+            {b.outposts > 0 ? <li>Outposts +{b.outposts}</li> : null}
           </ul>
         </details>
       </SystemWindow>

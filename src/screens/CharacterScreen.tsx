@@ -25,6 +25,7 @@ import { Icon } from '../components/Icon';
 import { Meter } from '../components/Meter';
 import { SystemWindow } from '../components/SystemWindow';
 import { MyQuestsSection } from '../components/MyQuestsSection';
+import { OutpostsSection } from '../components/OutpostsSection';
 import { VassalCard } from '../components/VassalCard';
 import styles from './CharacterScreen.module.css';
 
@@ -79,6 +80,8 @@ export function CharacterScreen() {
   const resurrect = useGameStore((s) => s.resurrect);
   const addCustomToBoard = useGameStore((s) => s.addCustomToBoard);
   const archiveCustom = useGameStore((s) => s.archiveCustom);
+  const restoreOutpost = useGameStore((s) => s.restoreOutpost);
+  const forgetOutpost = useGameStore((s) => s.forgetOutpost);
   const now = useNow(false);
   const today = todayIndex(save, now);
   const xp = playerXpProgress(save);
@@ -159,6 +162,8 @@ export function CharacterScreen() {
 
       <MyQuestsSection save={save} onAddToday={addCustomToBoard} onArchive={archiveCustom} />
 
+      <OutpostsSection save={save} now={now} onRestore={restoreOutpost} onForget={forgetOutpost} />
+
       <SystemWindow title="Forged this period">
         {save.player.ring < comboRules.minRing ? (
           <p className="muted">The Improvised Forge opens with {ringName(comboRules.minRing)}.</p>
@@ -211,6 +216,7 @@ export function CharacterScreen() {
                         <p className={cx('muted', styles.breakdown)}>
                           Vassals +{w.breakdown.vassals} · Trust +{w.breakdown.trust} · Walls +{w.breakdown.walls} · Items +{w.breakdown.combos} · Titles +
                           {w.breakdown.titles} · Well-kept +{w.breakdown.wellKept}
+                          {w.breakdown.outposts > 0 ? ` · Outposts +${w.breakdown.outposts}` : ''}
                         </p>
                       ) : null}
                       <ol className={cx('mono', styles.log)}>

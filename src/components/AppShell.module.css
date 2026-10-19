@@ -24,6 +24,10 @@
   .shell {
     box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 48px rgba(0, 0, 0, 0.7);
   }
+  /* The City Map uses the room: two columns in a 980px frame (CITY-MAP 5.2). */
+  .wide {
+    max-width: 61.25rem;
+  }
 }
 
 /* Safe-area insets are applied here, once per edge; inner components never add env() again. */

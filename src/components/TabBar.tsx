@@ -13,6 +13,7 @@ interface Tab {
 const TABS: readonly Tab[] = [
   { to: '/', label: strings.ui.home, icon: uiIcons.home },
   { to: '/quests', label: strings.ui.quests, icon: uiIcons.quests },
+  { to: '/map', label: strings.ui.map, icon: uiIcons.map },
   { to: '/character', label: strings.ui.character, icon: uiIcons.character },
   { to: '/settings', label: strings.ui.settings, icon: uiIcons.settings },
 ];

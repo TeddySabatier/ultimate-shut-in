@@ -4,7 +4,7 @@
   right: 0;
   bottom: 0;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   height: calc(var(--tabbar-height) + var(--safe-bottom));
   padding-bottom: var(--safe-bottom);
   padding-left: var(--safe-left);
@@ -52,8 +52,26 @@
   overflow: hidden;
 }
 
+/* Five 64px columns at 375px still take Press Start 2P at 9px; below that Inter 800 is narrower (CITY-MAP 5.1). */
+@media (max-width: 374px) {
+  .label {
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+  }
+}
+
+/* Tablet and desktop: the columns are capped and centred, so a wide frame does not stretch the bar. */
+@media (min-width: 768px) {
+  .bar {
+    grid-template-columns: repeat(5, minmax(0, 7.5rem));
+    justify-content: center;
+  }
+}
+
 /* Icon-only below 340px and in landscape / keyboard-up; the label stays for assistive tech. */
-@media (max-width: 339px), (max-height: 500px) {
+@media (max-width: 339px) {
   .label {
     position: absolute;
     width: 1px;
@@ -67,5 +85,13 @@
   }
   .tab {
     gap: 0;
+  }
+}
+
+/* Landscape and keyboard-up: icon and label side by side in the shorter bar. */
+@media (max-height: 500px) {
+  .tab {
+    flex-direction: row;
+    gap: var(--space-1);
   }
 }

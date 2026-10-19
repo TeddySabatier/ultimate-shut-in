@@ -102,6 +102,46 @@ export {
 export { doneHabitsOnBoard, comboRequiredHabits, comboPowerBonus, countedCombos, comboDefense, forgeCombos } from './combos';
 export { resurrectionOffer, canResurrect, applyResurrection } from './resurrection';
 export type { ResurrectionChoice, ResurrectionOffer } from './resurrection';
+export * from './mapGeometry';
+export {
+  OUTPOST_NAME_MAX,
+  OUTPOST_NOTE_MAX,
+  OUTPOST_MIN_SPACING,
+  OUTPOST_PER_ZONE,
+  VISIT_LOG_MAX,
+  outpostStateFor,
+  nextOutpostState,
+  outpostStateAtLeast,
+  higherState,
+  outpostZone,
+  outpostCap,
+  activeOutposts,
+  findOutpost,
+  isOutpostQuiet,
+  outpostRerollDiscount,
+  outpostCoinMult,
+  outpostDefense,
+  strongholdOutposts,
+  countedVisitOn,
+  visitForQuest,
+  relatedOutposts,
+  suggestOutpostCell,
+  isOutpostTypeId,
+  resolveOutpostHabits,
+  placementError,
+  createOutpost,
+  editOutpost,
+  moveOutpost,
+  retireOutpost,
+  restoreOutpost,
+  forgetOutpost,
+  logOutpostVisit,
+  tagQuestAtOutpost,
+  undoOutpostVisit,
+} from './outposts';
+export type { OutpostInput, OutpostPatch } from './outposts';
+export { SNAPSHOT_MAX, COMPARE_DAYS, RESIDUE_DAYS, FLAG_DAYS, markMapSeen, compareSnapshot, wallsHeld, waveResidue } from './map';
+export type { WaveResidue } from './map';
 export { processBoundaries, changeResetHour, newBoundaryCaps } from './tick';
 export type { BoundaryCaps } from './tick';
 export {
@@ -110,6 +150,7 @@ export {
   DEFAULT_RESET_HOUR,
   NAME_MAX_LENGTH,
   createNewSave,
+  emptyMap,
   migrate,
   exportSave,
   sanitizeName,

@@ -9,8 +9,8 @@ const DAY0 = gameDayIndex(T0, 4, TZ.tz);
 describe('createNewSave', () => {
   it('builds the GDD defaults', () => {
     const s = createNewSave(T0, undefined, TZ);
-    expect(s.version).toBe(3);
-    expect(SAVE_VERSION).toBe(3);
+    expect(s.version).toBe(4);
+    expect(SAVE_VERSION).toBe(4);
     expect(s.player).toEqual({ name: 'Absolute', level: 1, xp: 0, coins: 0, domainPoints: 0, ring: 1, highestRing: 1, resurrectionMonth: null });
     expect(s.settings).toEqual(defaultSettings());
     expect(s.settings.enabledHabits).toEqual([...HABIT_IDS]);
@@ -38,7 +38,7 @@ describe('createNewSave', () => {
 describe('migrate', () => {
   it('accepts the legacy { name, level, xp } shape with or without the persist wrapper', () => {
     const a = migrate({ name: 'Old Hand', level: 3, xp: 50 }, T0, TZ);
-    expect(a.version).toBe(3);
+    expect(a.version).toBe(4);
     expect(a.player).toMatchObject({ name: 'Old Hand', level: 3, xp: 50, coins: 0, ring: 1 });
     expect(a.firstPlayDay).toBe(DAY0);
     const b = migrate({ state: { name: 'Wrapped', level: 99, xp: -5 }, version: 1 }, T0, TZ);
@@ -57,7 +57,7 @@ describe('migrate', () => {
     s.combos.push({ comboId: 'sprinting_umbrella', power: 4, forgedDay: DAY0 });
     s.log.push({ at: T0, day: DAY0, kind: 'x', text: 'y' });
     s.board = { day: DAY0, seed: 1, quests: [], bonusId: '', rerolledToday: true };
-    s.week.history.push({ index: 0, ring: 1, attack: 1, defense: 2, breakdown: { vassals: 0, trust: 0, walls: 0, combos: 0, titles: 0, wellKept: 0 }, result: 'win', dpAwarded: 15, log: [], settledAt: T0 });
+    s.week.history.push({ index: 0, ring: 1, attack: 1, defense: 2, breakdown: { vassals: 0, trust: 0, walls: 0, combos: 0, titles: 0, wellKept: 0, outposts: 0 }, result: 'win', dpAwarded: 15, log: [], settledAt: T0 });
     const back = migrate(JSON.parse(exportSave(s)), T0 + 99, TZ);
     expect(back).toEqual(s);
   });
@@ -104,7 +104,7 @@ describe('migrate', () => {
   it('returns a fresh save for garbage', () => {
     expect(migrate(null, T0, TZ).player.name).toBe('Absolute');
     expect(migrate('text', T0, TZ).firstPlayDay).toBe(DAY0);
-    expect(migrate([1, 2], T0, TZ).version).toBe(3);
+    expect(migrate([1, 2], T0, TZ).version).toBe(4);
   });
 });
 
@@ -121,7 +121,7 @@ describe('migrate: v3 (custom quests, proposals, activity)', () => {
   it('upgrades a v2 save with empty arrays and keeps everything else', () => {
     const old = v2();
     const s = migrate(old, T0, TZ);
-    expect(s.version).toBe(3);
+    expect(s.version).toBe(4);
     expect(s.customTemplates).toEqual([]);
     expect(s.proposals).toEqual([]);
     expect(s.activity).toEqual([]);
@@ -222,5 +222,113 @@ describe('migrate: v3 (custom quests, proposals, activity)', () => {
     expect(s.activity.at(-1)?.day).toBe(159);
     const day5 = migrate({ ...raw, activity: [raw.activity ? (raw.activity as unknown[])[1] : null] }, T0, TZ).activity;
     expect(day5).toEqual([{ day: 5, entries: [{ templateId: 'move.stretch', habit: 'move', status: 'done' }] }]);
+  });
+});
+
+describe('migrate: v4 (city map)', () => {
+  const v3 = (): Record<string, unknown> => {
+    const s = createNewSave(T0, 'Mapless', TZ) as unknown as Record<string, unknown>;
+    delete s.map;
+    s.version = 3;
+    return s;
+  };
+
+  it('gives v2 and v3 saves an empty map seeded with one snapshot of the current state', () => {
+    const old = v3();
+    (old.player as Record<string, unknown>).domainPoints = 400;
+    (old.week as Record<string, unknown>).index = 3;
+    (old.week as Record<string, unknown>).history = [
+      { index: 2, ring: 3, attack: 10, defense: 12, breakdown: { vassals: 1, trust: 2, walls: 3, combos: 0, titles: 0, wellKept: 0 }, result: 'win', dpAwarded: 15, log: [], settledAt: T0 },
+    ];
+    const s = migrate(old, T0, TZ);
+    expect(s.version).toBe(4);
+    expect(s.map.outposts).toEqual([]);
+    expect(s.map.visits).toEqual([]);
+    expect(s.map.lastSeen).toBeNull();
+    expect(s.map.nextSeq).toBe(1);
+    expect(s.map.snapshots).toEqual([{ periodIndex: 2, day: s.lastOpenDay, domainPoints: 400, ring: 3, result: 'win' }]);
+    // Every stored wave record gets the new breakdown term.
+    expect(s.week.history[0]?.breakdown.outposts).toBe(0);
+    const v2 = migrate({ version: 2, player: {}, settings: {}, vassals: {}, utilities: {} }, T0, TZ);
+    expect(v2.map.snapshots).toEqual([{ periodIndex: -1, day: DAY0, domainPoints: 0, ring: 1, result: 'quiet' }]);
+  });
+
+  it('round-trips a v4 save with outposts, visits and snapshots through export', () => {
+    const s = createNewSave(T0, 'Mapped', TZ);
+    s.map = {
+      outposts: [
+        { id: 'op1', name: 'Gym', type: 'gym', habits: ['move', 'hygiene'], note: 'Tue.', cell: { x: 2, y: 1 }, createdAt: T0, createdDay: DAY0, visits: 3, lastVisitDay: DAY0, peak: 'scouted', stateDays: { marked: DAY0, scouted: DAY0 }, retired: false },
+        { id: 'op2', name: 'Park', type: 'park', habits: ['outside'], note: '', cell: { x: -2, y: 1 }, createdAt: T0, createdDay: DAY0, visits: 0, lastVisitDay: null, peak: 'marked', stateDays: { marked: DAY0 }, retired: true },
+      ],
+      visits: [{ outpostId: 'op1', day: DAY0, at: T0, source: 'quest', instanceId: DAY0 + '-move.dance', counted: true }],
+      snapshots: [{ periodIndex: 0, day: DAY0 + 7, domainPoints: 15, ring: 1, result: 'win' }],
+      lastSeen: { day: DAY0, domainPoints: 15 },
+      nextSeq: 3,
+    };
+    s.customTemplates.push({ id: 'c-abc', habit: 'move', kind: 'check', title: 'Gym session', description: '', tier: 1, recurrence: 'once', timeSlot: 'any', createdAt: T0, source: 'text', stats: { issued: 0, done: 0, tried: 0 }, outpostId: 'op1' });
+    const back = migrate(JSON.parse(exportSave(s)), T0 + 99, TZ);
+    expect(back).toEqual(s);
+    expect(migrate(JSON.parse(exportSave(createNewSave(T0, 'Empty', TZ))), T0, TZ).map.snapshots).toEqual([]);
+  });
+
+  it('normalises a damaged map: bad cells and types dropped, text clamped, peak raised, orphans dropped, sequence rebuilt', () => {
+    const raw = createNewSave(T0, 'Damaged', TZ) as unknown as Record<string, unknown>;
+    raw.map = {
+      outposts: [
+        { id: 'op1', name: ' x'.repeat(30), type: 'gym', cell: { x: 2, y: 1 }, visits: 12, peak: 'marked', note: 7, stateDays: { scouted: 'no', corridor: DAY0 } },
+        { id: 'op2', name: 'Street', type: 'park', cell: { x: 4, y: 1 } },
+        { id: 'op3', name: 'Room', type: 'park', cell: { x: 0, y: 0 } },
+        { id: 'op4', name: 'Odd', type: 'spaceport', cell: { x: -2, y: 1 } },
+        { id: 'op5', name: 'Sea', type: 'park', cell: { x: 8, y: 8 } },
+        { id: 'op7', name: 'Other', type: 'other', cell: { x: -2, y: 1 }, habits: ['bogus'] },
+        { id: 'op8', name: 'Too close', type: 'cafe', cell: { x: 1, y: 0 }, visits: 1 },
+        { id: 'op9', name: 'Far', type: 'cafe', cell: { x: -3, y: -3 }, visits: 2, peak: 'stronghold', retired: 'yes' },
+        { id: 'bad', name: 'No id', type: 'cafe', cell: { x: 5, y: 3 } },
+      ],
+      visits: [
+        { outpostId: 'op1', day: DAY0, counted: true, source: 'checkin' },
+        { outpostId: 'op1', day: DAY0, counted: true, source: 'quest', instanceId: 'q1' },
+        { outpostId: 'op2', day: DAY0, counted: true },
+        { outpostId: 'op9', day: 'x', counted: true },
+        { outpostId: 'op9', day: DAY0 - 1, counted: 'maybe', source: 'teleport' },
+      ],
+      snapshots: [
+        { periodIndex: 2, day: DAY0, domainPoints: -4, ring: 9, result: 'draw' },
+        { periodIndex: 1, day: DAY0 },
+        { periodIndex: 5, day: DAY0 + 7, domainPoints: 40, ring: 2, result: 'loss' },
+      ],
+      lastSeen: { day: 'yesterday' },
+      nextSeq: 2,
+    };
+    raw.customTemplates = [
+      { id: 'c-ok', habit: 'move', kind: 'check', title: 'At the gym', description: '', recurrence: 'once', timeSlot: 'any', source: 'text', outpostId: 'op1' },
+      { id: 'c-orphan', habit: 'move', kind: 'check', title: 'Nowhere', description: '', recurrence: 'once', timeSlot: 'any', source: 'text', outpostId: 'op2' },
+      { id: 'c-retired', habit: 'move', kind: 'check', title: 'Far away', description: '', recurrence: 'once', timeSlot: 'any', source: 'text', outpostId: 'op9' },
+    ];
+    const s = migrate(raw, T0, TZ);
+    expect(s.map.outposts.map((o) => o.id)).toEqual(['op1', 'op8', 'op9']);
+    const op1 = s.map.outposts[0]!;
+    expect(op1.name).toHaveLength(23); // 24 would end in a space; trimmed after the cut
+    expect(op1.note).toBe('');
+    expect(op1.peak).toBe('corridor'); // 12 visits earn Corridor, whatever the stored peak said
+    expect(op1.stateDays).toEqual({ marked: op1.createdDay, corridor: DAY0 });
+    expect(op1.habits).toEqual(['move', 'hygiene']);
+    // Too close to op1 for the spacing rule: kept, but retired rather than lost.
+    expect(s.map.outposts[1]).toMatchObject({ id: 'op8', retired: true, visits: 1 });
+    expect(s.map.outposts[2]).toMatchObject({ id: 'op9', retired: false, peak: 'stronghold' }); // a stored peak is kept; 'yes' is not a boolean
+    expect(s.map.visits).toEqual([
+      { outpostId: 'op1', day: DAY0, at: 0, source: 'checkin', instanceId: null, counted: true },
+      { outpostId: 'op1', day: DAY0, at: 0, source: 'quest', instanceId: 'q1', counted: false },
+      { outpostId: 'op9', day: DAY0 - 1, at: 0, source: 'checkin', instanceId: null, counted: false },
+    ]);
+    expect(s.map.snapshots).toEqual([
+      { periodIndex: 2, day: DAY0, domainPoints: 0, ring: 7, result: 'quiet' },
+      { periodIndex: 5, day: DAY0 + 7, domainPoints: 40, ring: 2, result: 'loss' },
+    ]);
+    expect(s.map.lastSeen).toBeNull();
+    expect(s.map.nextSeq).toBe(10);
+    expect(s.customTemplates.map((t) => t.outpostId)).toEqual(['op1', undefined, 'op9']);
+    // Idempotent: a second pass changes nothing.
+    expect(migrate(JSON.parse(exportSave(s)), T0, TZ)).toEqual(s);
   });
 });

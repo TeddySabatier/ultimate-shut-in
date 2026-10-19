@@ -3,6 +3,7 @@
  * Every number here is the GDD's; nothing is tuned elsewhere.
  */
 import { rings, tierDefaults, type QuestTemplate } from './content';
+import { zoneOfCell } from './mapGeometry';
 import type { Difficulty, GameEvent, HabitId, RingId, SaveFile, Tier, Vassal } from './types';
 
 export interface DifficultyTable {
@@ -135,6 +136,8 @@ export interface RewardContext {
   titleCoinMult?: number;
   /** Sum of title loyaltyGainFlat values. */
   titleLoyaltyFlat?: number;
+  /** Corridor outpost term for the quest's habit (0 or 0.10), outside the title cap (CITY-MAP 3.3). */
+  outpostCoinMult?: number;
 }
 
 export interface QuestRewards {
@@ -151,7 +154,7 @@ export function questRewards(template: Pick<QuestTemplate, 'tier' | 'baseXp' | '
   const B = ctx.bonus ? BONUS_CONTRACT_MULT : 1;
   const T = ctx.timedBonus ? TIMED_BONUS_MULT : 1;
   const mXp = 1 + (ctx.titleXpMult ?? 0);
-  const mCoin = 1 + (ctx.titleCoinMult ?? 0);
+  const mCoin = 1 + (ctx.titleCoinMult ?? 0) + (ctx.outpostCoinMult ?? 0);
   return {
     xp: Math.round(template.baseXp * table.rewardMult * B * T * mXp),
     coins: Math.round(template.baseCoins * table.rewardMult * B * mCoin),
@@ -237,7 +240,13 @@ export function recomputeRingDraft(draft: SaveFile): GameEvent[] {
   const after = Math.max(ringForDomainPoints(p.domainPoints), highest) as RingId;
   p.ring = after;
   p.highestRing = after;
-  for (let r = highest + 1; r <= after; r++) events.push({ type: 'ringUnlocked', ring: r as RingId });
+  for (let r = highest + 1; r <= after; r++) {
+    events.push({ type: 'ringUnlocked', ring: r as RingId });
+    // The wall now covers these outposts (CITY-MAP 3.4); once, on the covering unlock.
+    for (const o of draft.map.outposts) {
+      if (!o.retired && zoneOfCell(o.cell) === r) events.push({ type: 'outpostWithinWalls', outpostId: o.id, ring: r as RingId });
+    }
+  }
   return events;
 }
 

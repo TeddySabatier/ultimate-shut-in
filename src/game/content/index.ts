@@ -8,8 +8,9 @@ import ringsJson from './rings.json';
 import titlesJson from './titles.json';
 import combosJson from './combos.json';
 import stringsJson from './strings.json';
-import type { HabitId, QuestKind, RingId, Tier, UtilityId } from '../types';
-import { HABIT_IDS, UTILITY_IDS } from '../types';
+import outpostsJson from './outposts.json';
+import type { HabitId, OutpostState, OutpostTypeId, QuestKind, RingId, Tier, UtilityId } from '../types';
+import { HABIT_IDS, OUTPOST_STATES, OUTPOST_TYPE_IDS, UTILITY_IDS } from '../types';
 
 /* ----------------------------- Types ----------------------------- */
 
@@ -120,6 +121,43 @@ export interface ComboRules {
 
 export type Strings = typeof stringsJson;
 
+/* ---- City Map content (docs/design/CITY-MAP.md 4.4) ---- */
+
+export interface OutpostRules {
+  baseCap: number;
+  capPerRing: number;
+  maxCap: number;
+  perZone: number;
+  minSpacing: number;
+  quietAfterDays: number;
+  quietIfNeverVisitedAfterDays: number;
+  rerollDiscount: number;
+  corridorCoinMult: number;
+  strongholdDefense: number;
+  strongholdDefenseCap: number;
+  nameMax: number;
+  noteMax: number;
+  visitLogMax: number;
+}
+
+export interface OutpostStateDef {
+  id: OutpostState;
+  minVisits: number;
+  label: string;
+  perk: string;
+}
+
+export interface OutpostTypeDef {
+  id: OutpostTypeId;
+  label: string;
+  /** Icon key: `src/assets/outposts/<icon>.svg`. */
+  icon: string;
+  /** Default related habits (empty only for `other`, which asks the player). */
+  habits: HabitId[];
+  placeholder: string;
+  visitLines: string[];
+}
+
 /* ---------------------------- Loaders ---------------------------- */
 
 export const habits: readonly HabitDef[] = habitsJson.habits as HabitDef[];
@@ -135,12 +173,17 @@ export const stackCaps: StackCaps = titlesJson.stackCaps;
 export const combos: readonly ComboDef[] = combosJson.combos as ComboDef[];
 export const comboRules: ComboRules = combosJson.rules;
 export const strings: Strings = stringsJson;
+export const outpostRules: OutpostRules = outpostsJson.rules;
+export const outpostStates: readonly OutpostStateDef[] = outpostsJson.states as OutpostStateDef[];
+export const outpostTypes: readonly OutpostTypeDef[] = outpostsJson.types as OutpostTypeDef[];
 
 const habitById = new Map(habits.map((h) => [h.id, h] as const));
 const questById = new Map(quests.map((q) => [q.id, q] as const));
 const ringById = new Map(rings.map((r) => [r.id, r] as const));
 const titleById = new Map(titles.map((t) => [t.id, t] as const));
 const comboById = new Map(combos.map((c) => [c.id, c] as const));
+const outpostTypeById = new Map(outpostTypes.map((t) => [t.id, t] as const));
+const outpostStateById = new Map(outpostStates.map((s) => [s.id, s] as const));
 
 export function getHabit(id: HabitId): HabitDef {
   const h = habitById.get(id);
@@ -164,6 +207,18 @@ export function getTitle(id: string): TitleDef | undefined {
 
 export function getCombo(id: string): ComboDef | undefined {
   return comboById.get(id);
+}
+
+export function getOutpostType(id: OutpostTypeId): OutpostTypeDef {
+  const t = outpostTypeById.get(id);
+  if (!t) throw new Error(`Unknown outpost type ${id}`);
+  return t;
+}
+
+export function getOutpostState(id: OutpostState): OutpostStateDef {
+  const s = outpostStateById.get(id);
+  if (!s) throw new Error(`Unknown outpost state ${id}`);
+  return s;
 }
 
 /** Habit that feeds a utility (sleep -> power, hygiene -> water, eat -> gas). */
@@ -328,6 +383,35 @@ export function validateContent(): string[] {
     if (!(c.power > 0)) errors.push(`combo ${c.id}: power must be positive`);
   }
   if (!ringById.has(comboRules.minRing as RingId)) errors.push('combo rules: bad minRing');
+
+  // Outposts: the 11 types with valid habits (none only for `other`, else 1-2), an icon key each,
+  // states ascending from 0 in the engine's order, and sane rules.
+  const seenTypes = new Set<string>();
+  for (const t of outpostTypes) {
+    if (!(OUTPOST_TYPE_IDS as readonly string[]).includes(t.id)) errors.push(`outpost type ${t.id}: unknown id`);
+    if (seenTypes.has(t.id)) errors.push(`outpost type ${t.id}: duplicate id`);
+    seenTypes.add(t.id);
+    if (typeof t.icon !== 'string' || t.icon === '') errors.push(`outpost type ${t.id}: missing icon`);
+    for (const h of t.habits) if (!habitIds.has(h)) errors.push(`outpost type ${t.id}: unknown habit ${h}`);
+    if (new Set(t.habits).size !== t.habits.length) errors.push(`outpost type ${t.id}: repeated habit`);
+    if (t.id === 'other' ? t.habits.length !== 0 : t.habits.length < 1 || t.habits.length > 2) errors.push(`outpost type ${t.id}: needs 1-2 habits (none for other)`);
+    if (!t.placeholder) errors.push(`outpost type ${t.id}: missing placeholder`);
+    if (t.visitLines.length === 0) errors.push(`outpost type ${t.id}: empty visitLines`);
+  }
+  if (seenTypes.size !== OUTPOST_TYPE_IDS.length) errors.push(`expected ${OUTPOST_TYPE_IDS.length} outpost types, got ${seenTypes.size}`);
+  if (outpostStates.length !== OUTPOST_STATES.length) errors.push(`expected ${OUTPOST_STATES.length} outpost states`);
+  outpostStates.forEach((st, i) => {
+    if (st.id !== OUTPOST_STATES[i]) errors.push(`outpost state at index ${i}: ${st.id} out of order`);
+    const prev = outpostStates[i - 1];
+    if (i === 0 && st.minVisits !== 0) errors.push('first outpost state must start at 0 visits');
+    if (prev && !(st.minVisits > prev.minVisits)) errors.push(`outpost state ${st.id}: minVisits not ascending`);
+  });
+  const r = outpostRules;
+  if (!(r.baseCap >= 1 && r.capPerRing >= 0 && r.maxCap >= r.baseCap + r.capPerRing)) errors.push('outpost rules: caps inconsistent');
+  if (!(r.perZone >= 1 && r.minSpacing >= 1 && r.visitLogMax >= 1 && r.nameMax >= 1 && r.noteMax >= 0)) errors.push('outpost rules: bad limits');
+  if (!(r.strongholdDefenseCap >= r.strongholdDefense && r.strongholdDefense > 0)) errors.push('outpost rules: defense cap below one stronghold');
+  if (!(r.quietAfterDays > 0 && r.quietIfNeverVisitedAfterDays > 0)) errors.push('outpost rules: quiet days must be positive');
+  for (const [code, line] of Object.entries(strings.map.errors)) if (!line) errors.push(`strings.map.errors.${code}: empty`);
 
   return errors;
 }

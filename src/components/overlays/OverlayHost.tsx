@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useGameStore } from '../../state/gameStore';
 import { monsterForRecord } from '../../state/selectors';
 import { RewardChips } from '../Chips';
+import { WhereWereYou } from './WhereWereYou';
 import { eventKey, toastCopy } from './eventText';
 import { LevelUpWindow } from './LevelUpWindow';
 import { RingUnlockWindow } from './RingUnlockWindow';
@@ -47,8 +48,9 @@ export function OverlayHost() {
         dismiss();
         return null;
       }
+      const where = event.type === 'questDone' ? <WhereWereYou save={save} instanceId={event.instanceId} habit={event.habit} onDone={dismiss} /> : null;
       return (
-        <Toast key={key} title={copy.title} line={copy.line} tone={copy.tone} onDismiss={dismiss}>
+        <Toast key={key} title={copy.title} line={copy.line} tone={copy.tone} onDismiss={dismiss} autoMs={where ? 9000 : undefined}>
           {event.type === 'questDone' ? (
             <RewardChips
               xp={event.rewards.xp}
@@ -59,6 +61,7 @@ export function OverlayHost() {
               animate
             />
           ) : null}
+          {where}
         </Toast>
       );
     }

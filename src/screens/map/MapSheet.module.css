@@ -1,0 +1,116 @@
+/* The map sheets: bottom sheet on phones, a right-hand dock from 768px. */
+.dialog {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  width: min(30rem, 100vw);
+  max-width: none;
+  margin: auto auto 0;
+  max-height: calc(100dvh - var(--safe-top) - 1rem);
+  overflow: visible;
+}
+
+.dialog::backdrop {
+  background: rgba(5, 5, 8, 0.6);
+}
+
+.sheet {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: calc(100dvh - var(--safe-top) - 1rem);
+  padding: var(--space-3) var(--space-4) calc(var(--space-4) + var(--safe-bottom)) var(--space-4);
+  background: #16161f;
+  border: 2px solid var(--color-border-light);
+  border-bottom: 0;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.6);
+  animation: slide-up var(--duration-med) var(--ease-snap);
+}
+
+.head {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.headText {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.kick {
+  display: block;
+  font-family: var(--font-heading);
+  font-size: var(--heading-xs);
+  color: var(--color-accent-2);
+  text-transform: uppercase;
+  line-height: 1.5;
+  margin-bottom: var(--space-2);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--heading-md);
+  color: var(--color-text);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.close {
+  flex: none;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-panel-raised);
+  border: 2px solid var(--color-border-light);
+  color: var(--color-text);
+}
+
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  font-size: var(--text-sm);
+}
+
+/* Tablet and desktop: docked to the right edge of the 980px frame, full height. */
+@media (min-width: 768px) {
+  .dialog {
+    width: 25rem;
+    margin: 0 max(0px, calc(50% - 30.625rem)) 0 auto;
+    max-height: none;
+    height: 100dvh;
+  }
+  .sheet {
+    height: 100dvh;
+    max-height: none;
+    padding-top: calc(var(--space-3) + var(--safe-top));
+    border-bottom: 2px solid var(--color-border-light);
+    animation: slide-side var(--duration-med) var(--ease-snap);
+  }
+}
+
+@keyframes slide-side {
+  from {
+    transform: translateX(2.5rem);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@media (max-height: 500px) {
+  .dialog,
+  .sheet {
+    max-height: calc(100dvh - var(--safe-top) - 0.5rem);
+  }
+}

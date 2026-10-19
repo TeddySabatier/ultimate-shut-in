@@ -13,6 +13,7 @@ import {
   getRing,
   monsterForWave,
   nextRing,
+  outpostCoinMult,
   pickLine,
   questRewards,
   resolveTemplate,
@@ -74,6 +75,7 @@ export function rewardPreview(save: SaveFile, q: BoardQuest): QuestRewards | nul
     titleXpMult: titleXpMult(save, q.habit),
     titleCoinMult: titleCoinMult(save),
     titleLoyaltyFlat: titleLoyaltyFlat(save),
+    outpostCoinMult: outpostCoinMult(save, q.habit),
   });
 }
 

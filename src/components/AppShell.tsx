@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { havenSceneForRing } from '../assets';
 import { useGameStore } from '../state/gameStore';
+import { cx } from '../utils/cx';
 import { TabBar } from './TabBar';
 import { OverlayHost } from './overlays/OverlayHost';
 import styles from './AppShell.module.css';
@@ -28,7 +29,7 @@ export function AppShell() {
     };
   }, [ring]);
   return (
-    <div className={styles.shell}>
+    <div className={cx(styles.shell, pathname === '/map' && styles.wide)}>
       <main className={styles.content} id="main" ref={mainRef}>
         <Outlet />
       </main>

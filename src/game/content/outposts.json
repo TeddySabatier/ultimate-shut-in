@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "rules": {
+    "baseCap": 3,
+    "capPerRing": 1,
+    "maxCap": 10,
+    "perZone": 3,
+    "minSpacing": 3,
+    "quietAfterDays": 14,
+    "quietIfNeverVisitedAfterDays": 7,
+    "rerollDiscount": 5,
+    "corridorCoinMult": 0.1,
+    "strongholdDefense": 2,
+    "strongholdDefenseCap": 6,
+    "nameMax": 24,
+    "noteMax": 80,
+    "visitLogMax": 400
+  },
+  "states": [
+    { "id": "marked", "minVisits": 0, "label": "Marked", "perk": "On the map." },
+    { "id": "scouted", "minVisits": 3, "label": "Scouted", "perk": "Swapping {aHabits} quest costs {discount} less settlement." },
+    { "id": "corridor", "minVisits": 10, "label": "Corridor", "perk": "{habits} quests return +10% settlement. The wall reaches out to it." },
+    { "id": "stronghold", "minVisits": 30, "label": "Stronghold", "perk": "+2 defense in every weekly wave. A Haven annex stands here." }
+  ],
+  "types": [
+    {
+      "id": "gym",
+      "label": "Gym",
+      "icon": "gym",
+      "habits": ["move", "hygiene"],
+      "placeholder": "Riverside Gym",
+      "visitLines": ["Pell signs the book at {name}. {visits} visits.", "{name}: the lockers know you now. {visits} visits."]
+    },
+    {
+      "id": "park",
+      "label": "Park",
+      "icon": "park",
+      "habits": ["outside", "move"],
+      "placeholder": "Hollow Park",
+      "visitLines": ["Wren marks the bench at {name}. {visits} visits.", "{name} again. The ducks have stopped commenting. {visits} visits."]
+    },
+    {
+      "id": "library",
+      "label": "Library",
+      "icon": "library",
+      "habits": ["study"],
+      "placeholder": "Central Library",
+      "visitLines": ["Imre files {name} under 'ours'. {visits} visits.", "{name}: the same chair, by the same window. {visits} visits."]
+    },
+    {
+      "id": "friend",
+      "label": "Friend's home",
+      "icon": "friend",
+      "habits": ["social"],
+      "placeholder": "Marta's place",
+      "visitLines": ["Tobi logs {name} as an alliance. {visits} visits.", "{name}. The door opened before you knocked. {visits} visits."]
+    },
+    {
+      "id": "family",
+      "label": "Family home",
+      "icon": "family",
+      "habits": ["social", "eat"],
+      "placeholder": "Mum's",
+      "visitLines": ["Basil reports leftovers from {name}. {visits} visits.", "{name}: you were fed. The Protocol notes it. {visits} visits."]
+    },
+    {
+      "id": "cafe",
+      "label": "Cafe",
+      "icon": "cafe",
+      "habits": ["social", "eat"],
+      "placeholder": "The Corner Cafe",
+      "visitLines": ["{name} knows your order. {visits} visits.", "Tobi waves at {name}. Someone waves back. {visits} visits."]
+    },
+    {
+      "id": "clinic",
+      "label": "Clinic",
+      "icon": "clinic",
+      "habits": ["hygiene", "sleep"],
+      "placeholder": "The clinic",
+      "visitLines": ["Marisol files the reminder from {name}. {visits} visits.", "{name}: looked after. That is the whole entry. {visits} visits."]
+    },
+    {
+      "id": "market",
+      "label": "Market",
+      "icon": "market",
+      "habits": ["eat"],
+      "placeholder": "Saturday market",
+      "visitLines": ["Basil comes back from {name} with a bag. {visits} visits.", "{name}: vegetables of uncertain name, excellent spirit. {visits} visits."]
+    },
+    {
+      "id": "pool",
+      "label": "Pool",
+      "icon": "pool",
+      "habits": ["move", "hygiene"],
+      "placeholder": "Northside Pool",
+      "visitLines": ["Pell counts the lengths at {name}. {visits} visits.", "{name}: wet hair, warm face. {visits} visits."]
+    },
+    {
+      "id": "class",
+      "label": "Class or club",
+      "icon": "class",
+      "habits": ["study", "social"],
+      "placeholder": "Tuesday choir",
+      "visitLines": ["Imre takes notes at {name}. {visits} visits.", "{name} again. The others saved you a seat. {visits} visits."]
+    },
+    {
+      "id": "other",
+      "label": "Somewhere else",
+      "icon": "other",
+      "habits": [],
+      "placeholder": "The bench by the canal",
+      "visitLines": ["{name}: a place the map did not have a word for. {visits} visits.", "Wren adds {name} to the chart. {visits} visits."]
+    }
+  ]
+}

@@ -3,11 +3,16 @@ import {
   combos,
   formatLine,
   getHabit,
+  getOutpostState,
+  getOutpostType,
   getQuest,
   getRing,
   getTitle,
   habitForUtility,
   habits,
+  outpostRules,
+  outpostStates,
+  outpostTypes,
   pickLine,
   quests,
   rings,
@@ -17,7 +22,7 @@ import {
   utilityForHabit,
   validateContent,
 } from './index';
-import { HABIT_IDS } from '../types';
+import { HABIT_IDS, OUTPOST_TYPE_IDS } from '../types';
 
 describe('content', () => {
   it('validates with no errors at module load', () => {
@@ -86,5 +91,28 @@ describe('content', () => {
     expect(pickLine(pool, 4)).toBe(pickLine(pool, 4));
     expect(pickLine([], 1)).toBe('');
     expect(formatLine('Level {level} for {name}, {missing}', { level: 3, name: 'Pell' })).toBe('Level 3 for Pell, {missing}');
+  });
+});
+
+describe('outposts content', () => {
+  it('ships the eleven types with icons and default habits, and four ascending states', () => {
+    expect(outpostTypes.map((t) => t.id)).toEqual([...OUTPOST_TYPE_IDS]);
+    for (const t of outpostTypes) {
+      expect(t.icon).toBe(t.id);
+      expect(t.placeholder.length).toBeGreaterThan(0);
+      expect(t.visitLines.length).toBeGreaterThanOrEqual(2);
+      if (t.id === 'other') expect(t.habits).toEqual([]);
+      else expect(t.habits.length).toBeGreaterThanOrEqual(1);
+    }
+    expect(outpostStates.map((s) => [s.id, s.minVisits])).toEqual([
+      ['marked', 0],
+      ['scouted', 3],
+      ['corridor', 10],
+      ['stronghold', 30],
+    ]);
+    expect(getOutpostType('gym').habits).toEqual(['move', 'hygiene']);
+    expect(getOutpostState('corridor').label).toBe('Corridor');
+    expect(outpostRules).toMatchObject({ baseCap: 3, capPerRing: 1, maxCap: 10, perZone: 3, minSpacing: 3, quietAfterDays: 14, rerollDiscount: 5, corridorCoinMult: 0.1, strongholdDefense: 2, strongholdDefenseCap: 6, visitLogMax: 400 });
+    expect(Object.keys(strings.map.errors).length).toBeGreaterThanOrEqual(14);
   });
 });

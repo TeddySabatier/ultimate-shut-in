@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { strings, type SaveFile } from '../game';
 import { absoluteAvatar, havenSceneForRing, uiIcons } from '../assets';
 import { playerXpProgress, ringProgress } from '../state/selectors';
@@ -32,6 +33,10 @@ export function RingHeader({ save }: RingHeaderProps) {
             <Icon src={uiIcons.coin} size={18} />
             <span className="mono">{fmtNum(save.player.coins)}</span>
           </div>
+          <Link to="/map" className={styles.mapChip} aria-label="Open the city map">
+            <Icon src={uiIcons.map} size={18} />
+            <span>{strings.map.chip}</span>
+          </Link>
         </div>
         <div className={styles.ring}>
           <h1 className={styles.ringName}>{rp.ring.name}</h1>

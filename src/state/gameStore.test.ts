@@ -79,7 +79,7 @@ describe('gameStore', () => {
     const raw = localStorage.getItem(STORAGE_KEY);
     expect(raw).not.toBeNull();
     const parsed = JSON.parse(raw as string) as { version: number; state: { save: { player: { name: string } } } };
-    expect(parsed.version).toBe(2);
+    expect(parsed.version).toBe(3);
     expect(parsed.state.save.player.name).toBe('Keeper');
     useGameStore.setState({ ...INITIAL_STATE, pendingEvents: [] }); // this persists save: null ...
     localStorage.setItem(STORAGE_KEY, raw as string); // ... so put the stored blob back before rehydrating

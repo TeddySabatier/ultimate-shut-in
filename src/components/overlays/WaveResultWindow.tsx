@@ -101,6 +101,7 @@ export function WaveResultWindow({ record, monster, onDismiss }: WaveResultWindo
             {b.combos > 0 ? <li>Items +{b.combos}</li> : null}
             {b.titles > 0 ? <li>Titles +{b.titles}</li> : null}
             {b.wellKept > 0 ? <li>Well-kept +{b.wellKept}</li> : null}
+            {b.outposts > 0 ? <li>Outposts +{b.outposts}</li> : null}
           </ul>
         ) : null}
         <ol className={cx('mono', styles.log)} aria-label="Battle log" aria-live="polite">

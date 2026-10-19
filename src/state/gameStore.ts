@@ -3,7 +3,7 @@
  * every mutation to `src/game`; no rule lives here. Engine events are queued
  * in `pendingEvents` for the overlay host to show one at a time.
  *
- * Storage key `haven.save` (version 2). A legacy `usi.player` blob is read
+ * Storage key `haven.save` (version 3). A legacy `usi.player` blob is read
  * once through the engine's `migrate`, then removed.
  */
 import { create } from 'zustand';
@@ -17,24 +17,43 @@ import {
   archiveCustomTemplate,
   changeResetHour,
   completeQuest,
+  createOutpost,
   dismissProposal,
   createNewSave,
+  editOutpost,
+  forgetOutpost,
+  formatLine,
   gameDayIndex,
+  getRing,
   incrementCount,
+  logOutpostVisit,
+  markMapSeen,
   markTried,
   migrate,
+  moveOutpost,
+  outpostCap,
   pauseTimer,
   processBoundaries,
   reRecruitVassal,
   rerollQuest,
+  restoreOutpost,
+  retireOutpost,
+  ringName,
   sanitizeName,
   setBenevolence,
   startTimer,
+  strings,
+  tagQuestAtOutpost,
+  undoOutpostVisit,
   undoQuest,
+  zoneOfCell,
   type ActionResult,
   type CustomDraft,
   type GameEvent,
   type HabitId,
+  type MapCell,
+  type OutpostInput,
+  type OutpostPatch,
   type ResurrectionChoice,
   type SaveFile,
   type Settings,
@@ -42,7 +61,7 @@ import {
 import { now } from './clock';
 
 export const STORAGE_KEY = 'haven.save';
-export const STORAGE_VERSION = 2;
+export const STORAGE_VERSION = 3;
 export const LEGACY_STORAGE_KEY = 'usi.player';
 
 /** Events the overlay host presents; the rest are bookkeeping. */
@@ -68,6 +87,12 @@ const SHOWN_EVENTS: ReadonlySet<GameEvent['type']> = new Set<GameEvent['type']>(
   'customArchived',
   'customBoarded',
   'proposalResolved',
+  'outpostCreated',
+  'outpostVisited',
+  'outpostVisitUndone',
+  'outpostStateReached',
+  'outpostRetired',
+  'outpostRestored',
 ]);
 
 /**
@@ -78,6 +103,28 @@ export function oneToastFor(events: GameEvent[]): GameEvent[] {
   const boarded = events.some((e) => e.type === 'customBoarded');
   const changed = boarded || events.some((e) => e.type === 'customSaved' || e.type === 'customUpdated');
   return events.filter((e) => !(e.type === 'customSaved' && boarded) && !(e.type === 'proposalResolved' && e.accepted && changed));
+}
+
+/** A visit that reaches a new state shows the state line only, not "visit logged" first. */
+export function oneOutpostToast(events: GameEvent[]): GameEvent[] {
+  const reached = new Set(events.filter((e) => e.type === 'outpostStateReached').map((e) => (e.type === 'outpostStateReached' ? e.outpostId : '')));
+  return events.filter((e) => !(e.type === 'outpostVisited' && reached.has(e.outpostId)));
+}
+
+/**
+ * Warm copy for a map refusal (`strings.map.errors`), with the names and
+ * numbers the line needs; an unknown code is shown as is.
+ */
+export function mapNotice(save: SaveFile, code: string, vars: { name?: string; cell?: MapCell } = {}): string {
+  const line = (strings.map.errors as Record<string, string | undefined>)[code];
+  if (!line) return code;
+  const zone = vars.cell ? zoneOfCell(vars.cell) : 0;
+  return formatLine(line, {
+    name: vars.name ?? 'it',
+    cap: outpostCap(save.player.ring),
+    ring: ringName(save.player.ring),
+    zone: zone >= 1 && zone <= 7 ? getRing(zone).name : 'That zone',
+  });
 }
 
 export function isShownEvent(e: GameEvent): boolean {
@@ -116,6 +163,17 @@ export interface GameActions {
   archiveCustom: (templateId: string) => void;
   acceptProposal: (id: string) => void;
   dismissProposal: (id: string) => void;
+  /** City Map (docs/design/CITY-MAP.md). Refusals become warm notices; each returns whether it was applied. */
+  createOutpost: (input: OutpostInput) => boolean;
+  editOutpost: (id: string, patch: OutpostPatch) => boolean;
+  moveOutpost: (id: string, cell: MapCell) => boolean;
+  retireOutpost: (id: string) => boolean;
+  restoreOutpost: (id: string) => boolean;
+  forgetOutpost: (id: string) => boolean;
+  visitOutpost: (id: string) => boolean;
+  undoOutpostVisit: (id: string) => boolean;
+  tagQuestAtOutpost: (instanceId: string, outpostId: string) => boolean;
+  markMapSeen: () => void;
   /**
    * Settings changes. `resetHour` and `benevolence` go through the engine's
    * own mutators; the rest apply at once (the current board is already
@@ -224,6 +282,22 @@ export const useGameStore = create<GameStore>()(
 
       const todayOf = (save: SaveFile, now: number): number => gameDayIndex(now, save.settings.resetHour);
 
+      /** Map mutators: translate the engine's short refusal codes into the warm lines of `strings.map.errors`. */
+      const withMap = (fn: (save: SaveFile, now: number) => ActionResult, vars: (save: SaveFile) => { name?: string; cell?: MapCell } = () => ({})): boolean => {
+        const save = get().save;
+        if (!save) return false;
+        const r = fn(save, now());
+        if (r.error !== undefined) {
+          const message = mapNotice(save, r.error, vars(save));
+          set((s) => {
+            s.notice = message;
+          });
+          return false;
+        }
+        return apply({ save: r.save, events: oneOutpostToast(r.events) });
+      };
+      const nameOf = (id: string) => (save: SaveFile) => ({ name: save.map.outposts.find((o) => o.id === id)?.name ?? 'it' });
+
       return {
         ...INITIAL_STATE,
 
@@ -305,6 +379,17 @@ export const useGameStore = create<GameStore>()(
             return r.error === undefined ? { ...r, events: oneToastFor(r.events) } : r;
           }),
         dismissProposal: (id) => void withSave((save, now) => dismissProposal(save, now, id)),
+
+        createOutpost: (input) => withMap((save, now) => createOutpost(save, input, now), () => ({ name: input.name.trim(), cell: input.cell })),
+        editOutpost: (id, patch) => withMap((save, now) => editOutpost(save, id, patch, now), () => ({ name: patch.name?.trim() ?? 'it' })),
+        moveOutpost: (id, cell) => withMap((save, now) => moveOutpost(save, id, cell, now), (save) => ({ ...nameOf(id)(save), cell })),
+        retireOutpost: (id) => withMap((save, now) => retireOutpost(save, id, now), nameOf(id)),
+        restoreOutpost: (id) => withMap((save, now) => restoreOutpost(save, id, now), nameOf(id)),
+        forgetOutpost: (id) => withMap((save, now) => forgetOutpost(save, id, now), nameOf(id)),
+        visitOutpost: (id) => withMap((save, now) => logOutpostVisit(save, id, now), nameOf(id)),
+        undoOutpostVisit: (id) => withMap((save, now) => undoOutpostVisit(save, id, now), nameOf(id)),
+        tagQuestAtOutpost: (instanceId, outpostId) => withMap((save, now) => tagQuestAtOutpost(save, instanceId, outpostId, now), nameOf(outpostId)),
+        markMapSeen: () => void withSave((save, now) => markMapSeen(save, now)),
 
         updateSettings: (partial) => {
           const { resetHour, benevolence, ...rest } = partial;

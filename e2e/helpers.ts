@@ -159,7 +159,7 @@ export async function setNowOffset(page: Page, ms: number): Promise<void> {
   await page.evaluate((v) => window.__haven?.setNowOffsetMs(v), ms);
 }
 
-export type Tab = 'Haven' | 'Board' | 'Ledger' | 'Settings';
+export type Tab = 'Haven' | 'Board' | 'Map' | 'Ledger' | 'Settings';
 
 export async function gotoTab(page: Page, tab: Tab): Promise<void> {
   await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: tab, exact: true }).click();
@@ -167,7 +167,7 @@ export async function gotoTab(page: Page, tab: Tab): Promise<void> {
     await expect(page.getByTestId('ring-header')).toBeVisible();
     return;
   }
-  const heading = { Board: "Today's board", Ledger: 'The Ledger', Settings: 'Settings' }[tab];
+  const heading = { Board: "Today's board", Map: 'City map', Ledger: 'The Ledger', Settings: 'Settings' }[tab];
   await expect(page.getByRole('heading', { name: heading, level: 1 })).toBeVisible();
 }
 

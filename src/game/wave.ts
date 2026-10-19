@@ -10,6 +10,8 @@ import { fnv1a, mulberry32, rngPick } from './rng';
 import { evaluateTitlesDraft, titleDefenseFlat, titleDpMult } from './titles';
 import { wellKeptBonus } from './utilities';
 import { activeVassals, resetTrustDraft, vassalName } from './vassals';
+import { outpostDefense, strongholdOutposts } from './outposts';
+import { appendSnapshotDraft } from './map';
 import type { ActionResult, Difficulty, GameEvent, HabitId, SaveFile, WaveBreakdown, WaveRecord, WaveResult } from './types';
 
 /* ------------------------------ Monsters ------------------------------ */
@@ -67,7 +69,7 @@ export interface DefenseDetail {
   combos: Array<{ name: string; power: number }>;
 }
 
-/** defense = sum(level + 2*trust) + walls + combos + titles + wellKept (GDD 9.3). */
+/** defense = sum(level + 2*trust) + walls + combos + titles + wellKept + outposts (GDD 9.3, CITY-MAP 3.3). */
 export function waveDefense(save: SaveFile): DefenseDetail {
   const vassals = activeVassals(save).map((v) => ({ habit: v.habit, level: v.level, trust: v.trust, contribution: v.level + 2 * v.trust }));
   const levelSum = vassals.reduce((s, v) => s + v.level, 0);
@@ -77,8 +79,9 @@ export function waveDefense(save: SaveFile): DefenseDetail {
   const comboSum = combos.reduce((s, c) => s + c.power, 0);
   const titles = titleDefenseFlat(save);
   const wellKept = wellKeptBonus(save);
-  const breakdown: WaveBreakdown = { vassals: levelSum, trust: trustSum, walls, combos: comboSum, titles, wellKept };
-  return { total: levelSum + trustSum + walls + comboSum + titles + wellKept, breakdown, vassals, combos };
+  const outposts = outpostDefense(save);
+  const breakdown: WaveBreakdown = { vassals: levelSum, trust: trustSum, walls, combos: comboSum, titles, wellKept, outposts };
+  return { total: levelSum + trustSum + walls + comboSum + titles + wellKept + outposts, breakdown, vassals, combos };
 }
 
 export function classifyWave(attack: number, defense: number): Exclude<WaveResult, 'quiet'> {
@@ -127,6 +130,15 @@ function buildLog(save: SaveFile, week: number, attack: number, detail: DefenseD
   lines.push(`The walls of ${name} hold. +${detail.breakdown.walls}`);
   if (detail.breakdown.titles > 0) lines.push(`Old honours count for something. +${detail.breakdown.titles}`);
   if (detail.breakdown.wellKept > 0) lines.push(`Lights, water and gas all steady. +${detail.breakdown.wellKept}`);
+  if (detail.breakdown.outposts > 0) {
+    const holds = strongholdOutposts(save);
+    const first = holds[0];
+    lines.push(
+      holds.length === 1 && first
+        ? `The ${first.name} stronghold holds. +${detail.breakdown.outposts}`
+        : `${holds.length >= 3 ? 'Three' : 'Two'} strongholds hold the outer line. +${detail.breakdown.outposts}`,
+    );
+  }
 
   const pool = result === 'decisive' ? strings.waveDecisive : result === 'win' ? strings.waveWin : strings.waveLoss;
   lines.push(formatLine(pickLine(pool, seed), { defense: detail.total, attack }));
@@ -156,7 +168,7 @@ export function settleWaveDraft(draft: SaveFile, periodIndex: number, now: numbe
       ring: ringAtSettlement,
       attack: 0,
       defense: 0,
-      breakdown: { vassals: 0, trust: 0, walls: 0, combos: 0, titles: 0, wellKept: 0 },
+      breakdown: { vassals: 0, trust: 0, walls: 0, combos: 0, titles: 0, wellKept: 0, outposts: 0 },
       result: 'quiet',
       dpAwarded: 0,
       log: [pickLine(strings.waveQuiet, seed)],
@@ -196,6 +208,8 @@ export function settleWaveDraft(draft: SaveFile, periodIndex: number, now: numbe
   events.push({ type: 'waveSettled', record });
   pushLog(draft, now, day, 'wave', record.log[record.log.length - 1] ?? `Wave ${week} settled.`);
   events.push(...recomputeRingDraft(draft));
+  // The map remembers where the wall stood when the period settled (CITY-MAP 4.1), quiet weeks included.
+  appendSnapshotDraft(draft, periodIndex, day, record.result);
   events.push(...evaluateTitlesDraft(draft, now, day));
   return events;
 }

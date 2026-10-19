@@ -71,6 +71,22 @@ import uiHome from './ui/home.svg';
 import uiQuests from './ui/quests.svg';
 import uiCharacter from './ui/character.svg';
 import uiMic from './ui/mic.svg';
+import uiMap from './ui/map.svg';
+import uiCompare from './ui/compare.svg';
+import uiList from './ui/list.svg';
+
+// ---- outposts (24x24, monochrome, the City Map pin plaques and the add-outpost form) ----
+import outpostGym from './outposts/gym.svg';
+import outpostPark from './outposts/park.svg';
+import outpostLibrary from './outposts/library.svg';
+import outpostFriend from './outposts/friend.svg';
+import outpostFamily from './outposts/family.svg';
+import outpostCafe from './outposts/cafe.svg';
+import outpostClinic from './outposts/clinic.svg';
+import outpostMarket from './outposts/market.svg';
+import outpostPool from './outposts/pool.svg';
+import outpostClass from './outposts/class.svg';
+import outpostOther from './outposts/other.svg';
 
 // ---- logo ----
 import logoTitle from './logo/logo.svg';
@@ -188,8 +204,29 @@ export const uiIcons = {
   quests: uiQuests,
   character: uiCharacter,
   mic: uiMic,
+  map: uiMap,
+  compare: uiCompare,
+  list: uiList,
 } as const satisfies Readonly<Record<string, string>>;
 export type UiIconId = keyof typeof uiIcons;
+
+export const OUTPOST_TYPE_IDS = ['gym', 'park', 'library', 'friend', 'family', 'cafe', 'clinic', 'market', 'pool', 'class', 'other'] as const;
+export type OutpostTypeId = (typeof OUTPOST_TYPE_IDS)[number];
+
+/** One icon per outpost type (`outposts.json` `icon` keys), drawn with `currentColor`. */
+export const outpostIcons: Readonly<Record<OutpostTypeId, string>> = {
+  gym: outpostGym,
+  park: outpostPark,
+  library: outpostLibrary,
+  friend: outpostFriend,
+  family: outpostFamily,
+  cafe: outpostCafe,
+  clinic: outpostClinic,
+  market: outpostMarket,
+  pool: outpostPool,
+  class: outpostClass,
+  other: outpostOther,
+};
 
 export const logo = {
   /** 320x120 title mark, "HAVEN PROTOCOL" as paths. */

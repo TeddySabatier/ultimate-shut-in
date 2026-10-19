@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="miter" stroke-linecap="square">
+  <!-- friend: house with a heart -->
+  <path d="M4 11l8-7 8 7v9.5H4z"/>
+  <path d="M12 17.5l-2.8-2.8a1.6 1.6 0 0 1 2.8-1.6 1.6 1.6 0 0 1 2.8 1.6z" stroke-width="2"/>
+</svg>

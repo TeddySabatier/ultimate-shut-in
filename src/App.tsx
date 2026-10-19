@@ -5,6 +5,7 @@ import { useReducedMotionAttribute } from './hooks/useReducedMotion';
 import { useGameStore } from './state/gameStore';
 import { CharacterScreen } from './screens/CharacterScreen';
 import { HomeScreen } from './screens/HomeScreen';
+import { MapScreen } from './screens/MapScreen';
 import { OnboardingScreen } from './screens/OnboardingScreen';
 import { QuestsScreen } from './screens/QuestsScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
@@ -17,6 +18,7 @@ function GameRoutes() {
       <Route element={<AppShell />}>
         <Route index element={<HomeScreen />} />
         <Route path="quests" element={<QuestsScreen />} />
+        <Route path="map" element={<MapScreen />} />
         <Route path="character" element={<CharacterScreen />} />
         <Route path="settings" element={<SettingsScreen />} />
         <Route path="*" element={<Navigate to="/" replace />} />

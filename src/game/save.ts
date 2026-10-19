@@ -1,8 +1,10 @@
 /**
  * Save creation and migration. `migrate` accepts the legacy `usi.player`
  * shape (`{name, level, xp}`, version missing or 1), v2 files (no custom
- * quests, proposals or activity: they get empty arrays) and the current v3
- * file, filling any missing field with a default so older saves keep loading.
+ * quests, proposals or activity: they get empty arrays), v3 files (no city
+ * map: they get an empty one seeded with one snapshot of the current state)
+ * and the current v4 file, filling any missing field with a default so older
+ * saves keep loading.
  */
 import { getCombo, habits } from './content';
 import { instanceId } from './board';
@@ -25,6 +27,9 @@ import {
   resolveTemplate,
   resolveTier,
 } from './template';
+import { canHoldOutpost } from './mapGeometry';
+import { SNAPSHOT_MAX } from './map';
+import { OUTPOST_NAME_MAX, OUTPOST_NOTE_MAX, VISIT_LOG_MAX, higherState, isOutpostTypeId, outpostStateFor, placementError, resolveOutpostHabits } from './outposts';
 import { gameDayIndex, type TimeOptions } from './time';
 import type {
   ActivityDay,
@@ -38,10 +43,15 @@ import type {
   CustomStats,
   CustomTemplate,
   Difficulty,
+  DomainSnapshot,
   EarnedTitle,
   HabitId,
   LifetimeStats,
   LogEntry,
+  MapState,
+  Outpost,
+  OutpostState,
+  OutpostVisit,
   Player,
   Proposal,
   ProposalAction,
@@ -55,13 +65,14 @@ import type {
   Utility,
   UtilityId,
   Vassal,
+  VisitSource,
   WaveRecord,
   WaveResult,
   WeekState,
 } from './types';
-import { HABIT_IDS, UTILITY_IDS } from './types';
+import { HABIT_IDS, OUTPOST_STATES, UTILITY_IDS } from './types';
 
-export const SAVE_VERSION = 3 as const;
+export const SAVE_VERSION = 4 as const;
 export const DEFAULT_NAME = 'Absolute';
 export const DEFAULT_RESET_HOUR = 4;
 export const NAME_MAX_LENGTH = 24;
@@ -115,6 +126,11 @@ export function defaultStats(): LifetimeStats {
   };
 }
 
+/** The map of a player who has not marked anything yet. */
+export function emptyMap(): MapState {
+  return { outposts: [], visits: [], snapshots: [], lastSeen: null, nextSeq: 1 };
+}
+
 export interface NewSaveOptions extends TimeOptions {
   settings?: Partial<Settings>;
 }
@@ -148,6 +164,7 @@ export function createNewSave(now: number, name?: string, opts?: NewSaveOptions)
     customTemplates: [],
     proposals: [],
     activity: [],
+    map: emptyMap(),
     firstPlayDay: today,
     lastOpenDay: today,
   };
@@ -344,6 +361,7 @@ function migrateWaveRecord(raw: unknown): WaveRecord | null {
       combos: num(b.combos, 0),
       titles: num(b.titles, 0),
       wellKept: num(b.wellKept, 0),
+      outposts: num(b.outposts, 0),
     },
     result: oneOf(raw.result, WAVE_RESULTS, 'quiet'),
     dpAwarded: num(raw.dpAwarded, 0),
@@ -436,6 +454,7 @@ function migrateCustomTemplates(raw: unknown): CustomTemplate[] {
     if (d.targetCount !== undefined) t.targetCount = d.targetCount;
     if (d.pinWeekday !== undefined) t.pinWeekday = d.pinWeekday;
     if (typeof c.archivedAt === 'number' && Number.isFinite(c.archivedAt)) t.archivedAt = c.archivedAt;
+    if (typeof c.outpostId === 'string' && c.outpostId !== '') t.outpostId = c.outpostId; // checked against the map below
     out.push(t);
   }
   return out;
@@ -498,6 +517,128 @@ function migrateActivity(raw: unknown): ActivityDay[] {
   return out.slice(-ACTIVITY_DAYS);
 }
 
+/* ------------------------------ City map ------------------------------ */
+
+const VISIT_SOURCES: readonly VisitSource[] = ['quest', 'checkin'];
+
+/** Outpost text the way `outposts.ts` tidies it (collapsed, trimmed after the cut), so a migration is idempotent. */
+function tidyText(v: unknown, max: number): string {
+  return typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, max).trim() : '';
+}
+
+/** Snapshot of the current state, the baseline a map-less save starts with so *7 days* has something honest. */
+function seedSnapshot(player: Player, week: WeekState, day: number): DomainSnapshot {
+  const last = week.history[week.history.length - 1];
+  return { periodIndex: week.index - 1, day, domainPoints: player.domainPoints, ring: player.ring, result: last?.result ?? 'quiet' };
+}
+
+/** Normalise one stored outpost; `null` drops it (bad id, type, cell or name). `peak` never ends below what the visits earn. */
+function migrateOutpost(raw: unknown, fallbackDay: number): Outpost | null {
+  if (!isDict(raw) || typeof raw.id !== 'string' || !/^op[1-9]\d*$/.test(raw.id) || !isOutpostTypeId(raw.type)) return null;
+  const cellRaw = isDict(raw.cell) ? raw.cell : null;
+  const cell = cellRaw ? { x: num(cellRaw.x, Number.NaN), y: num(cellRaw.y, Number.NaN) } : null;
+  if (!cell || !canHoldOutpost(cell)) return null;
+  const name = tidyText(raw.name, OUTPOST_NAME_MAX);
+  if (name === '') return null;
+  const habits = resolveOutpostHabits(raw.type, Array.isArray(raw.habits) ? raw.habits.filter((h): h is string => typeof h === 'string') : undefined);
+  if (!habits) return null;
+  const visits = Math.max(0, Math.floor(num(raw.visits, 0)));
+  const createdDay = Math.floor(num(raw.createdDay, fallbackDay));
+  const stateDays: Partial<Record<OutpostState, number>> = {};
+  if (isDict(raw.stateDays)) {
+    for (const st of OUTPOST_STATES) {
+      const d = raw.stateDays[st];
+      if (typeof d === 'number' && Number.isFinite(d)) stateDays[st] = Math.floor(d);
+    }
+  }
+  if (stateDays.marked === undefined) stateDays.marked = createdDay;
+  return {
+    id: raw.id,
+    name,
+    type: raw.type,
+    habits,
+    note: tidyText(raw.note, OUTPOST_NOTE_MAX),
+    cell,
+    createdAt: num(raw.createdAt, 0),
+    createdDay,
+    visits,
+    lastVisitDay: nullableNum(raw.lastVisitDay),
+    peak: higherState(oneOf(raw.peak, OUTPOST_STATES, 'marked'), outpostStateFor(visits)),
+    stateDays,
+    retired: bool(raw.retired, false),
+  };
+}
+
+/**
+ * Normalise a stored map like boards: drop outposts with invalid cells or
+ * types, clamp text, rebuild `nextSeq`, drop orphan visits, keep snapshots
+ * strictly increasing. Active outposts that break the caps or the spacing
+ * (two saves merged by hand, say) are retired rather than lost.
+ */
+function migrateMap(raw: unknown, seed: DomainSnapshot, fallbackDay: number): MapState {
+  const map = emptyMap();
+  const r = isDict(raw) ? raw : {};
+  if (Array.isArray(r.outposts)) {
+    for (const o of r.outposts) {
+      const m = migrateOutpost(o, fallbackDay);
+      if (m && !map.outposts.some((x) => x.id === m.id)) map.outposts.push(m);
+    }
+  }
+  // Active invariants (CITY-MAP 4.2): unique names and cells, 3 per zone, 3 apart. Later offenders are retired.
+  const kept: SaveFile = { map: { ...map, outposts: [] } } as unknown as SaveFile;
+  for (const o of map.outposts) {
+    if (o.retired) continue;
+    const dup = kept.map.outposts.some((x) => x.name.toLowerCase() === o.name.toLowerCase());
+    if (dup || placementError(kept, o.cell) !== null) o.retired = true;
+    else kept.map.outposts.push(o);
+  }
+  const ids = new Set(map.outposts.map((o) => o.id));
+  if (Array.isArray(r.visits)) {
+    const countedKeys = new Set<string>();
+    for (const v of r.visits) {
+      if (!isDict(v) || typeof v.outpostId !== 'string' || !ids.has(v.outpostId) || typeof v.day !== 'number' || !Number.isFinite(v.day)) continue;
+      const day = Math.floor(v.day);
+      const key = `${v.outpostId}:${day}`;
+      let counted = bool(v.counted, false);
+      if (counted && countedKeys.has(key)) counted = false;
+      if (counted) countedKeys.add(key);
+      const visit: OutpostVisit = {
+        outpostId: v.outpostId,
+        day,
+        at: num(v.at, 0),
+        source: oneOf(v.source, VISIT_SOURCES, 'checkin'),
+        instanceId: typeof v.instanceId === 'string' ? v.instanceId : null,
+        counted,
+      };
+      map.visits.push(visit);
+    }
+    map.visits = map.visits.slice(-VISIT_LOG_MAX);
+  }
+  if (Array.isArray(r.snapshots)) {
+    for (const sn of r.snapshots) {
+      if (!isDict(sn) || typeof sn.periodIndex !== 'number' || !Number.isFinite(sn.periodIndex)) continue;
+      const periodIndex = Math.floor(sn.periodIndex);
+      const last = map.snapshots[map.snapshots.length - 1];
+      if (last && periodIndex <= last.periodIndex) continue;
+      map.snapshots.push({
+        periodIndex,
+        day: Math.floor(num(sn.day, fallbackDay)),
+        domainPoints: Math.max(0, num(sn.domainPoints, 0)),
+        ring: clamp(Math.floor(num(sn.ring, 1)), 1, 7) as RingId,
+        result: oneOf(sn.result, WAVE_RESULTS, 'quiet'),
+      });
+    }
+    map.snapshots = map.snapshots.slice(-SNAPSHOT_MAX);
+  }
+  // A save without a map (v3 and older) starts from a snapshot of its current state; a v4 map keeps its own list, even empty.
+  if (!isDict(raw)) map.snapshots.push(seed);
+  const ls = isDict(r.lastSeen) ? r.lastSeen : null;
+  map.lastSeen = ls && typeof ls.day === 'number' && Number.isFinite(ls.day) ? { day: Math.floor(ls.day), domainPoints: Math.max(0, num(ls.domainPoints, 0)) } : null;
+  const maxSeq = map.outposts.reduce((m, o) => Math.max(m, Number(o.id.slice(2))), 0);
+  map.nextSeq = Math.max(maxSeq + 1, Math.floor(num(r.nextSeq, 1)), 1);
+  return map;
+}
+
 /** True when `v` has the shape of a v2 SaveFile, whatever its `version` field says. */
 function looksLikeV2(v: unknown): v is Dict {
   return isDict(v) && isDict(v.player) && isDict(v.vassals) && isDict(v.utilities) && isDict(v.settings);
@@ -552,11 +693,17 @@ export function migrate(raw: unknown, now: number, opts?: TimeOptions): SaveFile
   const firstPlayDay = Math.floor(num(unwrapped.firstPlayDay, today));
   // A missing `lastOpenDay` defaults to today, not to the first play day: a damaged
   // save must not replay years of boundaries (errata 13).
-  const lastOpenDay = Math.floor(num(unwrapped.lastOpenDay, today));
+  const lastOpenDay = Math.max(firstPlayDay, Math.floor(num(unwrapped.lastOpenDay, today)));
+  const player = migratePlayer(unwrapped.player, fresh.player);
+  const map = migrateMap(unwrapped.map, seedSnapshot(player, week, lastOpenDay), lastOpenDay);
+  // A template may only default to an outpost that is on the map and active.
+  for (const t of customTemplates) {
+    if (t.outpostId !== undefined && !map.outposts.some((o) => o.id === t.outpostId && !o.retired)) delete t.outpostId;
+  }
 
   return {
     version: SAVE_VERSION,
-    player: migratePlayer(unwrapped.player, fresh.player),
+    player,
     settings,
     vassals,
     utilities,
@@ -569,8 +716,9 @@ export function migrate(raw: unknown, now: number, opts?: TimeOptions): SaveFile
     customTemplates,
     proposals: migrateProposals(unwrapped.proposals),
     activity: migrateActivity(unwrapped.activity),
+    map,
     firstPlayDay,
-    lastOpenDay: Math.max(firstPlayDay, lastOpenDay),
+    lastOpenDay,
   };
 }
 

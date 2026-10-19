@@ -32,7 +32,7 @@ export const HABIT_IDS: readonly HabitId[] = [
 export const UTILITY_IDS: readonly UtilityId[] = ['power', 'water', 'gas'] as const;
 
 export interface SaveFile {
-  version: 3;
+  version: 4;
   player: Player;
   settings: Settings;
   vassals: Record<HabitId, Vassal>;
@@ -52,6 +52,8 @@ export interface SaveFile {
    * tried quest. Only the proposal rules read it; written at each boundary.
    */
   activity: ActivityDay[];
+  /** The City Map: outposts, visits, domain snapshots (`docs/design/CITY-MAP.md`). */
+  map: MapState;
   firstPlayDay: number;
   lastOpenDay: number;
 }
@@ -150,6 +152,8 @@ export interface WaveBreakdown {
   combos: number;
   titles: number;
   wellKept: number;
+  /** Stronghold outposts, +2 each, capped (CITY-MAP 3.3). */
+  outposts: number;
 }
 
 export interface WaveRecord {
@@ -236,6 +240,8 @@ export interface CustomTemplate {
   archivedAt?: number;
   source: CustomSource;
   stats: CustomStats;
+  /** Completions of this quest tag a visit to this outpost (CITY-MAP 3.2). */
+  outpostId?: string;
 }
 
 export type ProposalRule = 'smaller' | 'stepUp' | 'makeRecurring' | 'footInDoor' | 'pinWeekday';
@@ -254,6 +260,8 @@ export interface CustomDraft {
   pinWeekday?: number | undefined;
   timeSlot: TimeSlot;
   source: CustomSource;
+  /** Outpost to tag completions at; `null` clears it on an update. */
+  outpostId?: string | null | undefined;
 }
 
 export type ProposalAction =
@@ -287,6 +295,82 @@ export interface ActivityDay {
 }
 
 /* ------------------------------------------------------------------ */
+/* City Map: outposts, visits and domain snapshots (docs/design/CITY-MAP.md). */
+/* ------------------------------------------------------------------ */
+
+export type OutpostTypeId = 'gym' | 'park' | 'library' | 'friend' | 'family' | 'cafe' | 'clinic' | 'market' | 'pool' | 'class' | 'other';
+export type OutpostState = 'marked' | 'scouted' | 'corridor' | 'stronghold';
+export type VisitSource = 'quest' | 'checkin';
+export type Compass = 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'nw';
+
+export const OUTPOST_TYPE_IDS: readonly OutpostTypeId[] = ['gym', 'park', 'library', 'friend', 'family', 'cafe', 'clinic', 'market', 'pool', 'class', 'other'] as const;
+export const OUTPOST_STATES: readonly OutpostState[] = ['marked', 'scouted', 'corridor', 'stronghold'] as const;
+export const COMPASS_DIRS: readonly Compass[] = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'] as const;
+
+/** A cell of the 17 x 17 island grid; integers in -8..8, `(0, 0)` is the Haven. */
+export interface MapCell {
+  x: number;
+  y: number;
+}
+
+export interface Outpost {
+  /** `op${seq}`, never reused. */
+  id: string;
+  /** 1..24, trimmed, unique among active outposts (case-insensitive). */
+  name: string;
+  type: OutpostTypeId;
+  /** 1..2 related habits, defaulting from the type. */
+  habits: HabitId[];
+  /** 0..80. */
+  note: string;
+  cell: MapCell;
+  createdAt: number;
+  createdDay: number;
+  /** Counted visits, at most one per game day. */
+  visits: number;
+  lastVisitDay: number | null;
+  /** Highest state ever reached; never drops. */
+  peak: OutpostState;
+  /** First game day each state was reached. */
+  stateDays: Partial<Record<OutpostState, number>>;
+  retired: boolean;
+}
+
+export interface OutpostVisit {
+  outpostId: string;
+  day: number;
+  at: number;
+  source: VisitSource;
+  /** The tagged quest, source `quest` only. */
+  instanceId: string | null;
+  /** False for the second and later logs of the same day. */
+  counted: boolean;
+}
+
+export interface DomainSnapshot {
+  /** Wave period that settled (quiet included). */
+  periodIndex: number;
+  /** Game day of the boundary that settled it. */
+  day: number;
+  /** Domain Points after the wave award. */
+  domainPoints: number;
+  ring: RingId;
+  result: WaveResult;
+}
+
+export interface MapState {
+  /** Active and retired, in creation order. */
+  outposts: Outpost[];
+  /** Newest last, capped at `visitLogMax` (400). */
+  visits: OutpostVisit[];
+  /** Newest last, capped at 104 (= WAVE_HISTORY_MAX), strictly increasing `periodIndex`. */
+  snapshots: DomainSnapshot[];
+  /** The last look at the Map tab: the wall animates from here. */
+  lastSeen: { day: number; domainPoints: number } | null;
+  nextSeq: number;
+}
+
+/* ------------------------------------------------------------------ */
 /* Events: emitted by every state transition so the UI can toast them. */
 /* ------------------------------------------------------------------ */
 
@@ -314,7 +398,14 @@ export type GameEvent =
   | { type: 'customArchived'; templateId: string }
   | { type: 'customBoarded'; instanceId: string }
   | { type: 'proposalsIssued'; count: number }
-  | { type: 'proposalResolved'; id: string; accepted: boolean };
+  | { type: 'proposalResolved'; id: string; accepted: boolean }
+  | { type: 'outpostCreated'; outpostId: string }
+  | { type: 'outpostVisited'; outpostId: string; visits: number; source: VisitSource; counted: boolean }
+  | { type: 'outpostVisitUndone'; outpostId: string }
+  | { type: 'outpostStateReached'; outpostId: string; state: OutpostState }
+  | { type: 'outpostRetired'; outpostId: string }
+  | { type: 'outpostRestored'; outpostId: string }
+  | { type: 'outpostWithinWalls'; outpostId: string; ring: RingId };
 
 export interface ActionResult {
   save: SaveFile;
