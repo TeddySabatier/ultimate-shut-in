@@ -218,6 +218,35 @@ describe('ComposeQuestSheet: text path', () => {
     fireEvent(screen.getByRole('dialog'), new Event('cancel', { cancelable: true }));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it('does not offer an outpost picker when none are marked', () => {
+    renderSheet();
+    type('do 20 pushups');
+    expect(screen.queryByLabelText(c.labels.outpost)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: c.actions.later }));
+    expect(currentSave().customTemplates[0]?.outpostId).toBeUndefined();
+  });
+
+  it('picking an outpost writes outpostId and completing the quest tags it', () => {
+    useGameStore.getState().createOutpost({ name: 'Riverside Gym', type: 'gym', cell: { x: 2, y: 1 } });
+    useGameStore.setState({ pendingEvents: [], notice: null });
+    const { onClose } = renderSheet();
+    type('do 20 pushups');
+    const picker = screen.getByLabelText(c.labels.outpost);
+    expect(within(picker).getByRole('option', { name: c.outpostNone })).toBeInTheDocument();
+    expect(within(picker).getByRole('option', { name: 'Riverside Gym' })).toBeInTheDocument();
+    fireEvent.change(picker, { target: { value: 'op1' } });
+    fireEvent.click(screen.getByRole('button', { name: c.actions.board }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+    const save = currentSave();
+    expect(save.customTemplates[0]).toMatchObject({ title: 'Do 20 Pushups', outpostId: 'op1' });
+    const instanceId = save.board?.quests.at(-1)?.instanceId;
+    expect(instanceId).toBeTruthy();
+    useGameStore.getState().complete(instanceId!);
+    const after = currentSave();
+    expect(after.map.outposts[0]?.visits).toBe(1);
+    expect(after.map.visits.some((v) => v.outpostId === 'op1' && v.instanceId === instanceId && v.source === 'quest')).toBe(true);
+  });
 });
 
 describe('ComposeQuestSheet: voice path', () => {

@@ -274,8 +274,11 @@
       "recurrence": "How often",
       "timeSlot": "Time of day",
       "tier": "Effort",
+      "outpost": "Default outpost",
       "rewards": "Pays about"
     },
+    "outpostNone": "None",
+    "outpostHint": "Optional. Completions log a visit here, so a gym session tags itself.",
     "kinds": {
       "check": "Check",
       "timer": "Timer",
@@ -468,7 +471,8 @@
       "retiredSection": "Retired outposts",
       "retiredEmpty": "Nothing retired. Retired outposts rest here with their visits.",
       "ledgerTitle": "Outposts",
-      "ledgerEmpty": "No outposts yet. Mark one on the Map.",
+      "ledgerEmpty": "No outposts yet.",
+      "ledgerLink": "Mark one on the Map.",
       "lastVisitUnknown": "Visited, a while ago"
     },
     "zone": {
@@ -506,6 +510,9 @@
       "zone": "How far does it feel?",
       "direction": "Which way?",
       "beyondOption": "(beyond)",
+      "place": "Place on the map (optional)",
+      "placeHint": "Amber dots are free cells. Tap one, or leave the selects to pick for you. Keyboard users can ignore the dots.",
+      "placed": "Placed by tap. Change the selects to let the Protocol pick again.",
       "note": "Note (optional)",
       "notePlaceholder": "Bring the good biscuits.",
       "submit": "Mark outpost",

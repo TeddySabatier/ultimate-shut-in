@@ -5,6 +5,7 @@
   bottom: 0;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
+  min-height: calc(var(--tabbar-height) + var(--safe-bottom));
   height: calc(var(--tabbar-height) + var(--safe-bottom));
   padding-bottom: var(--safe-bottom);
   padding-left: var(--safe-left);
@@ -15,6 +16,7 @@
 }
 
 .tab {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -41,15 +43,17 @@
   color: currentColor;
 }
 
-/* Pixel font, 9px floor, capped at 10px so "SETTINGS" never wraps or clips at 150% text. */
+/* Pixel font, 9px floor. Labels wrap so five columns never overflow at 320px (CITY-MAP 5.1). */
 .label {
   font-family: var(--font-heading);
   font-size: clamp(9px, 0.5625rem, 10px);
   line-height: 1.2;
   text-transform: uppercase;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
   max-width: 100%;
-  overflow: hidden;
+  min-width: 0;
 }
 
 /* Five 64px columns at 375px still take Press Start 2P at 9px; below that Inter 800 is narrower (CITY-MAP 5.1). */
@@ -70,8 +74,8 @@
   }
 }
 
-/* Icon-only below 340px and in landscape / keyboard-up; the label stays for assistive tech. */
-@media (max-width: 339px) {
+/* Compact phone and landscape / keyboard-up: icon-only, 44px targets; the label stays for assistive tech. */
+@media (max-width: 359px), (max-height: 500px) {
   .label {
     position: absolute;
     width: 1px;
@@ -85,13 +89,5 @@
   }
   .tab {
     gap: 0;
-  }
-}
-
-/* Landscape and keyboard-up: icon and label side by side in the shorter bar. */
-@media (max-height: 500px) {
-  .tab {
-    flex-direction: row;
-    gap: var(--space-1);
   }
 }

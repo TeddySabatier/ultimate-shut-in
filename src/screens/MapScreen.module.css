@@ -491,6 +491,11 @@
   display: block;
 }
 
+.colA,
+.colB {
+  min-width: 0;
+}
+
 @media (min-width: 768px) {
   .cols {
     display: grid;
@@ -502,17 +507,39 @@
     position: sticky;
     top: 0;
   }
+  .colB {
+    min-width: 0;
+  }
+  .mapCard {
+    margin-bottom: var(--space-3);
+  }
 }
 
-/* ---- landscape and keyboard-up: the map is capped by the viewport height, the ring line hides ---- */
+/* ---- landscape and keyboard-up: compact HUD, icon-only chrome, map capped by the viewport ---- */
 @media (max-height: 500px) {
   .ringLine {
     display: none;
+  }
+  .hudLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+  .hudBtn {
+    padding: 0;
+    width: var(--touch-target);
+    justify-content: center;
   }
   .mapCard > svg {
     max-height: calc(100dvh - 7rem);
     width: auto;
     max-width: 100%;
     margin: 0 auto;
+  }
+  .top {
+    margin-bottom: var(--space-2);
   }
 }
