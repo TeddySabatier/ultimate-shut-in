@@ -64,7 +64,7 @@ To try it on your phone over the local network, see [docs/DEPLOY.md](docs/DEPLOY
 e2e/                 Playwright end-to-end tests
 docs/
   design/            GDD.md (rules), GDD-errata.md (where code departs), ART.md,
-                     CITY-MAP.md (Map tab and outposts), CUSTOM-QUESTS.md, ARENA.md (planned)
+                     CITY-MAP.md (Map tab and outposts), CUSTOM-QUESTS.md
   research/          source-analysis.md (research and IP note)
   review/            engine, QA, responsive reviews and merge notes
   ARCHITECTURE.md  DEPLOY.md  PLAYER-GUIDE.md  RESPONSIVE-RULES.md  PARALLEL-WORK.md  ORCHESTRATION.md
