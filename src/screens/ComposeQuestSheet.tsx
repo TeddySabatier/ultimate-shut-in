@@ -8,6 +8,7 @@ import {
   activeOutposts,
   cleanDraft,
   customSlotsLeft,
+  customCopyInProgress,
   customTitleTaken,
   effortTier,
   formatLine,
@@ -142,10 +143,15 @@ function SheetBody({ titleId, onClose, template }: BodyProps) {
   const parsed = useMemo(() => parseQuestDraft(text, { locale }), [text, locale]);
   const hasText = editing || text.trim() !== '';
 
-  const habit = edits.habit ?? seed?.habit ?? parsed.habit;
-  const kind = edits.kind ?? seed?.kind ?? parsed.kind;
-  const durationText = edits.duration ?? seed?.duration ?? String(parsed.durationMin ?? DEFAULT_DURATION);
-  const targetText = edits.target ?? seed?.target ?? String(parsed.targetCount ?? DEFAULT_TARGET);
+  // Once the player has started today's copy (timer running, counted, tried) its habit, kind, length and effort
+  // wait until it is settled; those fields show what is saved and ignore anything typed before it started.
+  const locked = template !== null && customCopyInProgress(save, template.id);
+  const held = locked ? seed : null;
+  const habit = held?.habit ?? edits.habit ?? seed?.habit ?? parsed.habit;
+  const kind = held?.kind ?? edits.kind ?? seed?.kind ?? parsed.kind;
+  const durationText = held?.duration ?? edits.duration ?? seed?.duration ?? String(parsed.durationMin ?? DEFAULT_DURATION);
+  const targetText = held?.target ?? edits.target ?? seed?.target ?? String(parsed.targetCount ?? DEFAULT_TARGET);
+  const manualTier = locked && template ? editsOf(template).tier : edits.tier;
   const title = edits.title ?? seed?.title ?? parsed.title;
   const description = edits.description ?? seed?.description ?? parsed.description;
   const recurrenceKey = edits.recurrence ?? seed?.recurrence ?? keyOf(parsed.recurrence, parsed.pinWeekday);
@@ -158,7 +164,7 @@ function SheetBody({ titleId, onClose, template }: BodyProps) {
   const targetArg = kind === 'count' ? target : undefined;
   const effort = effortTier(kind, durationArg, targetArg);
   const cap = maxTier(kind, durationArg, targetArg);
-  const tier = resolveTier(kind, edits.tier, durationArg, targetArg);
+  const tier = resolveTier(kind, manualTier, durationArg, targetArg);
 
   const input: CustomDraft = {
     habit,
@@ -167,7 +173,7 @@ function SheetBody({ titleId, onClose, template }: BodyProps) {
     targetCount: targetArg,
     title,
     description,
-    tier: edits.tier,
+    tier: manualTier,
     recurrence,
     pinWeekday,
     timeSlot,
@@ -187,8 +193,6 @@ function SheetBody({ titleId, onClose, template }: BodyProps) {
   const away = save.vassals[habit].away;
   const slotsLeft = customSlotsLeft(save);
   const canBoard = save.board !== null && habitOn && !away && slotsLeft > 0;
-  // On today's board its habit, kind, length and effort change from tomorrow; the engine says the same.
-  const locked = template !== null && (save.board?.quests.some((q) => q.templateId === template.id) ?? false);
   const askHabit = hasText && !editing && edits.habit === undefined && parsed.questions.some((q) => q.id === 'habit');
   const askAmount = hasText && !editing && edits.duration === undefined && edits.target === undefined && edits.kind === undefined && parsed.questions.some((q) => q.id === 'amount');
   const askTitle = hasText && !editing && edits.title === undefined && parsed.questions.some((q) => q.id === 'title');
@@ -269,7 +273,7 @@ function SheetBody({ titleId, onClose, template }: BodyProps) {
               className={styles.textarea}
               rows={3}
               maxLength={300}
-              autoFocus
+              data-autofocus=""
               value={text}
               placeholder={c.textPlaceholder}
               aria-describedby={`${ids}-voice`}
@@ -385,7 +389,7 @@ function SheetBody({ titleId, onClose, template }: BodyProps) {
                 <label htmlFor={`${ids}-name`} className={styles.label}>
                   {c.labels.name}
                 </label>
-                <input id={`${ids}-name`} type="text" maxLength={40} value={title} autoFocus={editing} onChange={(e) => set({ title: e.target.value })} />
+                <input id={`${ids}-name`} type="text" maxLength={40} value={title} data-autofocus={editing ? '' : undefined} onChange={(e) => set({ title: e.target.value })} />
               </div>
             </div>
 
@@ -507,17 +511,26 @@ export function ComposeQuestSheet({ open, onClose, template = null }: SheetProps
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
+  const opener = useRef<HTMLElement | null>(null);
+
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
     if (open) {
       if (!d.hasAttribute('open')) {
+        opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
         if (typeof d.showModal === 'function') d.showModal();
         else d.setAttribute('open', '');
+        // The body mounted while the dialog was closed, so React's autoFocus did nothing: focus the first field here.
+        d.querySelector<HTMLElement>('[data-autofocus]')?.focus();
       }
     } else if (d.hasAttribute('open')) {
       if (typeof d.close === 'function') d.close();
       else d.removeAttribute('open');
+      // Back to the button that opened the sheet, if it is still on the page.
+      const back = opener.current;
+      opener.current = null;
+      if (back?.isConnected) back.focus();
     }
   }, [open]);
 

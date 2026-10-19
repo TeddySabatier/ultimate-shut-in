@@ -1,6 +1,6 @@
-import { fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { computeProposalsDraft, openProposals, strings, type CustomDraft, type SaveFile } from '../game';
+import { computeProposalsDraft, formatLine, openProposals, strings, type CustomDraft, type SaveFile } from '../game';
 import { now } from '../state/clock';
 import { useGameStore } from '../state/gameStore';
 import { todayIndex } from '../state/selectors';
@@ -124,10 +124,27 @@ describe('Ledger: editing a quest of your own', () => {
     expect(within(dialog()).queryByRole('alert')).toBeNull();
   });
 
-  it('keeps the shape of a quest that is on today\'s board and still lets the name and schedule change', () => {
+  it('lets a daily quest that is on the board today, untouched, take a new length and effort', () => {
+    seedStore();
+    const id = saved({ recurrence: 'daily' }, true);
+    expect(currentSave().board?.quests.some((q) => q.templateId === id)).toBe(true);
+    renderWithRouter(<CharacterScreen />);
+    open('Deep read');
+    const d = dialog();
+    expect(within(d).queryByText(c.notes.locked)).toBeNull();
+    expect(within(d).getByLabelText(c.labels.duration)).toBeEnabled();
+    fireEvent.change(field(c.labels.duration), { target: { value: '45' } });
+    fireEvent.click(within(d).getByRole('button', { name: c.actions.save }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(tmpl(id)).toMatchObject({ durationMin: 45, tier: 3 });
+    expect(currentSave().board?.quests.find((x) => x.templateId === id)).toMatchObject({ status: 'open', kind: 'timer' });
+  });
+
+  it('holds habit, kind, length and effort while the copy on the board is started, and still lets the name and schedule change', () => {
     seedStore();
     const id = saved({}, true);
-    expect(currentSave().board?.quests.some((q) => q.templateId === id)).toBe(true);
+    const iid = currentSave().board?.quests.find((q) => q.templateId === id)?.instanceId ?? '';
+    useGameStore.getState().startTimer(iid);
     renderWithRouter(<CharacterScreen />);
     open('Deep read');
     const d = dialog();
@@ -140,9 +157,50 @@ describe('Ledger: editing a quest of your own', () => {
     fireEvent.click(within(d).getByRole('button', { name: c.actions.save }));
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(tmpl(id)).toMatchObject({ title: 'Deep read (slow)', recurrence: 'weekdays', durationMin: 25, tier: 2 });
-    // Today's copy still pays what it was issued with.
     const q = currentSave().board?.quests.find((x) => x.templateId === id);
     expect(q).toMatchObject({ habit: 'study', kind: 'timer', status: 'open' });
+  });
+
+  it('ignores a length typed before the copy was started: the held fields show what is saved', () => {
+    seedStore();
+    const id = saved({}, true);
+    const iid = currentSave().board?.quests.find((q) => q.templateId === id)?.instanceId ?? '';
+    renderWithRouter(<CharacterScreen />);
+    open('Deep read');
+    fireEvent.change(field(c.labels.duration), { target: { value: '45' } });
+    // The timer is started elsewhere while the sheet is open.
+    act(() => useGameStore.getState().startTimer(iid));
+    expect(field(c.labels.duration).value).toBe('25');
+    expect(field(c.labels.duration)).toBeDisabled();
+    fireEvent.click(within(dialog()).getByRole('button', { name: c.actions.save }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(tmpl(id)).toMatchObject({ durationMin: 25, tier: 2 });
+  });
+
+  it('unpins a weekday when the form goes from "Every Wednesday" back to "Once a week"', () => {
+    seedStore();
+    const id = saved({ recurrence: 'weekly:1', pinWeekday: 3 });
+    renderWithRouter(<CharacterScreen />);
+    open('Deep read');
+    expect((within(dialog()).getByLabelText(c.labels.recurrence) as HTMLSelectElement).value).toBe('pin:3');
+    fireEvent.change(within(dialog()).getByLabelText(c.labels.recurrence), { target: { value: 'weekly:1' } });
+    fireEvent.click(within(dialog()).getByRole('button', { name: c.actions.save }));
+    expect(tmpl(id)?.recurrence).toBe('weekly:1');
+    expect(tmpl(id)?.pinWeekday).toBeUndefined();
+    const item = screen.getByRole('heading', { name: 'Deep read' }).closest('li') as HTMLElement;
+    expect(within(item).getByText(/Once a week/)).toBeInTheDocument();
+  });
+
+  it('puts the focus on the first field when it opens and back on the Edit button when it closes', () => {
+    seedStore();
+    saved();
+    renderWithRouter(<CharacterScreen />);
+    const button = screen.getByRole('button', { name: `${c.myQuests.edit}: Deep read` });
+    button.focus();
+    fireEvent.click(button);
+    expect(field(c.labels.name)).toHaveFocus();
+    fireEvent.click(within(dialog()).getByRole('button', { name: c.actions.cancel }));
+    expect(screen.getByRole('button', { name: `${c.myQuests.edit}: Deep read` })).toHaveFocus();
   });
 
   it('shows the engine\'s refusal inside the sheet and keeps it open', () => {
@@ -181,6 +239,8 @@ describe('Ledger: archived quests and Restore', () => {
     expect(within(item).queryByRole('button', { name: new RegExp(`^${c.myQuests.addToday}`) })).toBeNull();
     fireEvent.click(within(item).getByRole('button', { name: `${c.myQuests.restore}: Deep read` }));
     expect(tmpl(id)?.archivedAt).toBeUndefined();
+    // The row left the group; the keyboard follows it to its Edit button.
+    expect(screen.getByRole('button', { name: `${c.myQuests.edit}: Deep read` })).toHaveFocus();
     expect(useGameStore.getState().pendingEvents.filter((e) => e.type === 'customUpdated')).toHaveLength(1);
     // Now it is an ordinary quest again, the group is gone, and it is not on the board by itself.
     expect(screen.queryByText(new RegExp(`^${c.myQuests.archivedGroup}`))).toBeNull();
@@ -198,8 +258,10 @@ describe('Ledger: archived quests and Restore', () => {
     saved({ title: 'Deep read' });
     renderWithRouter(<CharacterScreen />);
     const group = screen.getByText(new RegExp(`^${c.myQuests.archivedGroup}`)).closest('details') as HTMLElement;
-    expect(within(group).getByText(c.myQuests.restoreNameTaken)).toBeInTheDocument();
-    expect(within(group).getByRole('button', { name: `${c.myQuests.restore}: Deep read` })).toBeDisabled();
+    const reason = within(group).getByText(formatLine(c.myQuests.restoreNameTaken, { title: 'Deep read' }));
+    const restore = within(group).getByRole('button', { name: `${c.myQuests.restore}: Deep read` });
+    expect(restore).toBeDisabled();
+    expect(restore).toHaveAttribute('aria-describedby', reason.id);
     // Renaming the active one frees the name.
     open('Deep read');
     fireEvent.change(field(c.labels.name), { target: { value: 'Deep read 2' } });

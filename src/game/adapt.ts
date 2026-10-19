@@ -476,6 +476,13 @@ export function acceptProposal(save: SaveFile, now: number, id: string, opts?: T
       if (boarded.error === undefined) result = { ...boarded, events: [...created.events, ...boarded.events], templateId: created.templateId };
     }
   } else {
+    // A recurrence proposal is only made for a "once" quest. If the player has set a recurrence since, it
+    // is out of date: let it go quietly (answered "not now") instead of undoing their edit.
+    const templateId = p.action.templateId;
+    const target = save.customTemplates.find((c) => c.id === templateId);
+    if (target && target.archivedAt === undefined && p.action.patch.recurrence !== undefined && target.recurrence !== 'once') {
+      return dismissProposal(save, now, id, opts);
+    }
     result = updateCustomTemplate(save, now, p.action.templateId, p.action.patch, opts);
     if (result.error !== undefined) return result;
   }

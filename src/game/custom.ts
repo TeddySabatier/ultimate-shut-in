@@ -66,8 +66,16 @@ export interface CleanDraft {
 
 /* ------------------------------ Validation ------------------------------ */
 
+/** Zero-width characters that whitespace matching misses: invisible in a name, so never part of one. */
+const INVISIBLE = new RegExp('[\u200B-\u200D\u2060\uFEFF]', 'g');
+
 function tidy(text: string, max: number): string {
-  return text.replace(/\s+/g, ' ').trim().slice(0, max).trim();
+  return text.normalize('NFC').replace(INVISIBLE, '').replace(/\s+/g, ' ').trim().slice(0, max).trim();
+}
+
+/** The form a name is compared in: one Unicode form, no accents, no case, no invisible characters. */
+function titleKey(text: string): string {
+  return text.normalize('NFD').replace(/\p{M}/gu, '').replace(INVISIBLE, '').replace(/\s+/g, ' ').trim().toLocaleLowerCase();
 }
 
 /** Validate and normalise a draft; the error text is player-facing and lower-case like the other refusals. */
@@ -234,12 +242,12 @@ function uniqueId(save: SaveFile, now: number, d: CleanDraft): string {
 }
 
 function sameTitle(a: string, b: string): boolean {
-  return a.toLowerCase() === b.toLowerCase();
+  return titleKey(a) === titleKey(b);
 }
 
 /**
  * Whether an active template of the same habit already carries this title
- * (case-insensitive), ignoring `exceptId`: the guard behind "add", "edit" and
+ * (case, accents, spacing and the way an accent is typed ignored), ignoring `exceptId`: the guard behind "add", "edit" and
  * "restore", and the Compose sheet's live warning. The title is tidied the
  * way `cleanDraft` tidies it.
  */
@@ -286,17 +294,34 @@ export function addCustomTemplate(save: SaveFile, now: number, input: CustomDraf
 }
 
 /**
+ * Today's copy of a template that the player has started on: a timer that runs
+ * or holds time, a counter above zero, or a quest marked tried. Its shape is
+ * held until it is settled (or the board turns over); an untouched copy and a
+ * settled one are not in progress.
+ */
+export function customCopyInProgress(save: Pick<SaveFile, 'board'>, templateId: string): boolean {
+  const q = save.board?.quests.find((x) => x.templateId === templateId);
+  if (!q) return false;
+  if (q.status === 'tried') return true;
+  if (q.status !== 'open') return false;
+  return q.count > 0 || (q.timer !== null && (q.timer.startedAt !== null || q.timer.accumulatedMs > 0));
+}
+
+/**
  * Edit a custom template: title, description, habit, kind, duration or count,
  * tier, recurrence, pinned weekday, time slot and outpost. The tier follows
  * the effort (and is re-capped by the same rules as a new quest) unless the
  * patch sets it.
  *
  * Edits are for future boards: recurrence, placement and every new copy read
- * the template as it is now. Today's copy keeps its shape and what it pays,
- * so a change to habit, kind, duration, count or tier is refused while the
- * template sits on today's board ("from tomorrow"); a copy that was already
- * settled keeps its reward snapshot either way. Name, description, time slot,
- * recurrence and outpost never change a payout and go through at once.
+ * the template as it is now. A copy on today's board that is settled keeps
+ * its reward snapshot (undo reverts that snapshot), so a change to habit,
+ * kind, duration, count or tier goes through; an untouched open copy takes the
+ * new shape in place (nothing was paid or started on it); a copy in progress
+ * (see `customCopyInProgress`) holds its shape until it is settled, and the
+ * change is refused meanwhile. Name, description, time slot, recurrence and
+ * outpost never change a payout and always go through. A patch that sets a
+ * recurrence without a pinned weekday clears any pin.
  */
 export function updateCustomTemplate(
   save: SaveFile,
@@ -316,7 +341,7 @@ export function updateCustomTemplate(
   if (merged.kind !== 'timer') merged.durationMin = undefined;
   if (merged.kind !== 'count') merged.targetCount = undefined;
   if (merged.recurrence !== 'weekly:1') merged.pinWeekday = undefined;
-  else if (patch.recurrence !== undefined && patch.pinWeekday === undefined && patch.recurrence !== current.recurrence) merged.pinWeekday = undefined;
+  else if (patch.recurrence !== undefined && patch.pinWeekday === undefined) merged.pinWeekday = undefined;
   const r = cleanDraft(merged);
   if ('error' in r) return refuse(save, r.error);
   const d = r.draft;
@@ -326,15 +351,27 @@ export function updateCustomTemplate(
     if (d.outpostId !== current.outpostId) return refuse(save, 'unknown outpost');
     delete d.outpostId;
   }
-  const onBoard = boardIsCurrent(save, now, opts) && (save.board?.quests.some((q) => q.templateId === templateId) ?? false);
   const reshaped =
     d.habit !== current.habit || d.kind !== current.kind || d.durationMin !== current.durationMin || d.targetCount !== current.targetCount || d.tier !== current.tier;
-  if (onBoard && reshaped) {
-    return refuse(save, "it is on today's board; change its habit, kind, length or effort from tomorrow");
+  if (reshaped && customCopyInProgress(save, templateId)) {
+    return refuse(save, "it is in progress on today's board; change its habit, kind, length or effort once it is settled");
+  }
+  const copy = save.board?.quests.find((q) => q.templateId === templateId && q.status === 'open');
+  if (reshaped && copy && d.habit !== current.habit) {
+    if (!isHabitEnabled(save, d.habit)) return refuse(save, 'that habit is switched off in Settings');
+    if (save.vassals[d.habit].away) return refuse(save, `${getHabit(d.habit).vassal.name} is away; welcome them back first`);
   }
   const draft = clone(save);
   const t = findCustom(draft, templateId);
   if (!t) return refuse(save, 'that quest is not in My quests');
+  // An untouched copy on the board takes the new shape in place; a settled one keeps the shape it was settled with.
+  const dq = draft.board?.quests.find((q) => q.templateId === templateId && q.status === 'open');
+  if (dq && reshaped) {
+    dq.habit = d.habit;
+    dq.kind = d.kind;
+    dq.count = 0;
+    dq.timer = d.kind === 'timer' ? { startedAt: null, accumulatedMs: 0 } : null;
+  }
   t.habit = d.habit;
   t.kind = d.kind;
   t.title = d.title;

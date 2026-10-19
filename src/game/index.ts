@@ -47,6 +47,7 @@ export {
   archiveCustomTemplate,
   restoreCustomTemplate,
   customTitleTaken,
+  customCopyInProgress,
   addCustomQuestToBoard,
 } from './custom';
 export type { CleanDraft, CustomResult } from './custom';

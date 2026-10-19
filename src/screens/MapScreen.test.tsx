@@ -95,6 +95,23 @@ describe('MapScreen', () => {
     expect(within(sheet).getByRole('button', { name: 'I was there today' })).toBeEnabled();
   });
 
+  it('keeps the ladder rung and the perk on after an undo drops the visits below a threshold (the state is the peak)', () => {
+    seedStore();
+    mark('Gym', { x: 2, y: 1 });
+    // Three visits reached Scouted, then one was undone: the engine keeps the peak and its perk.
+    const save = currentSave();
+    act(() => {
+      useGameStore.setState({ save: { ...save, map: { ...save.map, outposts: save.map.outposts.map((o) => ({ ...o, visits: 2, peak: 'scouted' as const })) } } });
+    });
+    renderWithRouter(<MapScreen />);
+    fireEvent.click(screen.getByRole('button', { name: /^Gym, Scouted/ }));
+    const sheet = screen.getByRole('dialog', { name: 'Gym' });
+    const rungs = within(within(sheet).getByRole('list', { name: 'States' })).getAllByRole('listitem');
+    expect(rungs.map((r) => r.classList.contains('rungOn'))).toEqual([true, true, false, false]);
+    const perks = within(sheet).getByText('Scouted.').closest('ul')!.querySelectorAll('li');
+    expect(Array.from(perks).map((li) => li.classList.contains('facOk'))).toEqual([true, false, false]);
+  });
+
   it('edits and retires from the sheet, and refuses past the cap with a warm line', () => {
     seedStore();
     mark('A', { x: 2, y: 1 });

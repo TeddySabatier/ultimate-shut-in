@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { completeQuest, undoQuest } from './board';
 import { WAVE_HISTORY_MAX } from './economy';
 import { COMPARE_DAYS, SNAPSHOT_MAX, compareSnapshot, markMapSeen, wallsHeld, waveResidue } from './map';
-import { createOutpost, logOutpostVisit } from './outposts';
+import { createOutpost, logOutpostVisit, tagQuestAtOutpost } from './outposts';
 import { T0, TZ, at, fresh, freshWithBoard } from './testUtils';
 import { changeResetHour, processBoundaries } from './tick';
 import { gameDayIndex } from './time';
@@ -100,5 +101,23 @@ describe('reset hour', () => {
     expect(shifted.map.snapshots[0]?.day).toBe(s.map.snapshots[0]!.day + delta);
     expect(shifted.map.lastSeen?.day).toBe(s.map.lastSeen!.day + delta);
     expect(JSON.stringify(s.map)).toBe(before);
+  });
+
+  it('keeps a tagged visit attached to its quest, so undo still removes the visit', () => {
+    let s = createOutpost(freshWithBoard(), { name: 'Gym', type: 'gym', cell: { x: 2, y: 1 } }, T0, TZ).save;
+    const q = s.board!.quests[0]!;
+    s = completeQuest(s, q.instanceId, T0).save;
+    s = tagQuestAtOutpost(s, q.instanceId, 'op1', T0, TZ).save;
+    expect(s.map.outposts[0]?.visits).toBe(1);
+    const shifted = changeResetHour(s, 23, T0, TZ).save;
+    const delta = shifted.firstPlayDay - s.firstPlayDay;
+    expect(Math.abs(delta)).toBe(1);
+    const moved = shifted.board!.quests[0]!;
+    expect(moved.instanceId).not.toBe(q.instanceId); // the board's own ids shift with the day
+    expect(shifted.map.visits[0]?.instanceId).toBe(moved.instanceId);
+    const undone = undoQuest(shifted, moved.instanceId, T0, TZ);
+    expect(undone.error).toBeUndefined();
+    expect(undone.save.map.visits).toHaveLength(0);
+    expect(undone.save.map.outposts[0]?.visits).toBe(0);
   });
 });

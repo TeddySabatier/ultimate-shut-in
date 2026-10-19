@@ -6,8 +6,8 @@
  * budget.
  */
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
-import { advanceToDay, completeAllQuests, freshApp, getNowOffset, getSave, gotoTab, onboard, setNowOffset, settleOverlays } from './helpers';
+import { expect, test, type Locator, type Page } from '@playwright/test';
+import { advanceToDay, completeAllQuests, freshApp, getNowOffset, getSave, gotoTab, onboard, pinCard, setNowOffset, settleOverlays } from './helpers';
 
 const NAME = 'Riverside Gym';
 
@@ -238,4 +238,122 @@ test('zones open from a band by keyboard with focus restored, pins and bands pas
   await expect(page.getByRole('heading', { name: 'City map', level: 1 })).toBeVisible();
   await page.waitForTimeout(200);
   expect(await page.evaluate(() => document.getAnimations().filter((a) => document.getElementById('city-map')?.contains((a.effect as KeyframeEffect | null)?.target ?? null)).length)).toBe(0);
+});
+
+/** Ring 7, ten outposts, two waves of residue: the worst case of CITY-MAP 5.4. Cells keep the spacing rules. */
+const RING7_PLACES: { name: string; type: string; cell: { x: number; y: number }; peak: string; visits: number; quiet: boolean }[] = [
+  { name: 'North Keep', type: 'gym', cell: { x: 2, y: 1 }, peak: 'stronghold', visits: 30, quiet: false },
+  { name: 'West Keep', type: 'friend', cell: { x: -2, y: 1 }, peak: 'stronghold', visits: 30, quiet: false },
+  { name: 'South Keep', type: 'family', cell: { x: 1, y: -3 }, peak: 'stronghold', visits: 30, quiet: false },
+  { name: 'Lane Library', type: 'library', cell: { x: -3, y: -3 }, peak: 'corridor', visits: 10, quiet: false },
+  { name: 'Quiet Court', type: 'cafe', cell: { x: 5, y: 3 }, peak: 'corridor', visits: 10, quiet: true },
+  { name: 'Hill Clinic', type: 'clinic', cell: { x: -6, y: 1 }, peak: 'scouted', visits: 3, quiet: false },
+  { name: 'East Market', type: 'market', cell: { x: -3, y: 5 }, peak: 'scouted', visits: 3, quiet: false },
+  { name: 'Quiet Pool', type: 'pool', cell: { x: 6, y: -3 }, peak: 'marked', visits: 0, quiet: true },
+  { name: 'Far Class', type: 'class', cell: { x: -7, y: -3 }, peak: 'marked', visits: 0, quiet: false },
+  { name: 'North Walk', type: 'park', cell: { x: 1, y: 7 }, peak: 'corridor', visits: 10, quiet: false },
+];
+
+async function visitCount(page: Page, name: string): Promise<number> {
+  return page.evaluate((n) => window.__haven?.getSave()?.map.outposts.find((o) => o.name === n && !o.retired)?.visits ?? -1, name);
+}
+
+/** Advance day by day until the Board shows an open Move or Hygiene quest (the habits of a Gym), and return its card. */
+async function findMoveOrHygieneQuest(page: Page): Promise<Locator> {
+  for (let day = 0; day < 10; day++) {
+    if (day > 0) {
+      await advanceToDay(page, day);
+      await settleOverlays(page);
+    }
+    await gotoTab(page, 'Board');
+    const open = page.locator('article[data-status="open"]').filter({
+      has: page.locator('header [role="img"][aria-label="Move"], header [role="img"][aria-label="Hygiene"]'),
+    });
+    if (await open.first().isVisible().catch(() => false)) return (await pinCard(page, open.first())).card;
+  }
+  throw new Error('no Move or Hygiene quest within 10 days');
+}
+
+test('settlement "Where were you?" tags a quest to an outpost, and Undo gives the visit back', async ({ page }) => {
+  await onboard(page, { name: 'Tester' });
+  await gotoTab(page, 'Map');
+  await markOutpost(page, NAME);
+  const card = await findMoveOrHygieneQuest(page);
+  await card.getByRole('button', { name: 'Done' }).click();
+
+  const where = toast(page, 'Where were you?');
+  await expect(where).toBeVisible();
+  await where.getByRole('button', { name: NAME }).click();
+  await settleOverlays(page);
+  expect(await visitCount(page, NAME)).toBe(1);
+  await gotoTab(page, 'Map');
+  await expect(page.getByText('1/3 visits')).toBeVisible();
+
+  await gotoTab(page, 'Board');
+  await card.getByRole('button', { name: 'Undo' }).click();
+  await settleOverlays(page);
+  expect(await visitCount(page, NAME)).toBe(0);
+  await gotoTab(page, 'Map');
+  await expect(page.getByText('0/3 visits')).toBeVisible();
+});
+
+test('the worst case (ring 7, ten outposts, residue and the ghost wall) stays under 60,000 characters', async ({ page }) => {
+  await onboard(page, { name: 'Tester' });
+  const blob = await page.evaluate((places) => {
+    const save = window.__haven?.getSave();
+    if (!save) throw new Error('no save');
+    const today = save.lastOpenDay;
+    const outposts = places.map((p, i) => {
+      const day = p.quiet ? today - 10 : today;
+      return {
+        id: `op${i + 1}`,
+        name: p.name,
+        type: p.type,
+        habits: ['move'],
+        note: '',
+        cell: p.cell,
+        createdAt: 0,
+        createdDay: day,
+        visits: p.visits,
+        lastVisitDay: p.quiet || p.visits === 0 ? null : today - 1,
+        peak: p.peak,
+        stateDays: { [p.peak]: day },
+        retired: false,
+      };
+    });
+    const next = {
+      ...JSON.parse(JSON.stringify(save)),
+      player: { ...save.player, domainPoints: 2500, ring: 7, highestRing: 7 },
+      map: {
+        outposts,
+        visits: [],
+        snapshots: [
+          { periodIndex: 0, day: today - 9, domainPoints: 2180, ring: 6, result: 'decisive' },
+          { periodIndex: 1, day: today - 3, domainPoints: 2426, ring: 6, result: 'loss' },
+        ],
+        lastSeen: null,
+        nextSeq: places.length + 1,
+      },
+    };
+    // The persisted envelope (STORAGE_VERSION 3 in gameStore), seeded into localStorage the way freshApp seeds the debug flag.
+    return JSON.stringify({ state: { save: next, onboarded: true }, version: 3 });
+  }, RING7_PLACES);
+  await page.addInitScript((raw) => {
+    try {
+      localStorage.setItem('haven.save', raw);
+    } catch {
+      /* private mode */
+    }
+  }, blob);
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await gotoTab(page, 'Map');
+  await expect(page.getByText('Ring 7 of 7 · The City')).toBeVisible();
+  await expect(page.locator('#city-map [role="button"]')).toHaveCount(7 + RING7_PLACES.length);
+  expect(await page.locator('#city-map .scorch').count()).toBeGreaterThan(0);
+
+  await page.getByRole('button', { name: 'Compare with 7 days ago' }).click();
+  await expect(page.locator('#city-map .ghost')).toHaveCount(1);
+
+  const length = await page.locator('#city-map').evaluate((el) => el.outerHTML.length);
+  expect(length, `#city-map is ${length} characters`).toBeLessThan(60_000);
 });
