@@ -68,7 +68,7 @@ export function HomeScreen() {
       </SystemWindow>
 
       <SystemWindow title="Vassals">
-        <div className={styles.strip} role="list" aria-label="Vassals">
+        <div className={styles.strip} role="list" aria-label="Vassals" tabIndex={0}>
           {vassals.map((v) => (
             <div key={v.habit} role="listitem" aria-label={vassalLabel(v.habit)}>
               <VassalCard variant="strip" vassal={v} onReRecruit={reRecruit} />

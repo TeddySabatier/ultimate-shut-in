@@ -32,6 +32,24 @@ describe('OverlayHost', () => {
     expect(screen.getByRole('status')).toHaveTextContent(/welcome back/i);
   });
 
+  it('the Dismiss button advances the queue by exactly one event', () => {
+    const save = seedStore();
+    const q = save.board?.quests[0];
+    if (!q) throw new Error('no quest');
+    useGameStore.setState({
+      pendingEvents: [
+        { type: 'questDone', instanceId: q.instanceId, habit: q.habit, rewards: { xp: 24, coins: 11, dp: 1, loyalty: 6, utility: 0 }, timedBonus: false },
+        { type: 'levelUp', level: 2 },
+        { type: 'catchUp', days: 3 },
+      ],
+    });
+    render(<OverlayHost />);
+    // The button sits inside the tappable window: without stopPropagation the level-up was skipped.
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+    expect(useGameStore.getState().pendingEvents).toHaveLength(2);
+    expect(screen.getByRole('dialog', { name: /level up/i })).toBeInTheDocument();
+  });
+
   it('shows the level-up window and dismisses with Enter', () => {
     seedStore();
     useGameStore.setState({ pendingEvents: [{ type: 'levelUp', level: 2 }] });

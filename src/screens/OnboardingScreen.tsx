@@ -16,7 +16,7 @@ export function OnboardingScreen() {
   const finishOnboarding = useGameStore((s) => s.finishOnboarding);
   const [step, setStep] = useState(0);
   const [typing, setTyping] = useState(true);
-  const [name, setName] = useState(existing?.player.name ?? DEFAULT_NAME);
+  const [name, setName] = useState(existing?.player.name ?? '');
   const [enabled, setEnabled] = useState<HabitId[]>(
     () => existing?.settings.enabledHabits ?? habits.filter((h) => h.defaultEnabled).map((h) => h.id),
   );
@@ -90,8 +90,10 @@ export function OnboardingScreen() {
                 id={nameId}
                 type="text"
                 value={name}
+                placeholder={DEFAULT_NAME}
                 maxLength={NAME_MAX_LENGTH}
                 onChange={(e) => setName(e.target.value)}
+                onFocus={(e) => e.target.select()}
                 autoComplete="nickname"
                 className={styles.nameInput}
               />
@@ -123,8 +125,15 @@ export function OnboardingScreen() {
                   const on = enabled.includes(h.id);
                   return (
                     <li key={h.id}>
-                      <label className={cx(styles.habit, on && styles.habitOn)} style={{ color: h.color }}>
-                        <input type="checkbox" checked={on} onChange={() => toggleHabit(h.id)} disabled={on && enabled.length === 1} />
+                      <label htmlFor={`${nameId}-habit-${h.id}`} className={cx(styles.habit, on && styles.habitOn)} style={{ color: h.color }}>
+                        <input
+                          id={`${nameId}-habit-${h.id}`}
+                          type="checkbox"
+                          aria-label={h.label}
+                          checked={on}
+                          onChange={() => toggleHabit(h.id)}
+                          disabled={on && enabled.length === 1}
+                        />
                         <Icon src={habitIcons[h.id]} size={22} />
                         <span className={styles.habitText}>
                           <span className={styles.habitLabel}>{h.label}</span>
@@ -143,8 +152,16 @@ export function OnboardingScreen() {
               <ul className={styles.choiceList}>
                 {DIFFICULTIES.map((d) => (
                   <li key={d}>
-                    <label className={cx(styles.choice, difficulty === d && styles.choiceOn)}>
-                      <input type="radio" name="difficulty" value={d} checked={difficulty === d} onChange={() => setDifficulty(d)} />
+                    <label htmlFor={`${nameId}-pace-${d}`} className={cx(styles.choice, difficulty === d && styles.choiceOn)}>
+                      <input
+                        id={`${nameId}-pace-${d}`}
+                        type="radio"
+                        name="difficulty"
+                        value={d}
+                        aria-label={strings.difficulty[d].label}
+                        checked={difficulty === d}
+                        onChange={() => setDifficulty(d)}
+                      />
                       <span>
                         <span className={styles.choiceLabel}>{strings.difficulty[d].label}</span>
                         <span className={cx('muted', styles.choiceDesc)}>{strings.difficulty[d].blurb}</span>

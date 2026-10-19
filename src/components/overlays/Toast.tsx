@@ -38,7 +38,16 @@ export function Toast({ title, line, tone = 'default', children, autoMs = 3200, 
       >
         <p className={styles.toastLine}>{line}</p>
         {children}
-        <button type="button" className={styles.close} aria-label="Dismiss" onClick={onDismiss}>
+        <button
+          type="button"
+          className={styles.close}
+          aria-label="Dismiss"
+          onClick={(e) => {
+            // The window itself dismisses on tap; stop the bubble or the queue skips an event.
+            e.stopPropagation();
+            onDismiss();
+          }}
+        >
           <Icon src={uiIcons.close} size={16} />
         </button>
       </SystemWindow>

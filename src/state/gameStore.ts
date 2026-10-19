@@ -33,6 +33,7 @@ import {
   type SaveFile,
   type Settings,
 } from '../game';
+import { now } from './clock';
 
 export const STORAGE_KEY = 'haven.save';
 export const STORAGE_VERSION = 2;
@@ -123,7 +124,7 @@ function isRecord(v: unknown): v is Record<string, unknown> {
  */
 function hydrateSlice(raw: unknown): PersistedSlice {
   const d = isRecord(raw) ? raw : {};
-  const save = isRecord(d.save) ? migrate(d.save, Date.now()) : null;
+  const save = isRecord(d.save) ? migrate(d.save, now()) : null;
   const onboarded = save !== null && (typeof d.onboarded === 'boolean' ? d.onboarded : true);
   return { save, onboarded };
 }
@@ -148,7 +149,7 @@ const havenStorage: StateStorage = {
     ls.removeItem(LEGACY_STORAGE_KEY);
     try {
       const parsed: unknown = JSON.parse(legacy);
-      const save = migrate(parsed, Date.now());
+      const save = migrate(parsed, now());
       const slice: PersistedSlice = { save, onboarded: false };
       return JSON.stringify({ state: slice, version: STORAGE_VERSION });
     } catch {
@@ -187,7 +188,7 @@ export const useGameStore = create<GameStore>()(
       const withSave = (fn: (save: SaveFile, now: number) => ActionResult): boolean => {
         const save = get().save;
         if (!save) return false;
-        return apply(fn(save, Date.now()));
+        return apply(fn(save, now()));
       };
 
       const todayOf = (save: SaveFile, now: number): number => gameDayIndex(now, save.settings.resetHour);
@@ -196,12 +197,12 @@ export const useGameStore = create<GameStore>()(
         ...INITIAL_STATE,
 
         finishOnboarding: (name, settings) => {
-          const now = Date.now();
+          const at = now();
           const clean: Partial<Settings> = { ...settings };
           if (clean.enabledHabits !== undefined && clean.enabledHabits.length === 0) delete clean.enabledHabits;
           set((s) => {
             if (s.save === null) {
-              s.save = createNewSave(now, name, { settings: clean });
+              s.save = createNewSave(at, name, { settings: clean });
             } else {
               s.save.player.name = sanitizeName(name);
               Object.assign(s.save.settings, clean);
@@ -216,12 +217,12 @@ export const useGameStore = create<GameStore>()(
         tick: () => {
           const st = get();
           if (!st.save || !st.onboarded) return;
-          const now = Date.now();
-          const r = processBoundaries(st.save, now);
+          const at = now();
+          const r = processBoundaries(st.save, at);
           const changed = r.events.length > 0 || r.save.lastOpenDay !== st.save.lastOpenDay;
           const shown = r.events.filter(isShownEvent);
           set((s) => {
-            s.lastTick = now;
+            s.lastTick = at;
             if (!changed) return;
             s.save = r.save;
             if (shown.length > 0) s.pendingEvents.push(...shown);
@@ -278,7 +279,7 @@ export const useGameStore = create<GameStore>()(
             });
             return false;
           }
-          const save = migrate(raw, Date.now());
+          const save = migrate(raw, now());
           set((s) => {
             s.save = save;
             s.onboarded = true;

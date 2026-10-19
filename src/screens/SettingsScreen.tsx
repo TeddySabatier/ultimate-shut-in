@@ -84,8 +84,16 @@ export function SettingsScreen() {
           <ul className={styles.choices}>
             {DIFFICULTIES.map((d) => (
               <li key={d}>
-                <label className={cx(styles.choice, settings.difficulty === d && styles.choiceOn)}>
-                  <input type="radio" name="difficulty" value={d} checked={settings.difficulty === d} onChange={() => updateSettings({ difficulty: d })} />
+                <label htmlFor={`${ids.reset}-pace-${d}`} className={cx(styles.choice, settings.difficulty === d && styles.choiceOn)}>
+                  <input
+                    id={`${ids.reset}-pace-${d}`}
+                    type="radio"
+                    name="difficulty"
+                    value={d}
+                    aria-label={strings.difficulty[d].label}
+                    checked={settings.difficulty === d}
+                    onChange={() => updateSettings({ difficulty: d })}
+                  />
                   <span>
                     <span className={styles.choiceLabel}>{strings.difficulty[d].label}</span>
                     <span className={cx('muted', styles.choiceDesc)}>{strings.difficulty[d].blurb}</span>
@@ -102,8 +110,16 @@ export function SettingsScreen() {
           <ul className={styles.choices}>
             {BENEVOLENCES.map((b) => (
               <li key={b}>
-                <label className={cx(styles.choice, settings.benevolence === b && styles.choiceOn)}>
-                  <input type="radio" name="benevolence" value={b} checked={settings.benevolence === b} onChange={() => updateSettings({ benevolence: b })} />
+                <label htmlFor={`${ids.reset}-benev-${b}`} className={cx(styles.choice, settings.benevolence === b && styles.choiceOn)}>
+                  <input
+                    id={`${ids.reset}-benev-${b}`}
+                    type="radio"
+                    name="benevolence"
+                    value={b}
+                    aria-label={strings.benevolence[b].label}
+                    checked={settings.benevolence === b}
+                    onChange={() => updateSettings({ benevolence: b })}
+                  />
                   <span>
                     <span className={styles.choiceLabel}>{strings.benevolence[b].label}</span>
                     <span className={cx('muted', styles.choiceDesc)}>{strings.benevolence[b].blurb}</span>
@@ -126,8 +142,16 @@ export function SettingsScreen() {
             const last = on && settings.enabledHabits.length === 1;
             return (
               <li key={h.id}>
-                <label className={cx(styles.habit, on && styles.habitOn)} style={{ color: h.color }}>
-                  <input type="checkbox" checked={on} disabled={last} onChange={() => toggleHabit(h.id)} aria-describedby={last ? `${ids.reset}-min` : undefined} />
+                <label htmlFor={`${ids.reset}-habit-${h.id}`} className={cx(styles.habit, on && styles.habitOn)} style={{ color: h.color }}>
+                  <input
+                    id={`${ids.reset}-habit-${h.id}`}
+                    type="checkbox"
+                    aria-label={h.label}
+                    checked={on}
+                    disabled={last}
+                    onChange={() => toggleHabit(h.id)}
+                    aria-describedby={last ? `${ids.reset}-min` : undefined}
+                  />
                   <Icon src={habitIcons[h.id]} size={22} />
                   <span className={styles.habitText}>
                     <span className={styles.habitLabel}>{h.label}</span>

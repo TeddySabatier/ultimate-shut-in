@@ -55,8 +55,20 @@
 }
 
 .vassal {
-  color: var(--habit, var(--color-text));
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--color-text);
   font-weight: 600;
+}
+
+.vassal::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  flex: none;
+  background: var(--habit, var(--color-border-light));
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
 }
 
 .bonus,

@@ -12,7 +12,8 @@ describe('OnboardingScreen', () => {
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
 
     const name = screen.getByLabelText('Name');
-    expect(name).toHaveValue('Absolute');
+    expect(name).toHaveValue('');
+    expect(name).toHaveAttribute('placeholder', 'Absolute');
     fireEvent.change(name, { target: { value: 'Rin' } });
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
 

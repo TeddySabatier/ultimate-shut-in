@@ -25,3 +25,10 @@ Thumbs.db
 .env.*
 !.env.example
 coverage/
+
+# playwright (e2e/*.spec.ts, helpers and e2e/__screenshots__ stay tracked)
+playwright-report/
+test-results/
+blob-report/
+e2e/tmp/
+.claude/
