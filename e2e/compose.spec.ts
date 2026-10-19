@@ -8,6 +8,7 @@ interface CustomLike {
   habit: string;
   kind: string;
   durationMin?: number;
+  tier: number;
   recurrence: string;
   timeSlot: string;
   source: string;
@@ -28,6 +29,13 @@ async function saveWithCustom(page: Page): Promise<{ customTemplates: CustomLike
 }
 
 const ADD = /Add my own quest/;
+
+async function axeCheck(page: Page, where: string): Promise<void> {
+  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'best-practice']).analyze();
+  const bad = results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
+  const summary = bad.map((v) => `${v.id} (${v.impact}): ${v.help} -> ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`).join('; ');
+  expect(bad, `${where}: ${summary}`).toEqual([]);
+}
 
 test.beforeEach(async ({ page }) => {
   await freshApp(page);
@@ -330,4 +338,143 @@ test('the Compose sheet, the Board button and My quests have no serious axe viol
   await gotoTab(page, 'Ledger');
   await expect(page.getByRole('heading', { name: 'My quests' })).toBeVisible();
   await axe('Ledger with My quests');
+});
+
+/** Compose "stretch for 10 minutes every day" and keep it for later (daily, not on today's board). */
+async function saveStretch(page: Page): Promise<void> {
+  await gotoTab(page, 'Board');
+  await page.getByRole('button', { name: ADD }).click();
+  const dialog = page.getByRole('dialog', { name: 'Your own quest' });
+  await dialog.getByLabel('Your quest, in your own words').fill('stretch for 10 minutes every day');
+  await expect(dialog.getByLabel('How often')).toHaveValue('daily');
+  await dialog.getByRole('button', { name: 'Save as recurring' }).click();
+  await expect(dialog).toBeHidden();
+  await settleOverlays(page);
+}
+
+function mineItem(page: Page, title: string) {
+  return page.getByRole('listitem').filter({ has: page.getByRole('heading', { level: 3, name: title }) });
+}
+
+test("edit a saved quest: tomorrow's board has the new shape, and a copy on today's board keeps its own", async ({ page }) => {
+  await onboard(page, { name: 'Tester' });
+  await saveStretch(page);
+  await gotoTab(page, 'Ledger');
+  await mineItem(page, 'Stretch').getByRole('button', { name: /^Edit/ }).click();
+  const edit = page.getByRole('dialog', { name: 'Edit your quest' });
+  await expect(edit).toBeVisible();
+  // Prefilled from the saved quest; no sentence box, no microphone, no board buttons.
+  await expect(edit.getByLabel('Name')).toHaveValue('Stretch');
+  await expect(edit.getByLabel('Minutes')).toHaveValue('10');
+  await expect(edit.getByLabel('How often')).toHaveValue('daily');
+  await expect(edit.getByRole('radio', { name: /1 Light/ })).toBeChecked();
+  await expect(edit.getByLabel('Your quest, in your own words')).toHaveCount(0);
+  await expect(edit.getByRole('button', { name: 'Add to board today' })).toHaveCount(0);
+  await axeCheck(page, 'edit sheet');
+
+  // A longer timer follows its effort to a higher tier, and the reward preview moves with it.
+  await edit.getByLabel('Name').fill('Long stretch');
+  await edit.getByLabel('Minutes').fill('45');
+  await expect(edit.getByRole('radio', { name: /3 Hard/ })).toBeChecked();
+  await edit.getByRole('button', { name: 'Save changes' }).click();
+  await expect(edit).toBeHidden();
+  await expect(page.getByRole('status').getByRole('heading', { name: 'Updated' })).toBeVisible();
+  await settleOverlays(page);
+  await expect(mineItem(page, 'Long stretch')).toContainText('45 min');
+  let save = await saveWithCustom(page);
+  expect(save.customTemplates).toHaveLength(1);
+  expect(save.customTemplates[0]).toMatchObject({ title: 'Long stretch', durationMin: 45, tier: 3, recurrence: 'daily' });
+
+  // Nothing about today's board changed (it was never on it); tomorrow's board has the new shape.
+  await gotoTab(page, 'Board');
+  await expect(cardByTitle(page, 'Long stretch')).toHaveCount(0);
+  await advanceToDay(page, 1);
+  await settleOverlays(page);
+  await gotoTab(page, 'Board');
+  const card = cardByTitle(page, 'Long stretch');
+  await expect(card).toBeVisible();
+  await expect(card).toHaveAttribute('data-kind', 'timer');
+  await expect(card).toContainText('45');
+
+  // Today's copy is on the board now, so its shape is held until tomorrow; its name and schedule are still yours.
+  await gotoTab(page, 'Ledger');
+  await mineItem(page, 'Long stretch').getByRole('button', { name: /^Edit/ }).click();
+  await expect(edit).toBeVisible();
+  await expect(edit.getByText(/change from tomorrow/)).toBeVisible();
+  await expect(edit.getByLabel('Minutes')).toBeDisabled();
+  await expect(edit.getByRole('radio', { name: /Light/ })).toBeDisabled();
+  await edit.getByLabel('Name').fill('Long stretch (slow)');
+  await edit.getByRole('button', { name: 'Save changes' }).click();
+  await expect(edit).toBeHidden();
+  await settleOverlays(page);
+  save = await saveWithCustom(page);
+  expect(save.customTemplates[0]).toMatchObject({ title: 'Long stretch (slow)', durationMin: 45, tier: 3 });
+  await gotoTab(page, 'Board');
+  await expect(cardByTitle(page, 'Long stretch (slow)')).toContainText('45');
+});
+
+test('a duplicate name is refused in the sheet, and Cancel leaves the quest as it was', async ({ page }) => {
+  await onboard(page, { name: 'Tester' });
+  await saveStretch(page);
+  await gotoTab(page, 'Board');
+  await page.getByRole('button', { name: ADD }).click();
+  const dialog = page.getByRole('dialog', { name: 'Your own quest' });
+  await dialog.getByLabel('Your quest, in your own words').fill('stretch for 20 minutes');
+  await expect(dialog.getByLabel('Name')).toHaveValue('Stretch');
+  // The same vassal already has "Stretch": said at once, and the buttons wait.
+  await expect(dialog.getByRole('alert')).toContainText('You already have "Stretch" in My quests.');
+  await expect(dialog.getByRole('button', { name: 'Save for later' })).toBeDisabled();
+  await dialog.getByLabel('Name').fill('Stretch more');
+  await expect(dialog.getByRole('alert')).toHaveCount(0);
+  await dialog.getByRole('button', { name: 'Save for later' }).click();
+  await settleOverlays(page);
+
+  await gotoTab(page, 'Ledger');
+  await mineItem(page, 'Stretch more').getByRole('button', { name: /^Edit/ }).click();
+  const edit = page.getByRole('dialog', { name: 'Edit your quest' });
+  await edit.getByLabel('Name').fill('stretch');
+  await expect(edit.getByRole('alert')).toContainText('You already have "stretch" in My quests.');
+  await expect(edit.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+  await edit.getByRole('button', { name: 'Cancel' }).click();
+  await expect(edit).toBeHidden();
+  const titles = (await saveWithCustom(page)).customTemplates.map((t) => t.title).sort();
+  expect(titles).toEqual(['Stretch', 'Stretch more']);
+});
+
+test('an archived quest waits under a collapsed Archived group and Restore brings it back', async ({ page }) => {
+  await onboard(page, { name: 'Tester' });
+  await saveStretch(page);
+  await gotoTab(page, 'Ledger');
+  await mineItem(page, 'Stretch').getByRole('button', { name: /^Archive/ }).click();
+  await page.getByRole('dialog', { name: 'Archive this quest?' }).getByRole('button', { name: 'Archive', exact: true }).click();
+  await settleOverlays(page);
+  await expect(page.getByText('Nothing here yet.', { exact: false })).toBeVisible();
+
+  const group = page.locator('details').filter({ hasText: /Archived \(1\)/ });
+  await expect(group).toBeVisible();
+  await expect(group).not.toHaveAttribute('open', '');
+  await group.getByText(/^Archived \(1\)/).click();
+  await expect(group).toHaveAttribute('open', '');
+  await axeCheck(page, 'Ledger with the Archived group open');
+  const archived = group.getByRole('listitem').filter({ has: page.getByRole('heading', { level: 3, name: 'Stretch' }) });
+  await expect(archived.getByRole('button', { name: /^Edit/ })).toHaveCount(0);
+
+  let save = await saveWithCustom(page);
+  expect(save.customTemplates[0]).toHaveProperty('archivedAt');
+  await archived.getByRole('button', { name: /^Restore/ }).click();
+  await expect(page.getByRole('status').getByRole('heading', { name: 'Updated' })).toBeVisible();
+  await settleOverlays(page);
+  // Back among the active ones, history intact, and not put on today's board by itself.
+  await expect(group).toHaveCount(0);
+  await expect(mineItem(page, 'Stretch').getByRole('button', { name: /^Edit/ })).toBeVisible();
+  save = await saveWithCustom(page);
+  expect(save.customTemplates).toHaveLength(1);
+  expect(save.customTemplates[0]).not.toHaveProperty('archivedAt');
+  await gotoTab(page, 'Board');
+  await expect(cardByTitle(page, 'Stretch')).toHaveCount(0);
+  // Recurring again: tomorrow's board has it.
+  await advanceToDay(page, 1);
+  await settleOverlays(page);
+  await gotoTab(page, 'Board');
+  await expect(cardByTitle(page, 'Stretch')).toBeVisible();
 });
