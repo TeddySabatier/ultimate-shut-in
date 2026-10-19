@@ -27,6 +27,11 @@ const RESIDUE = [
   { result: 'decisive' as const, age: 9, wallR: 7.5, seed: 23 },
 ];
 
+/** HTML outerHTML expands SVG void tags; CITY-MAP 5.4 counts compact SVG serialization (prototype innerHTML). */
+function svgSerialized(svg: Element): string {
+  return svg.outerHTML.replace(/><\/(?:path|use|circle|rect|ellipse|stop|polygon)\s*>/gi, '/>');
+}
+
 describe('layout', () => {
   it('is deterministic per seed and differs between seeds', () => {
     const a = buildLayout(7);
@@ -97,7 +102,7 @@ describe('CityMapSvg', () => {
   it('serialises under 60 KB and 1,500 elements in the worst case', () => {
     const { container } = render(<CityMapSvg {...base} />);
     const svg = container.querySelector('svg')!;
-    expect(svg.outerHTML.length).toBeLessThan(60_000);
+    expect(svgSerialized(svg).length).toBeLessThan(60_000);
     expect(svg.querySelectorAll('*').length).toBeLessThan(1500);
     expect(svg.querySelectorAll('[data-pin], [data-zone], [data-cell]')).toHaveLength(0);
     expect(svg.querySelectorAll('image, filter')).toHaveLength(0);
@@ -120,16 +125,15 @@ describe('CityMapSvg', () => {
     const { container } = render(<CityMapSvg {...base} onZone={onZone} onPin={onPin} />);
     fireEvent.keyDown(screen.getByRole('button', { name: 'Zone 6' }), { key: 'Enter' });
     expect(onZone).toHaveBeenLastCalledWith(6, expect.anything());
-    fireEvent.keyDown(screen.getByRole('button', { name: /Place op1/ }), { key: ' ' });
+    fireEvent.keyDown(screen.getByRole('button', { name: /^Place op1,/ }), { key: ' ' });
     expect(onPin).toHaveBeenLastCalledWith('op1', expect.anything());
     fireEvent.click(screen.getByRole('button', { name: /Place op7/ }));
     expect(onPin).toHaveBeenLastCalledWith('op7', expect.anything());
-    // The Haven tower is the first building: tapping its top opens zone 1 (hit-test by cell, not screen position).
+    // The Haven tower: tapping its top opens zone 1 (hit-test by cell, not screen position).
     const layout = buildLayout(42);
     const groups = container.querySelectorAll('svg > g');
-    const blds = groups[3]!;
-    const havenIndex = layout.buildingTiles.findIndex((t) => t.kind === 'haven');
-    fireEvent.click(blds.children[havenIndex]!.firstElementChild!);
+    const haven = container.querySelector('.f-haven')!;
+    fireEvent.click(haven.firstElementChild!);
     expect(onZone).toHaveBeenLastCalledWith(1, expect.anything());
     // A ground tile in The City.
     const ground = groups[1]!;
@@ -139,13 +143,14 @@ describe('CityMapSvg', () => {
   });
 
   it('lights the claimed zones, draws the ghost wall when comparing and skips the ripple under reduced motion', () => {
-    const { container, rerender } = render(<CityMapSvg {...base} ring={2} wallR={1.9} prevWallR={0.82} prevRing={1} compareWallR={null} pins={[]} residue={[]} />);
+    const { container, rerender } = render(<CityMapSvg {...base} ring={2} wallR={2.2} prevWallR={0.82} prevRing={1} compareWallR={null} pins={[]} residue={[]} />);
     const svg = container.querySelector('svg')!;
     expect(svg.querySelectorAll('.pop')).toHaveLength(0);
+    expect(svg.classList.contains('rm')).toBe(true);
     expect(svg.querySelector('.ghost')).toBeNull();
     expect(svg.querySelectorAll('.g.s-c').length).toBe(9); // zones 1 and 2
     expect(svg.querySelectorAll('.g.s-d').length).toBeGreaterThan(0); // dawn cells inside the creep
-    rerender(<CityMapSvg {...base} ring={2} wallR={1.9} prevWallR={0.82} prevRing={1} compareWallR={0.82} pins={[]} residue={[]} />);
+    rerender(<CityMapSvg {...base} ring={2} wallR={2.2} prevWallR={0.82} prevRing={1} compareWallR={0.82} pins={[]} residue={[]} />);
     expect(svg.querySelector('.ghost')).not.toBeNull();
     expect(svg.querySelector('.gained')?.getAttribute('d')?.length).toBeGreaterThan(10);
   });
@@ -157,5 +162,6 @@ describe('CityMapSvg', () => {
     expect(popped.length).toBeGreaterThan(10);
     expect((popped[popped.length - 1] as HTMLElement).style.getPropertyValue('--dl')).toMatch(/\d+ms/);
     expect(svg.querySelector('.wall')?.getAttribute('rx')).toBe(String(Math.round(0.82 * 14.5 * Math.SQRT2 * 10) / 10));
+    expect(svg.classList.contains('rm')).toBe(false);
   });
 });

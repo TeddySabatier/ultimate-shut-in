@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react';
+import { Fragment, memo, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react';
 import type { OutpostState } from '../../game';
 import { strings } from '../../game';
 import gymRaw from '../../assets/outposts/gym.svg?raw';
@@ -18,6 +18,7 @@ import {
   CY,
   VIEW_H,
   VIEW_W,
+  ZONE_RADII,
   buildLayout,
   corridorMarkup,
   corridorShapes,
@@ -54,18 +55,28 @@ const RAW_ICONS: Record<string, string> = {
 function toSymbol(id: string, raw: string): string {
   const m = /<svg\b([^>]*)>([\s\S]*)<\/svg>/.exec(raw);
   if (!m) return '';
-  const attrs = (m[1] ?? '').replace(/\s*xmlns="[^"]*"/, '');
+  const attrs = (m[1] ?? '').replace(/\s*xmlns="[^"]*"/, '').replace(/\s+/g, ' ').trim();
   const body = (m[2] ?? '')
     .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/\s+/g, ' ')
     .replace(/> </g, '><')
     .trim();
-  return `<symbol id="op-${id}"${attrs}>${body}</symbol>`;
+  return `<symbol id="op-${id}" ${attrs}>${body}</symbol>`;
 }
 
-const ICON_SYMBOLS = Object.entries(RAW_ICONS)
-  .map(([id, raw]) => toSymbol(id, raw))
-  .join('');
+const ICON_SYMBOLS: Record<string, string> = Object.fromEntries(Object.entries(RAW_ICONS).map(([id, raw]) => [id, toSymbol(id, raw)]));
+
+function iconDefsFor(pins: { type: string }[]): string {
+  const seen = new Set<string>();
+  let s = '';
+  for (const p of pins) {
+    const id = ICON_SYMBOLS[p.type] ? p.type : 'other';
+    if (seen.has(id)) continue;
+    seen.add(id);
+    s += ICON_SYMBOLS[id] ?? '';
+  }
+  return s;
+}
 
 /* ------------------------------ Props ------------------------------ */
 
@@ -129,19 +140,23 @@ function buildingClass(t: Tile, state: TileState, pop: boolean): string {
   return `b f-${b.family}${b.variant ? ' vb' : ''} s-${state}${pop ? ' pop' : ''}`;
 }
 
-/** The tile `<g>` under an event target, as an index into its parent group. */
-function childIndex(group: Element, target: Element | null): number {
-  let el = target;
-  while (el && el.parentNode !== group) el = el.parentElement;
-  return el ? Array.prototype.indexOf.call(group.children, el) : -1;
-}
-
 const PIN_LIFT: Record<OutpostState, number> = { marked: 0, scouted: 0, corridor: 8, stronghold: 14 };
 
 function activate(e: KeyboardEvent<SVGElement>): boolean {
   if (e.key !== 'Enter' && e.key !== ' ') return false;
   e.preventDefault();
   return true;
+}
+
+function pinLabel(p: PinView): string {
+  return strings.map.a11y.pin
+    .replace('{name}', p.name)
+    .replace('{type}', p.typeLabel)
+    .replace('{state}', p.stateLabel)
+    .replace('{quiet}', p.quiet ? ', quiet' : '')
+    .replace('{zone}', String(p.zone))
+    .replace('{beyond}', p.beyond ? ', beyond the wall' : '')
+    .replace('{visits}', String(p.visits));
 }
 
 /**
@@ -154,12 +169,13 @@ export function CityMapSvg({ seed, ring, wallR, prevWallR, prevRing, compareWall
   const shapes = useMemo(() => corridorShapes(pins, wallR), [pins, wallR]);
   // The ripple plays once, from where the wall stood at the last look.
   const [from] = useState(() => ({ ring: Math.min(prevRing, ring), wallR: Math.min(prevWallR, wallR) }));
-  const [shownWall, setShownWall] = useState(reducedMotion ? wallR : from.wallR);
+  const [shownWall, setShownWall] = useState(from.wallR);
   useEffect(() => {
-    if (shownWall === wallR) return;
+    if (reducedMotion || shownWall === wallR) return;
     const id = window.setTimeout(() => setShownWall(wallR), 40);
     return () => window.clearTimeout(id);
-  }, [wallR, shownWall]);
+  }, [wallR, shownWall, reducedMotion]);
+  const displayWall = reducedMotion ? wallR : shownWall;
 
   const occupied = useMemo(() => new Set(pins.map((p) => `${p.cell.x},${p.cell.y}`)), [pins]);
   const states = useMemo(() => layout.tiles.map((t) => tileState(t, ring, wallR, shapes)), [layout, ring, wallR, shapes]);
@@ -174,40 +190,76 @@ export function CityMapSvg({ seed, ring, wallR, prevWallR, prevRing, compareWall
     });
   }, [layout, states, ring, wallR, reducedMotion, from]);
 
-  const wall = ellipseRadii(shownWall);
-  const glow = ellipseRadii(Math.max(2.2, shownWall * 1.05));
+  const wall = ellipseRadii(displayWall);
+  const glow = ellipseRadii(Math.max(2.2, displayWall * 1.05));
   const ghost = compareWallR === null ? null : ellipseRadii(compareWallR);
   const gained = compareWallR !== null && wallR > compareWallR + 0.02 ? ellipsePath(wallR) + ellipsePath(compareWallR) : '';
-  const nextZoneEdge = ring < 7 ? ellipsePath([0.62, 1.62, 2.62, 3.82, 5.02, 6.52, 8.25][ring]!) : '';
+  const nextZoneEdge = ring < 7 ? ellipsePath(ZONE_RADII[ring]!) : '';
   const marks = useMemo(() => residueMarkup(residue), [residue]);
   const corridors = useMemo(() => corridorMarkup(pins, wallR, shapes), [pins, wallR, shapes]);
-  const wallStyle = { rx: `${wall.rx}px`, ry: `${wall.ry}px` } as CSSProperties;
-  const glowStyle = { rx: `${glow.rx}px`, ry: `${glow.ry}px` } as CSSProperties;
+  const wallStyle = reducedMotion ? undefined : ({ rx: `${wall.rx}px`, ry: `${wall.ry}px` } as CSSProperties);
+  const glowStyle = reducedMotion ? undefined : ({ rx: `${glow.rx}px`, ry: `${glow.ry}px` } as CSSProperties);
+  const iconDefs = useMemo(() => iconDefsFor(pins), [pins]);
+  const sparkHtml = useMemo(() => {
+    let s = '';
+    for (const sp of layout.sparks) {
+      if (states[sp.tile] !== 'f') continue;
+      s += sp.markup.replace('<rect ', '<rect class="spark" ');
+    }
+    return s;
+  }, [layout, states]);
 
-  const onGround = (e: MouseEvent<SVGGElement>) => {
-    const i = childIndex(e.currentTarget, e.target as Element);
-    const t = layout.tiles[i];
-    if (t) onZone(t.z, e.currentTarget.children[i] as Element);
-  };
-  const onBuildings = (e: MouseEvent<SVGGElement>) => {
-    const i = childIndex(e.currentTarget, e.target as Element);
-    const t = layout.buildingTiles[i];
-    if (t) onZone(t.z, e.currentTarget.children[i] as Element);
+  const hits = useRef(new WeakMap<Element, Tile>());
+  const groundRef = useRef<SVGGElement>(null);
+  const bldsRef = useRef<SVGGElement>(null);
+  useLayoutEffect(() => {
+    const map = hits.current;
+    const g = groundRef.current;
+    if (g) {
+      for (let i = 0; i < g.children.length; i++) {
+        const t = layout.tiles[i];
+        if (t) map.set(g.children[i]!, t);
+      }
+    }
+    const b = bldsRef.current;
+    if (b) {
+      let i = 0;
+      for (const t of layout.buildingTiles) {
+        if (occupied.has(`${t.cell.x},${t.cell.y}`) && t.kind !== 'haven') continue;
+        const el = b.children[i++];
+        if (el) map.set(el, t);
+      }
+    }
+  }, [layout, occupied]);
+  const onTile = (e: MouseEvent<SVGGElement>) => {
+    let el: Element | null = e.target as Element;
+    const root = e.currentTarget;
+    while (el && el !== root) {
+      const t = hits.current.get(el);
+      if (t) {
+        onZone(t.z, el);
+        return;
+      }
+      el = el.parentElement;
+    }
   };
 
-  const orderedPins = useMemo(() => [...pins].sort((a, b) => a.cell.x + a.cell.y - (b.cell.x + b.cell.y) || a.zone - b.zone || a.name.localeCompare(b.name)), [pins]);
+  const orderedPins = useMemo(
+    () => [...pins].sort((a, b) => a.zone - b.zone || a.name.localeCompare(b.name) || a.id.localeCompare(b.id)),
+    [pins],
+  );
 
   return (
     <svg
       id="city-map"
-      className={cx(styles.svg, ring === 7 && 'obs', compareWallR !== null && 'cmp')}
+      className={cx(styles.svg, ring === 7 && 'obs', compareWallR !== null && 'cmp', reducedMotion && 'rm')}
       viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
       role="group"
       aria-label={strings.map.a11y.svg}
     >
-      <defs dangerouslySetInnerHTML={{ __html: layout.defs + ICON_SYMBOLS }} />
+      <defs dangerouslySetInnerHTML={{ __html: layout.defs + iconDefs }} />
       <g aria-hidden="true" dangerouslySetInnerHTML={{ __html: layout.sky }} />
-      <g aria-hidden="true" onClick={onGround}>
+      <g aria-hidden="true" ref={groundRef} onClick={onTile}>
         {layout.tiles.map((t, i) => {
           const dl = pops ? pops[i]! : -1;
           return <TileGroup key={t.index} className={groundClass(t, states[i]!, dl >= 0)} style={dl >= 0 ? ({ '--dl': `${dl}ms` } as CSSProperties) : undefined} markup={t.groundMarkup} />;
@@ -217,25 +269,20 @@ export function CityMapSvg({ seed, ring, wallR, prevWallR, prevRing, compareWall
         <ellipse cx={CX} cy={CY} rx={glow.rx} ry={glow.ry} fill="url(#cm-glow)" className="glow" style={glowStyle} />
         <ellipse className="wallfill" cx={CX} cy={CY} rx={wall.rx} ry={wall.ry} style={wallStyle} />
       </g>
-      <g aria-hidden="true" onClick={onBuildings}>
+      <g aria-hidden="true" ref={bldsRef} onClick={onTile}>
         {layout.buildingTiles.map((t) => {
+          if (occupied.has(`${t.cell.x},${t.cell.y}`) && t.kind !== 'haven') return null;
           const dl = pops ? pops[t.index]! : -1;
-          const hidden = occupied.has(`${t.cell.x},${t.cell.y}`) && t.kind !== 'haven';
-          const style: CSSProperties | undefined = hidden ? { display: 'none' } : dl >= 0 ? ({ '--dl': `${dl}ms` } as CSSProperties) : undefined;
-          return <TileGroup key={t.index} className={buildingClass(t, states[t.index]!, dl >= 0)} style={style} markup={t.building!.markup} />;
+          return <TileGroup key={t.index} className={buildingClass(t, states[t.index]!, dl >= 0)} style={dl >= 0 ? ({ '--dl': `${dl}ms` } as CSSProperties) : undefined} markup={t.building!.markup} />;
         })}
       </g>
-      <g aria-hidden="true">
-        {layout.sparks.map((s, i) => (
-          <g key={i} className={states[s.tile] === 'f' ? 'spark' : 'spark off'} dangerouslySetInnerHTML={{ __html: s.markup }} />
-        ))}
-      </g>
+      {sparkHtml ? <g aria-hidden="true" dangerouslySetInnerHTML={{ __html: sparkHtml }} /> : null}
       <g aria-hidden="true" dangerouslySetInnerHTML={{ __html: marks.scorch }} />
       <g aria-hidden="true" dangerouslySetInnerHTML={{ __html: layout.guides }} />
       <g aria-hidden="true">
-        <path className="gained" fillRule="evenodd" d={gained} />
+        {gained ? <path className="gained" d={gained} /> : null}
         {ghost ? <ellipse className="ghost" cx={CX} cy={CY} rx={ghost.rx} ry={ghost.ry} /> : null}
-        <path className="nextring" d={nextZoneEdge} />
+        {nextZoneEdge ? <path className="nextring" d={nextZoneEdge} /> : null}
         <ellipse className="wallglow" cx={CX} cy={CY} rx={wall.rx} ry={wall.ry} style={wallStyle} />
         <ellipse className="wall" cx={CX} cy={CY} rx={wall.rx} ry={wall.ry} style={wallStyle} />
       </g>
@@ -246,7 +293,6 @@ export function CityMapSvg({ seed, ring, wallR, prevWallR, prevRing, compareWall
           <path
             key={b.id}
             className={cx('band', selectedZone === b.id && 'sel')}
-            fillRule="evenodd"
             tabIndex={0}
             role="button"
             aria-label={b.label}
@@ -264,7 +310,7 @@ export function CityMapSvg({ seed, ring, wallR, prevWallR, prevRing, compareWall
           const lift = PIN_LIFT[p.state];
           const base = pinBaseMarkup(p.cell, p.state);
           return (
-            <g key={p.id}>
+            <Fragment key={p.id}>
               {base ? <g aria-hidden="true" dangerouslySetInnerHTML={{ __html: base }} /> : null}
               <g
                 className={cx('pin', `st-${p.state}`, p.quiet && 'quiet', selectedPin === p.id && 'sel')}
@@ -277,32 +323,20 @@ export function CityMapSvg({ seed, ring, wallR, prevWallR, prevRing, compareWall
                   if (activate(e)) onPin(p.id, e.currentTarget);
                 }}
               >
-                <ellipse rx="5.5" ry="2.2" cy={lift} fill="#000" opacity=".45" />
+                <ellipse className="sh" rx="5.5" ry="2.2" cy={lift || undefined} />
                 <circle className="halo" cy="-22" r="12" />
                 <rect className="post" x="-.8" y="-16" width="1.6" height={16 + lift} />
                 <circle className="sel-ring" cy="-22" r="13" />
                 <path className="plaque" d="M-7 -29h14l2 2v10l-2 2h-14l-2-2v-10z" />
-                <use href={`#op-${p.type}`} x="-5.5" y="-27.5" width="11" height="11" className="picon" />
+                <use href={`#op-${ICON_SYMBOLS[p.type] ? p.type : 'other'}`} x="-5.5" y="-27.5" width="11" height="11" className="picon" />
                 {p.state === 'stronghold' ? <path className="crown" d="M-5 -30v-4.5l2.5 2 2.5-3 2.5 3 2.5-2v4.5z" /> : null}
                 {p.quiet ? <path className="zz" d="M9 -33h3.5l-3.5 3.5h3.5M13.5 -38h2.5l-2.5 2.5h2.5" /> : null}
-                <rect className="hit" x="-25" y="-47" width="50" height={50 + lift} fill="transparent" />
+                <rect className="hit" x="-25" y="-47" width="50" height={50 + lift} />
               </g>
-            </g>
+            </Fragment>
           );
         })}
       </g>
     </svg>
   );
 }
-
-function pinLabel(p: PinView): string {
-  return strings.map.a11y.pin
-    .replace('{name}', p.name)
-    .replace('{type}', p.typeLabel)
-    .replace('{state}', p.stateLabel)
-    .replace('{quiet}', p.quiet ? ', quiet' : '')
-    .replace('{zone}', String(p.zone))
-    .replace('{beyond}', p.beyond ? ', beyond the wall' : '')
-    .replace('{visits}', String(p.visits));
-}
-
