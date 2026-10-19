@@ -10,7 +10,8 @@ Haven Protocol is an offline-first mobile PWA habit RPG (Vite, React 18, strict 
 
 **The rules that matter most**
 
-- Branch from the latest `main`. Open a **draft PR against `main`** after your first commit, using `.github/pull_request_template.md`. One brief is one PR.
+- Branch from the latest `main` (or from the integration branch your brief names, for example `integration/arena`). Open a **draft PR against that same branch** after your first commit, using `.github/pull_request_template.md`. One brief is one PR (some briefs say they deliver two).
+- On an `integration/*` base a PR merges itself when you mark it **ready** and CI is green (`docs/PARALLEL-WORK.md` 4.3b), so mark ready only when your acceptance list passes.
 - Edit only the files your brief allows. If you need another file, write the request in `docs/review/notes/<your id>.md`, add the label `needs-maintainer`, and keep going; do not edit it.
 - `npm run lint && npm run typecheck && npm test && npm run build` before every push. UI changes also run the Playwright specs your brief names and follow `docs/RESPONSIVE-RULES.md`. Run one Playwright suite at a time.
 - Do not rebase or force-push once a PR is open: merge `main` into your branch.

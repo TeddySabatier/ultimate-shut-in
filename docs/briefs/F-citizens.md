@@ -8,8 +8,8 @@
 | F1 branch and base | `feat/F1-citizens-engine`, base `main` |
 | F2 branch and base | `feat/F2-citizens-ui`, base `feat/F1-citizens-engine` (declared stack, see `docs/PARALLEL-WORK.md` 4.3) |
 | PR titles | `feat(citizens): design, content and engine [F1]` and `feat(citizens): residents panel and citizen window [F2]` |
-| Reserved save version | **v6** (F1 bumps `SAVE_VERSION` to 6) |
-| Merge order | after brief H (v5) and before brief G (v7). See `docs/PARALLEL-WORK.md` 3. |
+| Reserved save version | **v7** (F1 bumps `SAVE_VERSION` to 7; the Arena is v5 and quest notes v6) |
+| Merge order | after the Arena (v5) and brief H (v6). See `docs/PARALLEL-WORK.md` 3. |
 | Size | large |
 
 ## Goal
@@ -36,7 +36,7 @@ You may edit:
 - `docs/design/CITIZENS.md` (new, 2000 to 4000 words): the spec, with the economy proof table, wireframes of the two screens at 390 and 768 widths, the SaveFile addition, the events, the content schema, accessibility notes. No HTML prototype is needed: the real screens in F2 are the prototype.
 - `src/game/citizens.ts` and `src/game/citizens.test.ts` (new): pure functions in the engine contract `(save, now, ...) => { save, events, error? }`: arrival at ring unlock, need windows, waiting and visiting states, gifts, claiming, linking to an outpost.
 - `src/game/content/citizens.json` (new): the twelve citizens with arrival vignettes (80 to 150 words, system-window voice), needs, gifts. Document every field in `src/game/content/schema.md` (append a section) and validate it in `src/game/content/index.ts` and `content.test.ts` (additive).
-- `src/game/types.ts` and `src/game/save.ts`: add `citizens` to `SaveFile` **right after the existing `activity` field** (your anchor), bump `SAVE_VERSION` to 6, write the migration for 4 and 5 (a v5 save has `notes` from brief H; the migration must work with or without it), and the events you need. Tests for every earlier version.
+- `src/game/types.ts` and `src/game/save.ts`: add `citizens` to `SaveFile` **right after the existing `activity` field** (your anchor), bump `SAVE_VERSION` to 7, write the migration for 4, 5 and 6 (v5 has `arena` from the Arena, v6 has `notes` from brief H; each may be absent, so the migration must work with or without them), and the events you need. Tests for every earlier version.
 - `src/game/tick.ts`: hook arrival and need tracking into the day boundary. `src/game/wave.ts`: if citizen buffs touch wave defense, add one `citizens` term to the breakdown next to the `outposts` term and note it in the errata.
 - `src/game/index.ts`: additive exports.
 - `src/game/content/strings.json`: **only your own top-level key `citizens`**, inserted immediately before the existing `"compose"` key (your anchor).
@@ -49,7 +49,7 @@ Every file under `src/screens/`, `src/components/`, `src/state/`, `e2e/`, `.gith
 
 ## F1 acceptance
 
-- Engine tests: arrival at each ring, no arrival twice, need windows across day boundaries and long absences (the catch-up caps), waiting versus visiting, gifts claimed once, undo of a quest that moves a need, migration from v4 and v5, determinism, input never mutated.
+- Engine tests: arrival at each ring, no arrival twice, need windows across day boundaries and long absences (the catch-up caps), waiting versus visiting, gifts claimed once, undo of a quest that moves a need, migration from v4, v5 and v6, determinism, input never mutated.
 - A simulation test shows a Steady player at 90% adherence meets most needs and a Gentle player at 60% meets some, and that gift value per week stays under the cap you document.
 - `npm run lint`, `typecheck`, `npm test`, `npm run build` pass.
 
