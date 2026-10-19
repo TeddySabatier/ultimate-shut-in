@@ -31,6 +31,10 @@ jobs:
 
       - run: npm run build
 
+      # Mini games load lazily: no manifest, engine or strings in the main chunk (docs/design/games/CONTRACT.md).
+      - name: Check the main chunk holds no game
+        run: node scripts/check-main-chunk.mjs
+
       - name: Check PWA artifacts
         run: |
           test -f dist/manifest.webmanifest
