@@ -26,6 +26,13 @@ describe('CharacterScreen', () => {
     expect(screen.getByText(/bike courier/i)).toBeInTheDocument();
   });
 
+  it('links an empty Outposts section to the Map', () => {
+    seedStore();
+    renderWithRouter(<CharacterScreen />);
+    expect(screen.getByText(strings.map.outposts.ledgerEmpty)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: strings.map.outposts.ledgerLink })).toHaveAttribute('href', '/map');
+  });
+
   it('restores a retired outpost from the Ledger', () => {
     seedStore();
     useGameStore.getState().createOutpost({ name: 'Hollow Park', type: 'park', cell: { x: 3, y: 1 } });
