@@ -46,6 +46,9 @@ test('screens and overlays', async ({ page }, testInfo) => {
   await gotoTab(page, 'Board');
   await shoot(page, p, '06-board', { full: true });
 
+  await gotoTab(page, 'Map');
+  await shoot(page, p, '06b-map', { full: true });
+
   // One settlement toast, then the board with a settled card.
   const { card: firstCard } = await pinCard(page, openCards(page));
   await firstCard.getByRole('button', { name: 'Done' }).click();

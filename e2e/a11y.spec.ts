@@ -44,7 +44,7 @@ test('onboarding has no serious axe violations and named controls', async ({ pag
   await expect(page.getByRole('checkbox', { name: 'on', exact: true })).toHaveCount(0);
 });
 
-for (const tab of ['Haven', 'Board', 'Ledger', 'Settings'] as Tab[]) {
+for (const tab of ['Haven', 'Board', 'Map', 'Ledger', 'Settings'] as Tab[]) {
   test(`${tab} has no serious axe violations and every button is named`, async ({ page }) => {
     await onboard(page, { name: 'Tester' });
     await gotoTab(page, tab);

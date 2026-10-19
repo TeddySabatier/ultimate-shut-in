@@ -238,6 +238,8 @@ test.describe('responsive sweep', () => {
 
       await gotoTab(page, 'Board');
       await check('board', { tabBar: true });
+      await gotoTab(page, 'Map');
+      await check('map', { tabBar: true });
       await gotoTab(page, 'Ledger');
       await page.getByRole('button', { name: /Pell the Runner/ }).click();
       await check('ledger', { tabBar: true });
