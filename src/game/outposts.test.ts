@@ -3,7 +3,8 @@ import { completeQuest, rerollQuest, undoQuest } from './board';
 import { addCustomQuestToBoard, addCustomTemplate, updateCustomTemplate } from './custom';
 import { outpostRules } from './content';
 import { questRewards, recomputeRingDraft } from './economy';
-import { zoneOfCell } from './mapGeometry';
+import { markMapSeen } from './map';
+import { canHoldOutpost, zoneOfCell } from './mapGeometry';
 import {
   activeOutposts,
   createOutpost,
@@ -30,6 +31,8 @@ import { T0, TZ, at, deepFreeze, fresh, freshWithBoard, setBoard } from './testU
 import { gameDayIndex } from './time';
 import type { ActionResult, GameEvent, MapCell, SaveFile } from './types';
 import { settleWave, waveDefense } from './wave';
+
+const STATE_RANK: Record<string, number> = { marked: 0, scouted: 1, corridor: 2, stronghold: 3 };
 
 const DAY0 = gameDayIndex(T0, 4, TZ.tz);
 
@@ -79,17 +82,19 @@ function assertInvariants(s: SaveFile, dp: number, ring: number): void {
   const active = activeOutposts(s);
   expect(active.length).toBeLessThanOrEqual(3 + s.player.ring);
   for (let z = 1; z <= 7; z++) expect(active.filter((o) => zoneOfCell(o.cell) === z).length).toBeLessThanOrEqual(z === 1 ? 0 : 3);
+  for (const o of active) expect(canHoldOutpost(o.cell)).toBe(true);
   for (let i = 0; i < active.length; i++) {
     for (let j = i + 1; j < active.length; j++) {
       expect(Math.hypot(active[i]!.cell.x - active[j]!.cell.x, active[i]!.cell.y - active[j]!.cell.y)).toBeGreaterThanOrEqual(3);
     }
   }
   for (const o of s.map.outposts) {
-    expect(['marked', 'scouted', 'corridor', 'stronghold'].indexOf(o.peak)).toBeGreaterThanOrEqual(['marked', 'scouted', 'corridor', 'stronghold'].indexOf(outpostStateFor(o.visits)));
+    expect(STATE_RANK[o.peak]).toBeGreaterThanOrEqual(STATE_RANK[outpostStateFor(o.visits)]!);
     const counted = s.map.visits.filter((v) => v.outpostId === o.id && v.counted);
     const days = counted.map((v) => v.day);
     expect(new Set(days).size).toBe(days.length);
     if (counted.length > 0) expect(o.lastVisitDay).toBe(Math.max(...days));
+    else if (o.visits === 0) expect(o.lastVisitDay).toBeNull();
   }
   for (let i = 1; i < s.map.snapshots.length; i++) expect(s.map.snapshots[i]!.periodIndex).toBeGreaterThan(s.map.snapshots[i - 1]!.periodIndex);
 }
@@ -240,12 +245,10 @@ describe('visits and states', () => {
     const back = logOutpostVisit(undone, 'op1', T0, TZ);
     expect(back.events.map((e) => e.type)).toEqual(['outpostVisited']);
     expect(back.save.map.outposts[0]).toMatchObject({ visits: 3, peak: 'scouted' });
-    // A check-in logged after the tag inherits the count when the quest is undone.
-    let both = must(logOutpostVisit(tagged.save, 'op1', at(0, 13), TZ).save ? { save: tagged.save, events: [] } : { save: tagged.save, events: [] });
-    both = tagged.save;
-    const q2 = both.board!.quests[1]!;
-    both = must(completeQuest(both, q2.instanceId, T0));
-    both = must(tagQuestAtOutpost(both, q2.instanceId, 'op1', T0, TZ)); // uncounted
+    // A second tagged quest the same day inherits the count when the first is undone.
+    const q2 = tagged.save.board!.quests[1]!;
+    let both = must(completeQuest(tagged.save, q2.instanceId, T0));
+    both = must(tagQuestAtOutpost(both, q2.instanceId, 'op1', T0, TZ));
     expect(both.map.visits.filter((v) => v.day === DAY0).map((v) => v.counted)).toEqual([true, false]);
     const u = must(undoQuest(both, q.instanceId, T0, TZ));
     expect(u.map.visits.filter((v) => v.day === DAY0)).toHaveLength(1);
@@ -489,8 +492,13 @@ describe('contract', () => {
       else if (roll < 0.9) r = retireOutpost(s, pick, at(day), TZ);
       else if (roll < 0.97) r = restoreOutpost(s, pick, at(day), TZ);
       else r = forgetOutpost(s, pick, at(day), TZ);
+      const beforePeaks = new Map(s.map.outposts.map((o) => [o.id, o.peak]));
       if (r.error === undefined) s = r.save;
       else expect(r.save).toBe(s);
+      for (const o of s.map.outposts) {
+        const prev = beforePeaks.get(o.id);
+        if (prev !== undefined) expect(STATE_RANK[o.peak]).toBeGreaterThanOrEqual(STATE_RANK[prev]!);
+      }
       assertInvariants(s, dp, ring);
     }
     expect(s.map.outposts.length).toBeGreaterThan(3);
@@ -507,6 +515,10 @@ describe('contract', () => {
     retireOutpost(s, 'op1', T0, TZ);
     forgetOutpost(s, 'op1', T0, TZ);
     undoOutpostVisit(s, 'op1', at(-1), TZ);
+    markMapSeen(s, T0, TZ);
+    const retired = retireOutpost(s, 'op2', T0, TZ);
+    restoreOutpost(deepFreeze(retired.save), 'op2', T0, TZ);
+    forgetOutpost(deepFreeze(retired.save), 'op2', T0, TZ);
     const done = completeQuest(s, s.board!.quests[0]!.instanceId, T0);
     tagQuestAtOutpost(deepFreeze(done.save), s.board!.quests[0]!.instanceId, 'op1', T0, TZ);
     expect(JSON.stringify(s)).toBe(before);

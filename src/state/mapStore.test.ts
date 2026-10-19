@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { createOutpost, gameDayIndex, isOutpostQuiet, logOutpostVisit, markMapSeen, settleWave } from '../game';
+import { T0, TZ, at, fresh } from '../game/testUtils';
 import { INITIAL_STATE, mapNotice, oneOutpostToast, useGameStore } from './gameStore';
+import { mapView } from './mapView';
 import { currentSave, seedStore } from '../test/storeUtils';
+
+const DAY0 = gameDayIndex(T0, 4, TZ.tz);
 
 describe('gameStore: city map', () => {
   beforeEach(() => {
@@ -80,5 +85,44 @@ describe('gameStore: city map', () => {
     useGameStore.getState().markMapSeen();
     expect(currentSave().map.lastSeen).toMatchObject({ domainPoints: 0 });
     expect(useGameStore.getState().pendingEvents).toEqual([]);
+  });
+});
+
+describe('mapView', () => {
+  it('arranges zone status, caps, compare, residue and quiet from the engine', () => {
+    let s = fresh();
+    s = { ...s, player: { ...s.player, domainPoints: 400, ring: 3, highestRing: 3 } };
+    s = createOutpost(s, { name: 'Gym', type: 'gym', cell: { x: 2, y: 1 } }, T0, TZ).save;
+    s = logOutpostVisit(s, 'op1', T0, TZ).save;
+    s = markMapSeen(s, T0, TZ).save;
+    s = settleWave({ ...s, vassals: { ...s.vassals, move: { ...s.vassals.move, trust: 2 } } }, 0, T0, DAY0 + 7).save;
+    const view = mapView(s, at(8));
+    expect(view.dp).toBe(s.player.domainPoints);
+    expect(view.ring).toBe(3);
+    expect(view.zones[0]?.status).toBe('claimed');
+    expect(view.zones[2]?.status).toBe('current');
+    expect(view.zones[3]?.status).toBe('next');
+    expect(view.zones[4]?.status).toBe('beyond');
+    expect(view.cap).toBe(6);
+    expect(view.free).toBe(5);
+    expect(view.outposts[0]).toMatchObject({ zone: 3, loggedToday: false, quiet: false });
+    expect(view.sinceDp).toBeGreaterThan(0);
+    expect(view.compare.dp).toBe(s.map.snapshots[0]!.domainPoints);
+    expect(view.residue.length).toBeGreaterThan(0);
+    expect(view.wallsHeld).toBeGreaterThan(0);
+    const later = mapView(s, at(21));
+    expect(later.outposts[0]?.quiet).toBe(true);
+    expect(isOutpostQuiet(s.map.outposts[0]!, later.today)).toBe(true);
+  });
+
+  it('marks a same-day check-in as undoable and a tagged quest as not', () => {
+    seedStore();
+    const st = useGameStore.getState();
+    st.createOutpost({ name: 'Park', type: 'park', cell: { x: -2, y: 1 } });
+    st.visitOutpost('op1');
+    const after = currentSave();
+    const view = mapView(after, Date.now());
+    expect(view.outposts[0]?.loggedToday).toBe(true);
+    expect(view.outposts[0]?.canUndoToday).toBe(true);
   });
 });

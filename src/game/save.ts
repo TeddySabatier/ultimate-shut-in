@@ -3,8 +3,8 @@
  * shape (`{name, level, xp}`, version missing or 1), v2 files (no custom
  * quests, proposals or activity: they get empty arrays), v3 files (no city
  * map: they get an empty one seeded with one snapshot of the current state)
- * and the current v4 file, filling any missing field with a default so older
- * saves keep loading.
+ * and the current v4 file (City Map: `map`, `WaveBreakdown.outposts`), filling
+ * any missing field with a default so older saves keep loading.
  */
 import { getCombo, habits } from './content';
 import { instanceId } from './board';
@@ -614,6 +614,17 @@ function migrateMap(raw: unknown, seed: DomainSnapshot, fallbackDay: number): Ma
     }
     map.visits = map.visits.slice(-VISIT_LOG_MAX);
   }
+  // 4.2: lastVisitDay is the newest counted visit still in the log. With none left the stored day stays (old
+  // visits can fall off the 400-entry cap, and nulling it would mark the outpost quiet on every load); an
+  // outpost with no visits at all has none.
+  for (const o of map.outposts) {
+    let newest: number | null = null;
+    for (const v of map.visits) {
+      if (v.outpostId === o.id && v.counted && (newest === null || v.day > newest)) newest = v.day;
+    }
+    if (newest !== null) o.lastVisitDay = newest;
+    else if (o.visits === 0) o.lastVisitDay = null;
+  }
   if (Array.isArray(r.snapshots)) {
     for (const sn of r.snapshots) {
       if (!isDict(sn) || typeof sn.periodIndex !== 'number' || !Number.isFinite(sn.periodIndex)) continue;
@@ -645,7 +656,7 @@ function looksLikeV2(v: unknown): v is Dict {
 }
 
 /**
- * Accept any previously persisted shape and return a valid v2 SaveFile.
+ * Accept any previously persisted shape and return a valid v4 SaveFile.
  * Unknown or corrupt input yields a fresh save (name kept when readable).
  *
  * A zustand/persist envelope `{ state, version }` is unwrapped; the inner
