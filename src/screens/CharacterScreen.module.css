@@ -7,8 +7,13 @@
 }
 
 .nameRow input {
-  flex: 1;
-  min-width: 8em;
+  flex: 1 1 8em;
+  min-width: 0;
+}
+
+.name {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .name {
@@ -27,9 +32,17 @@
 .facts > div,
 .stats > div {
   display: grid;
-  grid-template-columns: 8em 1fr;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: var(--space-2);
+}
+
+@media (max-width: 359px) {
+  .facts > div,
+  .stats > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-1);
+  }
 }
 
 .facts dt,
@@ -47,8 +60,10 @@
 
 .inline {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-1);
+  min-width: 0;
 }
 
 .coin {
@@ -133,6 +148,7 @@
 .comboText {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   color: var(--color-text);
 }
 
@@ -152,6 +168,7 @@
 
 .waveHead {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: var(--space-2);
   width: 100%;

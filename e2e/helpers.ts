@@ -2,7 +2,7 @@
  * Shared helpers for the e2e suite. Every spec starts from an empty
  * localStorage with the debug flag set so `window.__haven` is installed.
  */
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, type BrowserContext, type Locator, type Page } from '@playwright/test';
 
 export const DAY_MS = 86_400_000;
 export const HOUR_MS = 3_600_000;
@@ -23,8 +23,43 @@ export interface SaveLike {
   firstPlayDay: number;
 }
 
-/** Fresh app: debug hook on, storage empty, at the onboarding screen. */
+const FONT_CDN = /^https:\/\/fonts\.(googleapis|gstatic)\.com\//;
+const fontRouted = new WeakSet<BrowserContext>();
+
+/**
+ * Serve the Google Fonts requests through Playwright's own fetch, bounded to a
+ * few seconds. In the browser a slow font CDN keeps its requests in flight for
+ * up to 50 s, and Chromium holds the *next navigation* (reload or goto) until
+ * they settle: that was the "flaky on load" failure seen in the compose spec
+ * and on cold starts with four workers. With the bound, a healthy CDN still
+ * delivers the real fonts (screenshots keep the pixel font) and a slow one
+ * fails fast instead of stalling the suite.
+ */
+async function routeFonts(context: BrowserContext): Promise<void> {
+  if (fontRouted.has(context)) return;
+  fontRouted.add(context);
+  await context.route(FONT_CDN, async (route) => {
+    try {
+      const response = await route.fetch({ timeout: 5_000 });
+      await route.fulfill({ response });
+    } catch {
+      await route.abort().catch(() => undefined);
+    }
+  });
+}
+
+/**
+ * Fresh app: debug hook on, storage empty, at the onboarding screen.
+ *
+ * Navigation waits for the DOM and the app's first heading rather than the
+ * window `load` event (which waits on the fonts), and the font CDN is routed
+ * through a bounded fetch (see `routeFonts`). Before the reload the service
+ * worker gets a moment to finish installing: a worker still installing from
+ * the first navigation is "external" to the reloaded page and Workbox
+ * (autoUpdate) would reload the page by itself when it activates.
+ */
 export async function freshApp(page: Page): Promise<void> {
+  await routeFonts(page.context());
   await page.addInitScript(() => {
     try {
       localStorage.setItem('haven.debug', '1');
@@ -32,14 +67,49 @@ export async function freshApp(page: Page): Promise<void> {
       /* private mode */
     }
   });
-  await page.goto('/');
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await expect(page.getByRole('heading', { name: 'Protocol online' })).toBeVisible();
+  await page
+    .waitForFunction(
+      async () => {
+        if (!('serviceWorker' in navigator)) return true;
+        const reg = await navigator.serviceWorker.getRegistration();
+        return !!reg && !reg.installing && !reg.waiting && !!reg.active;
+      },
+      undefined,
+      { timeout: 15_000 },
+    )
+    .catch(() => undefined); // no registration (blocked service workers): nothing to wait for
   await page.evaluate(() => {
     const debug = localStorage.getItem('haven.debug');
     localStorage.clear();
     if (debug) localStorage.setItem('haven.debug', debug);
   });
-  await page.reload();
+  await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('heading', { name: 'Protocol online' })).toBeVisible();
+}
+
+/**
+ * Resolve once the web fonts are in, so screenshots and metrics are stable. The
+ * font stylesheet loads without blocking (index.html), so first wait for its
+ * faces to appear, then for them to settle; bounded, because fonts are
+ * decoration and an unreachable CDN must not fail the suite.
+ */
+export async function fontsReady(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const hasPixelFace = () => {
+      let found = false;
+      document.fonts.forEach((f) => {
+        if (/press start/i.test(f.family)) found = true;
+      });
+      return found;
+    };
+    const settled = (async () => {
+      while (!hasPixelFace()) await new Promise((r) => setTimeout(r, 50));
+      await document.fonts.ready;
+    })();
+    return Promise.race([settled, new Promise<void>((r) => setTimeout(r, 6_000))]);
+  });
 }
 
 export interface OnboardOptions {

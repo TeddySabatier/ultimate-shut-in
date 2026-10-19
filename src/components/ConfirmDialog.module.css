@@ -3,8 +3,10 @@
   border: none;
   background: transparent;
   color: var(--color-text);
-  max-width: min(440px, calc(100vw - 32px));
+  max-width: min(27.5rem, calc(100vw - 2rem));
   width: 100%;
+  max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 2rem);
+  overflow-y: auto;
 }
 
 .dialog::backdrop {

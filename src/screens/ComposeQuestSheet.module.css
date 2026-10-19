@@ -6,7 +6,7 @@
   color: var(--color-text);
   width: min(30rem, calc(100vw - 1.5rem));
   max-width: none;
-  max-height: calc(100dvh - 1.5rem);
+  max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 1.5rem);
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -286,6 +286,6 @@
 
 @media (max-height: 500px) {
   .dialog {
-    max-height: calc(100dvh - 0.75rem);
+    max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 0.75rem);
   }
 }

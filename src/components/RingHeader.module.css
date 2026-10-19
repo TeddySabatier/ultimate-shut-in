@@ -1,6 +1,9 @@
 .header {
   position: relative;
-  margin: calc(-1 * var(--space-4)) calc(-1 * var(--space-4)) var(--space-4);
+  /* Bleed under the status bar and the side insets: main applies the safe-area padding once,
+     this margin cancels it, and .overlay re-adds --safe-top so the content clears the notch. */
+  margin: calc(-1 * (var(--space-4) + var(--safe-top))) calc(-1 * (var(--space-4) + var(--safe-right))) var(--space-4)
+    calc(-1 * (var(--space-4) + var(--safe-left)));
   border-bottom: var(--border-pixel);
   box-shadow: var(--shadow-glow);
   animation: haven-glow 4s ease-in-out infinite alternate;
@@ -18,8 +21,9 @@
 .overlay {
   position: relative;
   background: linear-gradient(180deg, rgba(15, 15, 20, 0.55) 0%, rgba(15, 15, 20, 0.35) 45%, rgba(15, 15, 20, 0.92) 100%);
-  padding: calc(var(--space-3) + var(--safe-top)) var(--space-4) var(--space-3);
-  min-height: 200px;
+  padding: calc(var(--space-3) + var(--safe-top)) calc(var(--space-4) + var(--safe-right)) var(--space-3)
+    calc(var(--space-4) + var(--safe-left));
+  min-height: 12.5rem;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -33,12 +37,13 @@
 }
 
 .avatar {
+  flex: none;
   border: 2px solid var(--color-border-light);
   background: var(--color-panel);
 }
 
 .player {
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -66,6 +71,7 @@
 }
 
 .coins {
+  flex: none;
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
@@ -89,4 +95,31 @@
   font-size: var(--text-xs);
   color: var(--color-text);
   margin-bottom: var(--space-2);
+}
+
+/* Landscape and keyboard-up: a compact strip, player and ring side by side over the scene. */
+@media (max-height: 500px) {
+  .overlay {
+    min-height: 6rem;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-4);
+    padding-top: calc(var(--space-2) + var(--safe-top));
+    padding-bottom: var(--space-2);
+  }
+  .top,
+  .ring {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .avatar {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+  .ringName {
+    font-size: var(--heading-sm);
+  }
+  .ringSub {
+    margin-bottom: var(--space-1);
+  }
 }

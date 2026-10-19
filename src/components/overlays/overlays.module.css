@@ -14,7 +14,11 @@
   pointer-events: auto;
   margin: 0;
   cursor: pointer;
-  padding-right: calc(var(--space-3) + 28px);
+  /* Budget for the absolutely positioned close button: 44px target + its 8px offset + a gap
+     (inside the 8px frame border, which the padding box already excludes). */
+  padding-right: calc(var(--touch-target) + 2 * var(--space-2));
+  max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - var(--tabbar-height) - 2 * var(--space-3));
+  overflow-y: auto;
   /* Opaque: the board underneath must not bleed through the reward text. */
   background: var(--color-panel);
 }
@@ -25,9 +29,10 @@
 
 .close {
   position: absolute;
-  top: var(--space-2);
-  right: var(--space-2);
+  top: var(--space-1);
+  right: calc(var(--space-3) + var(--space-2));
   z-index: 2;
+  pointer-events: auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -39,15 +44,17 @@
 }
 
 /* ---- modal windows ---- */
+/* The backdrop scrolls, so it aligns from the start: with `flex-end` the overflow on the
+   top side would be unreachable. `.modalInner` pushes the window down with margin-top: auto. */
 .backdrop {
   position: absolute;
   inset: 0;
   z-index: 30;
   display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding: var(--space-3);
-  padding-bottom: calc(var(--tabbar-height) + var(--safe-bottom) + var(--space-3));
+  flex-direction: column;
+  align-items: center;
+  padding: calc(var(--safe-top) + var(--space-3)) calc(var(--safe-right) + var(--space-3))
+    calc(var(--tabbar-height) + var(--safe-bottom) + var(--space-3)) calc(var(--safe-left) + var(--space-3));
   background: rgba(8, 8, 12, 0.78);
   animation: fade-in var(--duration-fast) linear;
   overflow-y: auto;
@@ -57,22 +64,32 @@
   outline: none;
 }
 
-.fullscreen {
-  align-items: flex-start;
-  flex-direction: column;
-  padding: 0;
-  padding-bottom: calc(var(--tabbar-height) + var(--safe-bottom));
-  background: var(--color-bg);
-}
-
 .modalInner {
+  display: flex;
+  flex-direction: column;
   width: 100%;
+  min-height: 0;
+  max-height: 100%;
+  margin-top: auto;
   animation: slide-up var(--duration-med) var(--ease-snap);
 }
 
+/* Every window fits the viewport minus the safe areas and scrolls inside its body. */
 .modalInner .window {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - var(--tabbar-height) - 2 * var(--space-3));
   margin: 0;
   background: var(--color-panel);
+}
+
+.scrollBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .bigNumber {
@@ -83,17 +100,26 @@
   margin: var(--space-2) 0 var(--space-3);
 }
 
-.actionsRow {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-2);
-  margin-top: var(--space-3);
+/* Wraps the buttons of a window whose frame also dismisses on tap; it exists only to
+   stopPropagation, so it takes no box of its own inside the SystemWindow actions row. */
+.dismissRow {
+  display: contents;
 }
 
 /* ---- ring unlock ---- */
+.fullscreen {
+  padding: var(--safe-top) var(--safe-right) calc(var(--tabbar-height) + var(--safe-bottom)) var(--safe-left);
+  background: var(--color-bg);
+}
+
+.fullscreen .modalInner {
+  margin-top: 0;
+}
+
 .ringScene {
+  flex: none;
   width: 100%;
-  height: 200px;
+  height: clamp(6rem, 24dvh, 12.5rem);
   background-size: cover;
   background-position: center;
   image-rendering: pixelated;
@@ -102,9 +128,12 @@
   animation: haven-glow 4s ease-in-out infinite alternate;
 }
 
-.fullscreen .window {
+/* The vignette scrolls inside the window; the scene and the Continue button stay on screen. */
+.fullscreen .modalInner .window {
+  flex: 0 1 auto;
   margin: var(--space-3);
   width: auto;
+  max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - var(--tabbar-height) - clamp(6rem, 24dvh, 12.5rem) - 2 * var(--space-3));
 }
 
 .ringName {
@@ -136,12 +165,14 @@
 }
 
 .monster {
+  flex: none;
   border: var(--border-pixel);
   background: var(--color-bg);
 }
 
 .waveBars {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
   display: grid;
   gap: var(--space-2);
 }
@@ -192,7 +223,8 @@
   background: var(--color-bg);
   border: var(--border-pixel);
   font-size: var(--text-xs);
-  max-height: 200px;
+  /* rem/dvh, not px: large text still shows several lines, short viewports still fit. */
+  max-height: min(40dvh, 14rem);
   overflow-y: auto;
 }
 
@@ -217,4 +249,24 @@
 
 .vassalRow p {
   margin: 0;
+  min-width: 0;
+}
+
+.vassalArt {
+  flex: none;
+}
+
+/* ---- landscape and keyboard-up: drop the decorative art, keep the words and the buttons ---- */
+@media (max-height: 500px) {
+  .ringScene,
+  .monster,
+  .vassalArt {
+    display: none;
+  }
+  .fullscreen .modalInner .window {
+    max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - var(--tabbar-height) - 2 * var(--space-3));
+  }
+  .log {
+    max-height: min(30dvh, 8rem);
+  }
 }

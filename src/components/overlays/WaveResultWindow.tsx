@@ -62,6 +62,20 @@ export function WaveResultWindow({ record, monster, onDismiss }: WaveResultWindo
           </span>
         }
         className={styles.window}
+        bodyClassName={styles.scrollBody}
+        actions={
+          // Buttons dismiss once: the frame's own tap handler must not also fire.
+          <div className={styles.dismissRow} onClick={(e) => e.stopPropagation()}>
+            {revealing ? (
+              <button type="button" className="btn" onClick={() => setShown(record.log.length)}>
+                Skip
+              </button>
+            ) : null}
+            <button type="button" className="btn btn--primary" onClick={onDismiss}>
+              Continue
+            </button>
+          </div>
+        }
       >
         <div className={styles.waveHead}>
           <Sprite src={monsterSpriteFor(monster)} alt={monster.name} size={64} className={styles.monster} />
@@ -99,16 +113,6 @@ export function WaveResultWindow({ record, monster, onDismiss }: WaveResultWindo
             <Icon src={uiIcons.domainPoint} size={16} /> +{record.dpAwarded} Domain Points
           </p>
         ) : null}
-        <div className={styles.actionsRow} onClick={(e) => e.stopPropagation()}>
-          {revealing ? (
-            <button type="button" className="btn" onClick={() => setShown(record.log.length)}>
-              Skip
-            </button>
-          ) : null}
-          <button type="button" className="btn btn--primary" onClick={onDismiss}>
-            Continue
-          </button>
-        </div>
       </SystemWindow>
     </ModalFrame>
   );

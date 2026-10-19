@@ -29,7 +29,26 @@ export function RingUnlockWindow({ ring, onDismiss }: RingUnlockWindowProps) {
   return (
     <ModalFrame labelledBy={id} onTap={tap} fullscreen>
       <div className={styles.ringScene} style={{ backgroundImage: `url("${havenSceneForRing(ring - 1)}")` }} role="img" aria-label={def.name} />
-      <SystemWindow as="div" tone="accent" title={<span id={id}>Domain expanded</span>} className={styles.window}>
+      <SystemWindow
+        as="div"
+        tone="accent"
+        title={<span id={id}>Domain expanded</span>}
+        className={styles.window}
+        bodyClassName={styles.scrollBody}
+        actions={
+          // Buttons dismiss once: the frame's own tap handler must not also fire.
+          <div className={styles.dismissRow} onClick={(e) => e.stopPropagation()}>
+            {typing ? (
+              <button type="button" className="btn" onClick={skip}>
+                Skip
+              </button>
+            ) : null}
+            <button type="button" className="btn btn--primary" onClick={onDismiss}>
+              Continue
+            </button>
+          </div>
+        }
+      >
         <h3 className={styles.ringName}>{def.name}</h3>
         <p className={styles.headline}>{seededLine(strings.ringUnlock, `ring:${ring}`, { ring: def.name })}</p>
         <p className={styles.vignette}>
@@ -39,16 +58,6 @@ export function RingUnlockWindow({ ring, onDismiss }: RingUnlockWindowProps) {
           <span className="muted">Unlocked: </span>
           {def.facilities.map((f) => f.name).join(', ')}
         </p>
-        <div className={styles.actionsRow} onClick={(e) => e.stopPropagation()}>
-          {typing ? (
-            <button type="button" className="btn" onClick={skip}>
-              Skip
-            </button>
-          ) : null}
-          <button type="button" className="btn btn--primary" onClick={onDismiss}>
-            Continue
-          </button>
-        </div>
       </SystemWindow>
     </ModalFrame>
   );

@@ -7,7 +7,8 @@ interface IconProps {
   src: string;
   /** Accessible name; omit for purely decorative icons. */
   label?: string | undefined;
-  size?: number | undefined;
+  /** Pixels, or any CSS length (e.g. `1.375rem` so the icon scales with the text). */
+  size?: number | string | undefined;
   className?: string | undefined;
   style?: CSSProperties | undefined;
 }

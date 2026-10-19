@@ -21,7 +21,7 @@
 
 .logo {
   display: block;
-  width: 240px;
+  width: min(15rem, 100%);
   height: auto;
   margin: 0 auto var(--space-3);
 }
@@ -84,7 +84,13 @@
 }
 
 .habitList {
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 359px) {
+  .habitList {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .habit,
@@ -92,6 +98,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  min-width: 0;
   min-height: var(--touch-target);
   padding: var(--space-2);
   border: var(--border-pixel);
@@ -132,4 +139,18 @@
   font-size: var(--heading-xs);
   text-transform: uppercase;
   color: var(--color-accent-2);
+}
+
+/* Landscape and keyboard-up: the logo is decoration, the form needs the height. */
+@media (max-height: 500px) {
+  .logo {
+    width: min(9rem, 100%);
+    margin-bottom: var(--space-1);
+  }
+  .step {
+    margin-bottom: var(--space-2);
+  }
+  .main {
+    padding-top: calc(var(--space-3) + var(--safe-top));
+  }
 }

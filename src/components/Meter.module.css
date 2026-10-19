@@ -8,17 +8,18 @@
 .track {
   position: relative;
   flex: 1 1 auto;
-  height: 12px;
+  min-width: 0;
+  height: 0.75rem;
   background: var(--color-bg);
   border: 2px solid var(--color-border-light);
   overflow: hidden;
 }
 
 .sm .track {
-  height: 8px;
+  height: 0.5rem;
 }
 .lg .track {
-  height: 16px;
+  height: 1rem;
 }
 
 .fill {

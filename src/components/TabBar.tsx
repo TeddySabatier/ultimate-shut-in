@@ -27,7 +27,7 @@ export function TabBar() {
           end={tab.to === '/'}
           className={({ isActive }) => (isActive ? `${styles.tab} ${styles.active}` : styles.tab)}
         >
-          <Icon src={tab.icon} size={22} className={styles.icon} />
+          <Icon src={tab.icon} size="1.375rem" className={styles.icon} />
           <span className={styles.label}>{tab.label}</span>
         </NavLink>
       ))}

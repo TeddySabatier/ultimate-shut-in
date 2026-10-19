@@ -20,8 +20,16 @@
   }
 }
 
+@media (min-width: 768px) {
+  .shell {
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 48px rgba(0, 0, 0, 0.7);
+  }
+}
+
+/* Safe-area insets are applied here, once per edge; inner components never add env() again. */
 .content {
   flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding: calc(var(--space-4) + var(--safe-top)) calc(var(--space-4) + var(--safe-right))

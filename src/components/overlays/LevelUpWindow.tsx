@@ -21,10 +21,14 @@ export function LevelUpWindow({ level, onDismiss }: LevelUpWindowProps) {
         tone="accent"
         title={<span id={id}>Level up</span>}
         className={styles.window}
+        bodyClassName={styles.scrollBody}
         actions={
-          <button type="button" className="btn btn--primary" onClick={onDismiss}>
-            Continue
-          </button>
+          // The frame also dismisses on tap: stop the bubble or the next queued window is dropped.
+          <div className={styles.dismissRow} onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="btn btn--primary" onClick={onDismiss}>
+              Continue
+            </button>
+          </div>
         }
       >
         <p className={styles.bigNumber}>Lv {level}</p>

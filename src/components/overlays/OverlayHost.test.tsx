@@ -50,6 +50,37 @@ describe('OverlayHost', () => {
     expect(screen.getByRole('dialog', { name: /level up/i })).toBeInTheDocument();
   });
 
+  it('Continue on the level-up window dismisses exactly one event when two are queued', () => {
+    seedStore();
+    useGameStore.setState({ pendingEvents: [{ type: 'levelUp', level: 2 }, { type: 'ringUnlocked', ring: 2 }] });
+    render(<OverlayHost />);
+    // A mouse click bubbles to the frame, which also dismisses on tap: the ring unlock used to be swallowed.
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(useGameStore.getState().pendingEvents).toHaveLength(1);
+    expect(screen.getByRole('dialog', { name: /domain expanded/i })).toBeInTheDocument();
+  });
+
+  it('Continue on the wave window dismisses exactly one event when two are queued', () => {
+    seedStore();
+    const record: WaveRecord = {
+      index: 0,
+      ring: 1,
+      attack: 20,
+      defense: 31,
+      breakdown: { vassals: 8, trust: 14, walls: 5, combos: 0, titles: 0, wellKept: 4 },
+      result: 'win',
+      dpAwarded: 15,
+      log: ['Wave 1 reaches The Room.', 'Decisive.'],
+      settledAt: Date.now(),
+    };
+    useGameStore.setState({ pendingEvents: [{ type: 'waveSettled', record }, { type: 'levelUp', level: 3 }] });
+    render(<OverlayHost />);
+    // The store seeds reduced motion, so the log is fully revealed and Continue is the only button.
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(useGameStore.getState().pendingEvents).toHaveLength(1);
+    expect(screen.getByRole('dialog', { name: /level up/i })).toBeInTheDocument();
+  });
+
   it('shows the level-up window and dismisses with Enter', () => {
     seedStore();
     useGameStore.setState({ pendingEvents: [{ type: 'levelUp', level: 2 }] });

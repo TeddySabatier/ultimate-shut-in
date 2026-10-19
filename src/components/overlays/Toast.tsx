@@ -38,19 +38,12 @@ export function Toast({ title, line, tone = 'default', children, autoMs = 3200, 
       >
         <p className={styles.toastLine}>{line}</p>
         {children}
-        <button
-          type="button"
-          className={styles.close}
-          aria-label="Dismiss"
-          onClick={(e) => {
-            // The window itself dismisses on tap; stop the bubble or the queue skips an event.
-            e.stopPropagation();
-            onDismiss();
-          }}
-        >
-          <Icon src={uiIcons.close} size={16} />
-        </button>
       </SystemWindow>
+      {/* A sibling of the window, not a child of its body: the body shrinks by the padding that
+          reserves this button's space, so a child would slide over the text. One dismiss per tap. */}
+      <button type="button" className={styles.close} aria-label="Dismiss" onClick={onDismiss}>
+        <Icon src={uiIcons.close} size={16} />
+      </button>
     </div>
   );
 }

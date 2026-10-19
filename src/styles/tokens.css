@@ -36,8 +36,9 @@
   --text-md: 1rem;
   --text-lg: 1.125rem;
   --text-xl: 1.5rem;
-  --heading-xs: 0.5rem;
-  --heading-sm: 0.625rem; /* Press Start 2P is wide; keep headings small */
+  /* Press Start 2P is wide; keep headings small, but never under 9px (DPR 1 legibility). */
+  --heading-xs: 0.5625rem;
+  --heading-sm: 0.625rem;
   --heading-md: 0.875rem;
   --heading-lg: 1.125rem;
 
@@ -49,9 +50,9 @@
   --space-5: 24px;
   --space-6: 32px;
 
-  /* layout */
-  --app-max-width: 480px;
-  --tabbar-height: 64px;
+  /* layout: rem so OS text scaling grows the boxes with the text (480px / 64px at 100%) */
+  --app-max-width: 30rem;
+  --tabbar-height: 4rem;
   --touch-target: 44px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
@@ -69,4 +70,18 @@
   --ease-snap: steps(4, end);
   --duration-fast: 120ms;
   --duration-med: 240ms;
+}
+
+/* Landscape phones and the keyboard-up case: a shorter tab bar (icons only, see TabBar). */
+@media (max-height: 500px) {
+  :root {
+    --tabbar-height: 3rem;
+  }
+}
+
+/* Tablet and desktop: the frame stays centered, the type grows a notch. */
+@media (min-width: 768px) {
+  :root {
+    font-size: 17px;
+  }
 }

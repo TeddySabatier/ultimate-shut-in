@@ -27,6 +27,8 @@ interface SystemWindowProps extends Omit<HTMLAttributes<HTMLElement>, 'title'> {
   headingLevel?: 1 | 2 | 3;
   /** Drop the inner padding (for edge-to-edge content). */
   flush?: boolean;
+  /** Extra class on the body wrapper (overlays make it the internal scroller). */
+  bodyClassName?: string | undefined;
 }
 
 /**
@@ -41,6 +43,7 @@ export function SystemWindow({
   as: Tag = 'section',
   headingLevel = 2,
   flush = false,
+  bodyClassName,
   className,
   style,
   ...rest
@@ -49,7 +52,7 @@ export function SystemWindow({
   return (
     <Tag className={cx(styles.window, styles[tone], flush && styles.flush, className)} style={{ ...frameStyle(tone), ...style }} {...rest}>
       {title !== undefined && title !== null ? <Heading className={styles.title}>{title}</Heading> : null}
-      <div className={styles.body}>{children}</div>
+      <div className={cx(styles.body, bodyClassName)}>{children}</div>
       {actions ? <div className={styles.actions}>{actions}</div> : null}
       <span className={styles.scanlines} aria-hidden="true" />
     </Tag>

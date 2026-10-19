@@ -5,11 +5,12 @@
  * so the files are reviewed by eye (see docs/review/qa-report.md).
  */
 import { expect, test, type Page } from '@playwright/test';
-import { advanceToDay, completeAllQuests, freshApp, gotoTab, openCards, pinCard, settleOverlays } from './helpers';
+import { advanceToDay, completeAllQuests, fontsReady, freshApp, gotoTab, openCards, pinCard, settleOverlays } from './helpers';
 
 const DIR = 'e2e/__screenshots__';
 
 async function shoot(page: Page, project: string, name: string, opts: { full?: boolean } = {}) {
+  await fontsReady(page);
   await page.waitForTimeout(250);
   await page.screenshot({ path: `${DIR}/${project}-${name}.png`, fullPage: false });
   if (opts.full) {

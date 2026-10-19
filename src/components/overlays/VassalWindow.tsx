@@ -29,14 +29,15 @@ export function VassalWindow({ habit, kind, onDismiss, onReRecruit }: VassalWind
         tone={kind === 'left' ? 'default' : 'success'}
         title={<span id={id}>{kind === 'left' ? `${h.vassal.name} is away` : `${h.vassal.name} is back`}</span>}
         className={styles.window}
+        bodyClassName={styles.scrollBody}
         actions={
-          <>
+          // Buttons dismiss once: the frame's own tap handler must not also fire.
+          <div className={styles.dismissRow} onClick={(e) => e.stopPropagation()}>
             {kind === 'left' && onReRecruit ? (
               <button
                 type="button"
                 className="btn btn--primary"
-                onClick={(e) => {
-                  e.stopPropagation();
+                onClick={() => {
                   onReRecruit(habit);
                   onDismiss();
                 }}
@@ -47,11 +48,11 @@ export function VassalWindow({ habit, kind, onDismiss, onReRecruit }: VassalWind
             <button type="button" className={kind === 'left' ? 'btn' : 'btn btn--primary'} onClick={onDismiss}>
               Continue
             </button>
-          </>
+          </div>
         }
       >
         <div className={styles.vassalRow}>
-          <Sprite src={kind === 'left' ? vassalPortraits.silhouette : vassalPortraits[habit]} alt="" size={72} />
+          <Sprite src={kind === 'left' ? vassalPortraits.silhouette : vassalPortraits[habit]} alt="" size={72} className={styles.vassalArt} />
           <p>{line}</p>
         </div>
       </SystemWindow>

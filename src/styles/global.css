@@ -31,6 +31,21 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Tablet and desktop: a dimmed haven scene behind the frame, so the centered
+   frame reads as a window onto the Haven rather than a phone lost in a void.
+   AppShell sets --haven-backdrop to the current ring's scene. */
+@media (min-width: 768px) {
+  body {
+    background-color: var(--color-bg);
+    background-image: radial-gradient(ellipse at center, rgba(15, 15, 20, 0.72) 0%, rgba(15, 15, 20, 0.9) 55%, var(--color-bg) 100%),
+      var(--haven-backdrop, url('../assets/haven/room.svg'));
+    background-size: cover, cover;
+    background-position: center, center;
+    background-attachment: fixed, fixed;
+    background-repeat: no-repeat;
+  }
+}
+
 h1,
 h2,
 h3,
@@ -93,6 +108,8 @@ textarea {
 
 input[type='checkbox'],
 input[type='radio'] {
+  /* Fixed-size flex children: never let a wide sibling shrink the control. */
+  flex: none;
   min-height: 0;
   width: 22px;
   height: 22px;
