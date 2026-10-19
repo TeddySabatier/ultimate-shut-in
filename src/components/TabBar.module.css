@@ -41,7 +41,7 @@
   color: currentColor;
 }
 
-/* Pixel font, 9px floor, capped at 10px so "SETTINGS" never wraps or clips at 150% text. */
+/* Pixel font where a column can hold "SETTINGS". Five columns cannot: at 390 the word is wider than the cell, and in the short bar it sits beside the icon. */
 .label {
   font-family: var(--font-heading);
   font-size: clamp(9px, 0.5625rem, 10px);
@@ -52,8 +52,8 @@
   overflow: hidden;
 }
 
-/* Five 64px columns at 375px still take Press Start 2P at 9px; below that Inter 800 is narrower (CITY-MAP 5.1). */
-@media (max-width: 374px) {
+/* Inter 800 is about 55px for "SETTINGS" (CITY-MAP 5.1). Phones, and the short landscape bar, use it so the word is fully visible. */
+@media (max-width: 479px), (max-height: 500px) {
   .label {
     font-family: var(--font-body);
     font-size: 10px;

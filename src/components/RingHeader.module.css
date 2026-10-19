@@ -132,6 +132,12 @@
     width: 2.5rem;
     height: 2.5rem;
   }
+  .mapChip {
+    min-width: var(--touch-target);
+    justify-content: center;
+    padding-left: var(--space-1);
+    padding-right: var(--space-1);
+  }
   .mapChip span {
     display: none;
   }
