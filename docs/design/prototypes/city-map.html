@@ -1,0 +1,1117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Haven Protocol · City Map prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0f0f14;--panel:#1a1a24;--raised:#22222f;--glass:rgba(20,20,30,.92);--border:#2c2c3c;--bl:#6b6b8a;
+  --accent:#7c5cff;--accent-t:#b8a6ff;--amber:#ffb84d;--amber-d:#b8741f;--danger:#ff6b85;--success:#4dff9a;
+  --text:#e8e8f0;--muted:#9a9ab0;
+  --fh:'Press Start 2P','Courier New',monospace;
+  --fb:Inter,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --fm:ui-monospace,'Cascadia Mono','Courier New',monospace;
+  --frame:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96' fill='none' stroke='%236b6b8a' stroke-width='4' stroke-linejoin='miter' stroke-linecap='square'%3E%3Cpath d='M10 4h76l6 6v76l-6 6H10l-6-6V10z'/%3E%3Cpath d='M4 10h6V4M86 4v6h6M92 86h-6v6M10 92v-6H4' stroke-width='2' opacity='0.5'/%3E%3Cpath d='M8 15V8h7M81 8h7v7M88 81v7h-7M15 88H8v-7' stroke='%23ffb84d' stroke-width='4'/%3E%3C/svg%3E");
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:#08080c;color:var(--text);font-family:var(--fb);-webkit-text-size-adjust:100%}
+body{min-height:100vh;background:radial-gradient(ellipse at 50% 0%,#15121f 0,#08080c 60%) fixed}
+button{font:inherit;color:inherit}
+.mono{font-family:var(--fm)}
+.h{font-family:var(--fh);text-transform:uppercase;letter-spacing:.02em}
+.muted{color:var(--muted)}
+.ic{width:18px;height:18px;flex:none;color:currentColor}
+
+.frame{position:relative;max-width:480px;margin:0 auto;min-height:100vh;background:var(--bg);display:flex;flex-direction:column;box-shadow:0 0 0 2px #14141c,0 0 60px rgba(124,92,255,.08)}
+.side-note{display:none}
+@media (min-width:1000px) and (max-width:767px){
+  .side-note{display:block;position:fixed;left:max(16px,calc(50% - 520px));top:32px;width:min(230px,calc(50% - 280px));color:var(--muted);font-size:12px;line-height:1.6}
+  .side-note b{display:block;font-family:var(--fh);font-size:9px;font-weight:400;color:var(--amber);margin-bottom:10px;line-height:1.7}
+  .side-note code{color:#c8c8d8}
+}
+
+/* ---------- top bar ---------- */
+.top{display:flex;align-items:center;gap:10px;padding:12px 14px 10px;background:linear-gradient(#15151e,var(--bg));border-bottom:2px solid #1c1c27}
+.top .title{flex:1;min-width:0}
+.top .title .h{font-size:11px;color:var(--amber);display:block}
+.top .ringline{display:block;margin-top:6px;font-size:13px;color:var(--accent-t);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dpchip{display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--panel);border:2px solid var(--border);box-shadow:2px 2px 0 #000}
+.dpchip .ic{width:20px;height:20px}
+.dpchip .v{font-family:var(--fm);font-size:15px;font-weight:700}
+.dpchip .u{font-family:var(--fh);font-size:9px;color:var(--muted)}
+
+/* ---------- map card ---------- */
+.mapcard{position:relative;margin:0 0 12px;background:var(--bg);overflow:hidden}
+.mapcard::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.12) 0 1px,transparent 1px 3px),radial-gradient(ellipse at 50% 55%,transparent 55%,rgba(5,5,8,.75) 100%)}
+#mapView[hidden]{display:none}
+#map{display:block;width:100%;height:auto;touch-action:manipulation}
+.hud{position:absolute;top:8px;left:8px;right:8px;display:flex;justify-content:space-between;align-items:flex-start;z-index:2;pointer-events:none}
+.hud>*{pointer-events:auto}
+.hudbtns{display:flex;gap:6px}
+.hudbtn{display:flex;align-items:center;gap:6px;min-height:44px;min-width:44px;padding:0 10px;background:rgba(20,20,30,.88);border:2px solid var(--bl);box-shadow:2px 2px 0 #000;cursor:pointer;color:var(--text)}
+.hudbtn span{font-family:var(--fh);font-size:9px;text-transform:uppercase}
+.hudbtn[aria-pressed="true"]{border-color:var(--amber);color:var(--amber);background:rgba(40,30,10,.9)}
+.hudbtn:focus-visible,.btn:focus-visible,.row-main:focus-visible,.checkbtn:focus-visible,.zrow:focus-visible,.zops button:focus-visible,.x:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.wavechip{font-family:var(--fh);font-size:9px;line-height:1.6;padding:6px 8px;background:rgba(20,20,30,.88);border:2px solid var(--border);color:var(--muted)}
+.wavechip b{color:var(--amber);font-weight:400}
+.since{position:absolute;left:8px;bottom:8px;z-index:2;display:flex;align-items:center;gap:6px;padding:5px 8px;background:rgba(36,28,70,.92);border:2px solid var(--accent);font-family:var(--fh);font-size:9px;line-height:1.5;color:#d9d0ff;box-shadow:2px 2px 0 #000}
+.since .up{color:var(--success)}
+.legend{position:absolute;left:8px;bottom:8px;z-index:2;display:none;align-items:center;gap:6px;padding:5px 8px;background:rgba(20,20,30,.92);border:2px solid var(--border);font-family:var(--fh);font-size:9px;color:var(--muted)}
+.legend.on{display:flex}
+.legend i{display:inline-block;width:16px;border-top:2px dashed #e8e8f0;opacity:.8}
+.legend i.n{border-top:2px solid var(--amber)}
+.legend i.h{height:8px;border:0;background:repeating-linear-gradient(120deg,rgba(255,184,77,.7) 0 1px,transparent 1px 4px)}
+
+/* ---------- map svg styling ---------- */
+.g use{stroke:#0f0f14;stroke-width:.6;stroke-linejoin:miter}
+.g{--gt:#20202c;--gs:#16161e}
+.g.h{--gt:#29214e}
+.g.k-road{--gt:#17171f}
+.g.k-park{--gt:#1c3626}
+.g.k-pond,.g.k-river{--gt:#1d3a66}
+.g.k-bridge{--gt:#2a2a3e}
+.g.k-hill{--gt:#1f2b25}
+.g.s-k{--gt:#2e2516}
+.g.s-k.k-road{--gt:#2a2112}
+.g.s-d{--gt:#1b1b25}
+.g.s-f{--gt:url(#fG);--gs:#0c0c11}
+.g.s-f.k-river,.g.s-f.k-pond{--gt:url(#fW)}
+.g>use:first-child{fill:var(--gt)}.g>use+use:not(.lp){fill:var(--gs)}
+.g .lp{stroke:none}
+.g.s-d{--lc:#8a6a3a;--lo:.06}
+.g.s-f{--lc:#262631;--lo:0}
+.g .rp{fill:none;stroke:#5ba7d9;stroke-width:.7;opacity:.45}
+.g.s-f .rp{opacity:.08}
+
+/* each box is three paths in the order left, right, top; windows live in the side fills */
+.b>path{stroke:#0f0f14;stroke-width:.7;stroke-linejoin:miter}
+.b>:nth-child(3n+1){fill:var(--l)}.b>:nth-child(3n+2){fill:var(--r)}.b>:nth-child(3n){fill:var(--t)}
+.f-bld,.f-shop,.f-civic,.f-tower{--t:#37374e;--l:url(#bLa);--r:url(#bRa)}
+.f-tower{--t:#3d3d57}
+.f-bld.vb,.f-tower.vb,.f-shop.vb{--l:url(#bLb);--r:url(#bRb)}
+.f-civic{--t:#45455e}
+.f-home{--t:#4e3f97;--l:url(#hL);--r:url(#hR)}
+.f-tree{--t:#3f9a63;--l:#2f7a4c;--r:#225a37}
+.f-hill{--t:#31453b;--l:#26362e;--r:#1b2822}
+.f-haven,.f-annex{--t:#a08cff;--l:url(#vL);--r:url(#vR)}
+.f-annex{--t:#8f74ff}
+.f-post{--t:#ffb84d;--l:#b8741f;--r:#8a5616}
+.b.s-d{--t:#2c2c3c;--l:url(#dL);--r:url(#dR)}
+.b.s-d.f-tree{--t:#284f3a;--l:#1f402f;--r:#173124}
+.b.s-d.f-hill{--t:#25332d;--l:#1e2a24;--r:#17201c}
+.b.s-k{--t:#463a26;--l:url(#bLa);--r:url(#bRa)}
+.b.s-k.f-tree{--t:#3f9a63;--l:#2f7a4c;--r:#225a37}
+.b.s-f{--t:url(#fT);--l:url(#fL);--r:url(#fR)}
+.b .aw{fill:var(--aw);stroke:none}
+.b .cross{fill:#e8e8f0;stroke:none}
+.b .ant{fill:#a08cff;stroke:none}
+.b.s-d .aw{fill:#3a3442}
+.b.s-f .aw{fill:#23232d}.b.s-f .cross{fill:#2c2c3c}
+.pop>path{animation:winOn .9s steps(3,end) both;animation-delay:var(--dl,0ms)}
+.g.pop>use:first-child{animation:gOn .9s ease-out both;animation-delay:var(--dl,0ms)}
+@keyframes winOn{from{opacity:.3}to{opacity:1}}
+@keyframes gOn{from{opacity:.35}to{opacity:1}}
+.beacon{fill:#ffb84d;animation:blink 2.4s steps(1,end) infinite}
+@keyframes blink{0%,70%{opacity:1}71%,100%{opacity:.15}}
+.spark{fill:#b9b9cc;opacity:0;animation:spk 1.1s steps(1,end) infinite}
+.spark:nth-child(3n){animation-delay:.37s;animation-duration:1.5s}.spark:nth-child(3n+1){animation-delay:.71s;animation-duration:.8s}
+.spark.off{display:none}
+@keyframes spk{0%{opacity:.55}33%{opacity:0}66%{opacity:.3}}
+.star{fill:#e8e8f0}
+.tw{animation:tw 4s steps(2,end) infinite}#stars .tw:nth-child(2n){animation-delay:1.3s}#stars .tw:nth-child(3n){animation-delay:2.6s}
+@keyframes tw{50%{opacity:.15}}
+.obs .star{opacity:.9}
+
+.zguide{fill:none;stroke:#9a9ab0;stroke-width:.6;opacity:.12;stroke-dasharray:2 3}
+.nextring{fill:none;stroke:#ffb84d;stroke-width:.9;stroke-dasharray:1 3.5;opacity:.5}
+.wallfill{fill:#ffb84d;opacity:.045}
+.wall,.wallglow,.wallfill,.ghost{transition:rx 1.4s cubic-bezier(.2,.8,.2,1),ry 1.4s cubic-bezier(.2,.8,.2,1)}
+.wall{fill:none;stroke:#ffb84d;stroke-width:1.7;stroke-dasharray:5 3.5;animation:march 1.8s linear infinite}
+.wallglow{fill:none;stroke:#ffb84d;stroke-width:7;opacity:.13;animation:breathe 3.2s ease-in-out infinite}
+@keyframes march{to{stroke-dashoffset:-17}}
+@keyframes breathe{50%{opacity:.26}}
+.ghost{fill:none;stroke:#e8e8f0;stroke-width:1.1;stroke-dasharray:2 2.5;opacity:.75;display:none}
+.gained{fill:url(#hatch);display:none}
+.cmp .ghost,.cmp .gained{display:inline}
+.corr-edge{fill:none;stroke:#ffb84d;stroke-width:1.2;stroke-dasharray:4 3;opacity:.9;animation:march 1.8s linear infinite}
+.corr-fill{fill:#ffb84d;opacity:.08}
+.trail{fill:none;stroke:#ffb84d;stroke-width:1.1;stroke-dasharray:1 3;opacity:.65;stroke-linecap:round}
+.supply{fill:none;stroke:#ffb84d;stroke-width:.9;opacity:.35;stroke-dasharray:6 2}
+.scorch .em{animation:ember 1.6s steps(2,end) infinite}
+.scorch .em:nth-child(odd){animation-delay:.5s}
+@keyframes ember{50%{opacity:.25}}
+.held .flag{fill:#1a1a24;stroke:#ffb84d;stroke-width:1.1}
+.held .mark{fill:none;stroke:#4dff9a;stroke-width:1.2}
+.held.r-loss .mark{stroke:#e8e8f0}
+.held .pole{fill:#8a8a9e}
+
+.pin{cursor:pointer;outline:none}
+.pin .post{fill:#8a8a9e}
+.pin .plaque{fill:#22222f;stroke:#8a8a9e;stroke-width:1.2}
+.pin .picon{color:#d0d0dc}
+.pin .halo{display:none;fill:#ffb84d;opacity:.2}
+.st-scouted .plaque{stroke:#ffb84d;stroke-width:1.5}
+.st-scouted .picon{color:#ffb84d}
+.st-corridor .plaque{fill:#ffb84d;stroke:#0f0f14}
+.st-corridor .picon{color:#0f0f14}
+.st-corridor .halo,.st-stronghold .halo{display:inline;animation:breathe 3s ease-in-out infinite}
+.st-stronghold .plaque{fill:#7c5cff;stroke:#ffb84d;stroke-width:1.6}
+.st-stronghold .picon{color:#fff}
+.st-stronghold .halo{fill:#7c5cff;opacity:.3}
+.pin .crown{fill:#ffb84d;stroke:#0f0f14;stroke-width:.8}
+.pin .zz{fill:none;stroke:#9a9ab0;stroke-width:1.1}
+.pin.quiet .plaque,.pin.quiet .post{opacity:.55}
+.pin.quiet .picon{opacity:.6}
+.pin:focus-visible .plaque,.pin.sel .plaque{stroke:#fff;stroke-width:2.2}
+.pin:focus-visible .sel-ring,.pin.sel .sel-ring{display:inline}
+.sel-ring{display:none;fill:none;stroke:#fff;stroke-width:1;stroke-dasharray:2 2}
+.band{fill:transparent;stroke:none;outline:none;pointer-events:none}
+.band:focus-visible,.band.sel{fill:rgba(255,184,77,.10);stroke:#ffb84d;stroke-width:1.4}
+.band.sel{fill:rgba(255,184,77,.07)}
+
+/* ---------- system windows ---------- */
+.win{position:relative;margin:0 12px 14px;padding:10px 12px 12px;background:var(--glass);border:8px solid var(--bl);border-image:var(--frame) 16 / 8px stretch;box-shadow:4px 4px 0 rgba(0,0,0,.6)}
+.win::before{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.14) 0 1px,transparent 1px 3px)}
+.win>h2{position:relative;display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:0 0 10px;font-family:var(--fh);font-size:10px;font-weight:400;color:var(--amber);text-transform:uppercase;line-height:1.4}
+.win>h2 small{font-family:var(--fb);font-size:13px;text-transform:none;color:var(--muted);text-align:right}
+.win p{margin:0 0 8px;font-size:14px;line-height:1.45}
+.meter{height:14px;background:var(--bg);border:2px solid var(--bl);position:relative;overflow:hidden}
+.meter>i{position:absolute;left:0;top:0;bottom:0;background:var(--fill,var(--accent));background-image:repeating-linear-gradient(90deg,transparent 0 6px,rgba(0,0,0,.2) 6px 8px);transition:width .5s steps(6,end)}
+.meter.sm{height:10px}
+.meter.amber{--fill:var(--amber)}
+.domain-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:8px}
+.domain-head .ring{font-family:var(--fh);font-size:13px;color:var(--text);line-height:1.3}
+.domain-sub{margin-top:8px!important;font-size:14px!important;color:var(--muted)}
+.domain-sub b{color:var(--text);font-family:var(--fm)}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:10px}
+.stat{background:var(--panel);border:2px solid var(--border);padding:6px 6px 5px;min-width:0}
+.stat .k{display:block;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--muted);text-transform:uppercase;line-height:1.3}
+.stat .v{display:flex;align-items:center;gap:4px;font-family:var(--fm);font-size:15px;font-weight:700;margin-top:3px}
+.stat .v .ic{width:14px;height:14px;color:var(--amber)}
+
+/* outposts list */
+.oplist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.op{display:flex;align-items:stretch;gap:6px}
+.row-main{flex:1;min-width:0;display:grid;grid-template-columns:40px minmax(0,1fr);gap:4px 10px;align-items:center;padding:6px 8px 7px 6px;background:var(--panel);border:2px solid var(--border);text-align:left;cursor:pointer}
+.row-main:hover{border-color:var(--bl)}
+.opicon{grid-row:span 2;width:40px;height:40px;display:grid;place-items:center;background:#22222f;border:2px solid #8a8a9e;color:#d0d0dc}
+.opicon svg{width:24px;height:24px}
+.op[data-st="scouted"] .opicon{border-color:var(--amber);color:var(--amber)}
+.op[data-st="corridor"] .opicon{background:var(--amber);border-color:#0f0f14;color:#0f0f14}
+.op[data-st="stronghold"] .opicon{background:var(--accent);border-color:var(--amber);color:#fff}
+.op.quiet .opicon{opacity:.55}
+.opname{display:flex;align-items:center;gap:6px;min-width:0;font-size:14px;font-weight:600}
+.opname>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.badge{flex:none;font-size:11px;font-weight:800;letter-spacing:.05em;padding:1px 5px;border:1px solid currentColor;text-transform:uppercase;line-height:1.35}
+.badge.marked{color:#c0c0cc}.badge.scouted{color:var(--amber)}.badge.corridor{color:#0f0f14;background:var(--amber);border-color:var(--amber)}.badge.stronghold{color:#fff;background:var(--accent);border-color:var(--amber)}
+.badge.quiet{color:var(--muted);border-style:dashed}
+.badge.beyond{color:#d9d0ff;border-color:#6a4fe0}
+.badge.claimed{color:var(--accent-t)}
+.opmeta{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);min-width:0}
+.opmeta .meter{flex:1 1 auto;max-width:90px;min-width:24px}
+.opmeta .t{flex:none;white-space:nowrap}
+.checkbtn{flex:none;width:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:#1d2a22;border:2px solid #2e6e48;color:var(--success);cursor:pointer;box-shadow:2px 2px 0 #000}
+.checkbtn span{font-size:10px;font-weight:800;letter-spacing:.03em;line-height:1.15;text-align:center;text-transform:uppercase}
+.checkbtn[disabled]{background:var(--panel);border-color:var(--border);color:var(--muted);cursor:default;box-shadow:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:4px 14px;background:var(--raised);border:2px solid var(--bl);box-shadow:3px 3px 0 #000;cursor:pointer;font-family:var(--fh);font-size:10px;text-transform:uppercase;color:var(--text);line-height:1.4}
+.btn.primary{background:var(--accent);border-color:#a08cff;color:#fff}
+.btn.amber{background:var(--amber);border-color:#ffe3b0;color:#0f0f14}
+.btn.ghost{background:transparent}
+.btn[disabled]{opacity:.5;cursor:default}
+.btn.wide{width:100%;margin-top:10px}
+.capline{font-size:13px!important;color:var(--muted);margin-top:8px!important}
+
+/* list view */
+.listview{padding:60px 10px 46px;min-height:240px}
+.listview[hidden]{display:none}
+.zlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.zrow{width:100%;display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px;background:var(--panel);border:2px solid var(--border);text-align:left;cursor:pointer;min-height:48px}
+.zrow .no{width:34px;height:34px;display:grid;place-items:center;font-family:var(--fh);font-size:10px;border:2px solid var(--border);background:#14141c;color:var(--muted)}
+.zrow.claimed .no{background:#29214e;border-color:var(--accent);color:#fff}
+.zrow.current{border-color:var(--amber)}
+.zrow.current .no{background:var(--amber);border-color:#ffe3b0;color:#0f0f14}
+.zrow .nm{font-weight:600;font-size:14px}
+.zrow .sub{display:block;font-size:13px;color:var(--muted);font-weight:400;margin-top:2px}
+.zrow .st{font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--muted);text-transform:uppercase;text-align:right;line-height:1.3}
+.zrow.claimed .st{color:var(--accent-t)}.zrow.current .st{color:var(--amber)}
+.zops{list-style:none;margin:4px 0 4px 44px;padding:0;display:flex;flex-direction:column;gap:4px}
+.zops button{width:100%;display:flex;align-items:center;gap:8px;min-height:44px;padding:4px 8px;background:transparent;border:2px dashed var(--border);text-align:left;cursor:pointer;font-size:13px}
+.zops svg{width:18px;height:18px;color:var(--amber);flex:none}
+
+/* dev controls */
+.dev{border-image:none;border:2px dashed #4a4a60;background:rgba(15,15,20,.6);box-shadow:none}
+.dev>h2{color:var(--muted)}
+.dev label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;line-height:1.5}
+.dev input[type=range]{width:100%;accent-color:var(--amber);height:32px}
+.devrow{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.devrow .btn{flex:1 1 auto;padding:0 8px}
+
+/* tab bar */
+.tabbar{position:sticky;bottom:0;z-index:20;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));min-height:4rem;padding-bottom:env(safe-area-inset-bottom,0px);background:var(--panel);border-top:2px solid var(--border);margin-top:auto}
+.tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-width:0;color:var(--muted);text-decoration:none;min-height:44px;font-family:var(--fh);font-size:9px;text-transform:uppercase;position:relative}
+.tab svg{width:22px;height:22px}
+.tab.active{color:var(--amber)}
+.tab.active::before{content:"";position:absolute;top:-2px;left:22%;right:22%;height:3px;background:var(--amber)}
+
+/* sheet */
+.backdrop{position:fixed;inset:0;background:rgba(5,5,8,.55);z-index:40}
+.backdrop[hidden],.sheet[hidden]{display:none}
+.sheet{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:min(480px,100%);max-height:80vh;overflow:auto;z-index:41;margin:0;padding:12px 14px 18px;background:#16161f;border:8px solid var(--bl);border-image:var(--frame) 16 / 8px stretch;border-bottom:0;box-shadow:0 -8px 30px rgba(0,0,0,.6);animation:up .22s steps(4,end)}
+@keyframes up{from{transform:translate(-50%,40px);opacity:0}}
+.sheet-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+.sheet-head .kick{display:block;font-family:var(--fh);font-size:9px;color:var(--amber);text-transform:uppercase;margin-bottom:8px;line-height:1.5}
+.sheet-head h3{margin:0;font-family:var(--fh);font-size:14px;line-height:1.4;font-weight:400}
+.sheet-head .x{margin-left:auto;flex:none;width:44px;height:44px;display:grid;place-items:center;background:var(--raised);border:2px solid var(--bl);cursor:pointer}
+.sheet p{font-size:14px;line-height:1.5;margin:0 0 10px}
+.sheet h4{font-family:var(--fh);font-size:9px;color:var(--muted);font-weight:400;text-transform:uppercase;margin:14px 0 8px}
+.facs{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px}
+.facs li{display:flex;gap:8px;font-size:13px;line-height:1.4;padding:7px 8px;background:var(--panel);border:2px solid var(--border)}
+.facs li .ic{width:16px;height:16px;margin-top:1px}
+.facs li.ok .ic{color:var(--success)}.facs li.lock{color:var(--muted)}
+.facs li b{font-weight:600}
+.vig{font-size:14px;line-height:1.55;padding:10px;background:#101018;border-left:3px solid var(--accent);min-height:3em;white-space:pre-wrap}
+.statusline{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.statusline .muted{font-size:13px}
+.progrow{display:flex;align-items:center;gap:10px;margin:6px 0 4px}
+.progrow .meter{flex:1}
+.progrow .n{font-family:var(--fm);font-size:13px;white-space:nowrap}
+.ladder{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin:10px 0 6px}
+.ladder div{min-width:0;padding:6px 2px;text-align:center;background:var(--panel);border:2px solid var(--border);font-size:10px;font-weight:800;letter-spacing:0;line-height:1.3;color:var(--muted);text-transform:uppercase;overflow:hidden;text-overflow:ellipsis}
+.ladder div b{display:block;font-family:var(--fm);font-size:12px;color:inherit}
+.ladder div.on{border-color:var(--amber);color:var(--amber)}
+.ladder div.cur{background:#2a2112}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.actions .btn{flex:1 1 auto}
+.form label{display:block;font-family:var(--fh);font-size:9px;color:var(--muted);text-transform:uppercase;margin:12px 0 6px;line-height:1.5}
+.form input[type=text],.form select{width:100%;min-height:44px;padding:8px 10px;background:#0f0f14;color:var(--text);border:2px solid var(--bl);font:inherit;font-size:15px;border-radius:0}
+.typegrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.typegrid label{position:relative;margin:0;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 2px;min-height:58px;min-width:0;background:var(--panel);border:2px solid var(--border);cursor:pointer;font-family:var(--fb);font-size:12px;text-transform:none;color:var(--text);text-align:center;line-height:1.2}
+.typegrid input{position:absolute;opacity:0;pointer-events:none}
+.typegrid svg{width:22px;height:22px;color:var(--amber)}
+.typegrid label:has(input:checked){background:var(--amber);color:#0f0f14;border-color:#ffe3b0}
+.typegrid label:has(input:checked) svg{color:#0f0f14}
+.typegrid label:has(input:focus-visible){outline:2px solid #fff;outline-offset:1px}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.err{color:#ffd0a0;font-size:13px;margin-top:10px;min-height:1em}
+
+/* toast */
+.toast{position:fixed;left:50%;top:12px;transform:translateX(-50%);width:min(456px,calc(100% - 24px));z-index:60;pointer-events:none}
+.toast .win{margin:0;animation:up .22s steps(4,end)}
+.toast .win>h2{margin-bottom:6px}
+.toast p{font-size:13px!important;margin:0!important}
+
+@media (max-width:374px){
+  .tab{font-family:var(--fb);font-size:10px;font-weight:800;letter-spacing:.03em}
+}
+@media (max-width:359px){
+  .top .title .h{font-size:9px}
+  .hudbtn{padding:0 8px}
+  .hudbtn span{display:none}
+  .stat .k{font-size:10px}
+  .win{margin:0 8px 12px}
+  .typegrid{grid-template-columns:repeat(3,1fr)}
+  .opmeta .meter{display:none}
+  .row-main{grid-template-columns:36px minmax(0,1fr);gap:4px 8px}
+  .opicon{width:36px;height:36px}
+}
+@media (max-height:500px){
+  #map{max-height:calc(100dvh - 7rem);width:auto;max-width:100%;margin:0 auto}
+  .top{padding-top:6px;padding-bottom:6px}
+  .top .ringline{display:none}
+  .tabbar{min-height:3.25rem}
+  .tab{flex-direction:row;gap:6px}
+}
+/* tablet and desktop: two columns, the map gets the room */
+@media (min-width:768px){
+  .frame{max-width:980px}
+  .cols{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:0 4px;align-items:start;padding:12px 8px 0}
+  .colA{position:sticky;top:12px}
+  .mapcard{border:2px solid #1c1c27;margin:0 12px 14px}
+  .tabbar{grid-template-columns:repeat(5,minmax(0,120px));justify-content:center}
+  .sheet{left:auto;right:max(0px,calc(50% - 490px));transform:none;width:400px;top:0;bottom:0;max-height:none;border-bottom:8px solid var(--bl);animation:side .22s steps(4,end)}
+  .side-note{display:none!important}
+}
+@keyframes side{from{transform:translateX(40px);opacity:0}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+.rm *,.rm *::before,.rm *::after{animation:none!important;transition:none!important}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<defs>
+<symbol id="nav-map" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="miter" stroke-linecap="square"><path d="M3 6.5L9 4l6 2.5L21 4v13.5L15 20l-6-2.5L3 20z"/><path d="M9 4v13.5M15 6.5V20" stroke-width="2"/></symbol>
+<symbol id="op-cafe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="miter" stroke-linecap="square"><path d="M4 9h11v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z"/><path d="M15 11h2.5a2.5 2.5 0 0 1 0 5H15M8 3.5V6M11.5 3.5V6"/></symbol>
+<symbol id="op-class" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="miter" stroke-linecap="square"><path d="M3.5 4.5h17v11h-17z"/><path d="M8 20.5l4-5 4 5M7 8.5h6M7 11.5h9" stroke-width="2"/></symbol>
+<symbol id="op-clinic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="miter" stroke-linecap="square"><path d="M9.5 4h5v5.5H20v5h-5.5V20h-5v-5.5H4v-5h5.5z"/></symbol>
+<symbol id="op-family" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="miter" stroke-linecap="square"><path d="M4 11l8-7 8 7v9.5H4z"/><path d="M16.5 7V3.5M10 20.5v-5h4v5"/></symbol>
+<symbol id="op-friend" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="miter" stroke-linecap="square"><path d="M4 11l8-7 8 7v9.5H4z"/><path d="M12 17.5l-2.8-2.8a1.6 1.6 0 0 1 2.8-1.6 1.6 1.6 0 0 1 2.8 1.6z" stroke-width="2"/></symbol>
+<symbol id="op-gym" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="miter" stroke-linecap="square"><path d="M3 9v6M6.5 6.5v11M17.5 6.5v11M21 9v6M6.5 12h11"/></symbol>
+<symbol id="op-library" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="miter" stroke-linecap="square"><path d="M3 9l9-5 9 5z"/><path d="M5.5 12v5.5M10 12v5.5M14 12v5.5M18.5 12v5.5M3 20.5h18"/></symbol>
+<symbol id="op-market" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="miter" stroke-linecap="square"><path d="M5 9h14l-1.5 11.5h-11z"/><path d="M9 9V6.5a3 3 0 0 1 6 0V9"/></symbol>
+<symbol id="op-other" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="miter" stroke-linecap="square"><path d="M12 21s-6.5-6.5-6.5-11.5a6.5 6.5 0 0 1 13 0C18.5 14.5 12 21 12 21z"/><path d="M11 8.5h2v2h-2z"/></symbol>
+<symbol id="op-park" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="miter" stroke-linecap="square"><path d="M12 3l7 11H5z"/><path d="M12 14v6.5M8 20.5h8"/></symbol>
+<symbol id="op-pool" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="miter" stroke-linecap="square"><path d="M3 9.5c2-2 4-2 6 0s4 2 6 0 4-2 6 0M3 15.5c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/></symbol>
+<symbol id="ui-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="miter" stroke-linecap="square"><path d="M3 11.5L12 3l9 8.5"/><path d="M5 10v11h5v-6h4v6h5V10"/></symbol>
+<symbol id="ui-quests" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="miter" stroke-linecap="square"><path d="M6 3h12v18H6z"/><path d="M9 8h6M9 12h6M9 16h3" stroke-width="1.8"/><path d="M4 5v16M20 5v16" stroke-width="1.5" opacity="0.5"/></symbol>
+<symbol id="ui-character" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="miter" stroke-linecap="square"><circle cx="12" cy="8" r="4.5"/><path d="M4 21.5c0-4 3.5-7 8-7s8 3 8 7"/></symbol>
+<symbol id="ui-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="miter" stroke-linecap="square"><path d="M10 2h4l.6 3 2.2 1.2 2.9-1 2 3.4-2.3 2v2.8l2.3 2-2 3.4-2.9-1L14.6 19 14 22h-4l-.6-3-2.2-1.2-2.9 1-2-3.4 2.3-2v-2.8l-2.3-2 2-3.4 2.9 1L9.4 5z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="ui-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="miter" stroke-linecap="square"><path d="M4 12.5l5.5 5.5L20 7.5" stroke-width="2.5"/></symbol>
+<symbol id="ui-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="miter" stroke-linecap="square"><path d="M6 6l12 12M18 6L6 18" stroke-width="2.5"/></symbol>
+<symbol id="ui-wave-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="miter" stroke-linecap="square"><path d="M12 2L4 5v7c0 5 4 8 8 10 4-2 8-5 8-10V5z"/><path d="M7 12c1.5-2 3-2 5 0s3.5 2 5 0" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="ui-domain-point" viewBox="0 0 24 24"><path d="M12 1.5l9.1 5.25v10.5L12 22.5l-9.1-5.25V6.75z" fill="#7c5cff" stroke="#0f0f14" stroke-width="1.5" stroke-linejoin="miter"/><path d="M12 5.5l5.6 3.25v6.5L12 18.5l-5.6-3.25v-6.5z" fill="#a08cff"/><path d="M12 5.5v13M6.4 8.75L12 12l5.6-3.25" fill="none" stroke="#5a3fd1" stroke-width="1.2"/><path d="M12 12l5.6 3.25V8.75z" fill="#5a3fd1"/><path d="M8 7.8l4-2.3" stroke="#e8e3ff" stroke-width="1.5" stroke-linecap="round"/></symbol>
+<symbol id="ui-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.5" fill="#ffb84d" stroke="#0f0f14" stroke-width="1.5"/><circle cx="12" cy="12" r="7.5" fill="none" stroke="#b8741f" stroke-width="1.5"/><path d="M8.5 8v8M15.5 8v8M8.5 12h7" fill="none" stroke="#b8741f" stroke-width="2" stroke-linecap="square"/><path d="M7 6.5a7.5 7.5 0 0 1 3.5-1.6" fill="none" stroke="#ffe3b0" stroke-width="1.5" stroke-linecap="round"/></symbol>
+<symbol id="ui-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="miter" stroke-linecap="square"><path d="M9 5l7 7-7 7" stroke-width="2.5"/></symbol>
+<symbol id="ui-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="miter" stroke-linecap="square"><rect x="5" y="11" width="14" height="10"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/><path d="M12 15v2" stroke-width="2.5"/></symbol>
+<symbol id="ui-compare" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><ellipse cx="12" cy="12" rx="9.5" ry="6.5" stroke-dasharray="2.5 2.5"/><ellipse cx="12" cy="12" rx="5.5" ry="3.5"/></symbol>
+<symbol id="ui-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"><path d="M9 6h12M9 12h12M9 18h12M3.5 6h1M3.5 12h1M3.5 18h1"/></symbol>
+<symbol id="ui-mapv" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="miter"><path d="M12 4l9 5-9 5-9-5z"/><path d="M3 14l9 5 9-5"/></symbol>
+<symbol id="ui-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"><path d="M12 5v14M5 12h14"/></symbol>
+</defs>
+</svg>
+
+<aside class="side-note"><b>Haven Protocol<br>City Map prototype</b>Design prototype for <code>docs/design/CITY-MAP.md</code>. Drag the Domain Points slider, simulate a week, tap any zone or pin, or switch to the list. URL params: <code>?dp=650</code>, <code>&amp;list=1</code>, <code>&amp;compare=1</code>, <code>&amp;week=1</code>, <code>&amp;panel=zone:3</code>, <code>&amp;panel=pin:1</code>, <code>&amp;panel=new</code>, <code>&amp;rm=1</code>.</aside>
+
+<div class="frame" id="frame">
+  <header class="top">
+    <div class="title">
+      <span class="h">City map</span>
+      <span class="ringline" id="ringLine">Ring 2 of 7 · The Flat</span>
+    </div>
+    <div class="dpchip" aria-label="Domain Points">
+      <svg class="ic" aria-hidden="true"><use href="#ui-domain-point"/></svg>
+      <span class="v" id="dpVal">0</span><span class="u">DP</span>
+    </div>
+  </header>
+
+  <div class="cols"><div class="colA">
+  <section class="mapcard" aria-label="The city map">
+    <div class="hud">
+      <div class="wavechip" id="waveChip">NEXT WAVE <b>3 DAYS</b></div>
+      <div class="hudbtns">
+        <button class="hudbtn" id="btnCompare" aria-pressed="false" aria-label="Compare with 7 days ago"><svg class="ic" aria-hidden="true"><use href="#ui-compare"/></svg><span>7 days</span></button>
+        <button class="hudbtn" id="btnList" aria-pressed="false" aria-label="Show the map as a list"><svg class="ic" aria-hidden="true"><use href="#ui-list"/></svg><span>List</span></button>
+      </div>
+    </div>
+    <div id="mapView">
+      <svg id="map" viewBox="0 0 360 264" role="group" aria-label="City map. Seven zones around the Haven. Tab moves between zones and outposts; Enter opens one."></svg>
+    </div>
+    <div class="listview" id="listView" hidden></div>
+    <div class="since" id="since" role="status"></div>
+    <div class="legend" id="legend"><i></i>7 days ago <i class="h"></i>new ground</div>
+  </section>
+
+  <section class="win" aria-labelledby="dTitle">
+    <h2 id="dTitle">Domain <small id="dRingNo">Ring 2 / 7</small></h2>
+    <div class="domain-head"><span class="ring" id="dRing">The Flat</span></div>
+    <div class="meter" role="progressbar" aria-label="Domain Points to the next ring" id="dMeter" aria-valuemin="0" aria-valuemax="100"><i id="dFill"></i></div>
+    <p class="domain-sub" id="dSub"></p>
+    <div class="stats">
+      <div class="stat"><span class="k">Walls held</span><span class="v"><svg class="ic" aria-hidden="true"><use href="#ui-wave-shield"/></svg><span id="sHeld">0</span></span></div>
+      <div class="stat"><span class="k">Wall bonus</span><span class="v">+<span id="sWall">5</span></span></div>
+      <div class="stat"><span class="k">Outposts</span><span class="v"><span id="sOps">0</span><span class="muted" style="font-size:12px">/<span id="sCap">3</span></span></span></div>
+    </div>
+  </section>
+
+  </div><div class="colB">
+  <section class="win" aria-labelledby="oTitle">
+    <h2 id="oTitle">Outposts <small>places you go back to</small></h2>
+    <ul class="oplist" id="opList"></ul>
+    <button class="btn wide" id="btnNew"><svg class="ic" aria-hidden="true"><use href="#ui-plus"/></svg>Mark an outpost</button>
+    <p class="capline" id="capLine"></p>
+  </section>
+
+  <section class="win dev" aria-labelledby="devTitle">
+    <h2 id="devTitle">Prototype controls</h2>
+    <label for="dpRange">Domain Points: <b class="mono" id="dpRangeVal">0</b>. Thresholds 0 / 120 / 330 / 650 / 1100 / 1700 / 2500.</label>
+    <input type="range" id="dpRange" min="0" max="2500" step="5" value="0">
+    <div class="devrow">
+      <button class="btn ghost" data-dp="0">0</button>
+      <button class="btn ghost" data-dp="500">500</button>
+      <button class="btn ghost" data-dp="1500">1500</button>
+      <button class="btn ghost" data-dp="2500">2500</button>
+    </div>
+    <div class="devrow">
+      <button class="btn amber" id="btnWeek">Simulate week</button>
+      <button class="btn ghost" id="btnRM" aria-pressed="false">Reduce motion</button>
+    </div>
+  </section>
+
+  </div></div>
+  <nav class="tabbar" aria-label="Main navigation">
+    <a class="tab" href="#"><svg aria-hidden="true"><use href="#ui-home"/></svg>Haven</a>
+    <a class="tab" href="#"><svg aria-hidden="true"><use href="#ui-quests"/></svg>Board</a>
+    <a class="tab active" href="#" aria-current="page"><svg aria-hidden="true"><use href="#nav-map"/></svg>Map</a>
+    <a class="tab" href="#"><svg aria-hidden="true"><use href="#ui-character"/></svg>Ledger</a>
+    <a class="tab" href="#"><svg aria-hidden="true"><use href="#ui-settings"/></svg>Settings</a>
+  </nav>
+</div>
+
+<div class="backdrop" id="backdrop" hidden></div>
+<section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden></section>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+'use strict';
+var RINGS = [{"id":1,"key":"room","name":"The Room","domainPointsRequired":0,"wallBonus":5,"facilities":[{"id":"questBoard","name":"Quest Board","effect":"Daily quests are issued here."},{"id":"ledger","name":"The Ledger","effect":"Character sheet, titles and settlement history."}],"vignette":"Domain registered: one room. The desk, the bed, the chair that is mostly laundry. The Protocol confirms that nothing crosses this threshold without your say-so, which is reassuring, if slightly academic, since nothing has tried. A voice from the corridor introduces itself as Pell and asks whether you have considered going out. You have not. Pell says that is fine; the Room is safe, and safe is a good place to start. Eight names are listed in the Ledger as 'awaiting assignment'. The Protocol would like to remind you that every step taken beyond the door counts as a quest, and that it keeps very careful books."},{"id":2,"key":"flat","name":"The Flat","domainPointsRequired":120,"wallBonus":8,"facilities":[{"id":"kitchen","name":"Kitchen","effect":"Tier 2 Eat quests and the Resupply run are issued."},{"id":"forge","name":"Improvised Forge","effect":"Combo items forge automatically when two habits are completed in one day."},{"id":"noticeboard","name":"Hallway Noticeboard","effect":"More tier 2 quests of every enabled habit enter the pool."}],"vignette":"Domain expanded: the whole flat. The kitchen, it turns out, has a window. Basil has already taken inventory and reports two tins, one onion of uncertain age and a kettle described as 'a strategic asset'. Ondra walks the rooms with a clipboard, nodding at the floor as if it has done something right. The Protocol notes that utilities are now your responsibility: power, water and gas respond to sleep, washing and meals, respectively, which is not how plumbing works, but it is how the Haven works. Lunel has claimed the hallway light switch. Nobody argues. Outside, the city carries on. In here, the kettle boils, and that counts."},{"id":3,"key":"floor","name":"The Floor","domainPointsRequired":330,"wallBonus":11,"facilities":[{"id":"stairwell","name":"Stairwell Gym","effect":"Tier 3 Move quests enter the pool."},{"id":"readingNook","name":"Reading Nook","effect":"Two blocks and Explain it back enter the Study pool."},{"id":"linenRoom","name":"Linen Room","effect":"Tier 3 Hygiene and Clean quests enter the pool."}],"vignette":"Domain expanded: the whole floor. Four doors, one stairwell, a corridor that echoes. Tobi has taped a sign to the lift reading 'OUT OF ORDER, USE LEGS' and is delighted to report that two neighbours laughed. Pell has measured the stairwell: eleven steps per flight, which she has already turned into a drill. Marisol has found a linen cupboard and declared it a bathhouse annex. The Protocol observes that you now share walls with people you have greeted, which it classes as a fortification upgrade. Wren, from the landing window, reports a bakery two streets over that opens at seven. The Floor is quiet, warm and yours."},{"id":4,"key":"building","name":"The Building","domainPointsRequired":650,"wallBonus":14,"facilities":[{"id":"rooftop","name":"Rooftop","effect":"Scout a new street and Join a session enter the pool."},{"id":"commonRoom","name":"Common Room","effect":"Join the crowd enters the Social pool."},{"id":"workshop","name":"Workshop","effect":"Combo items forged from here on have +1 power."}],"vignette":"Domain expanded: the building, roof included. Wren got there first and has been standing on the rooftop for an hour 'calibrating'. From up here you can see the park, the bus stop, the roofs of places you have been to and the roofs of places you have not. Imre has set up a reading nook in the common room with a sign that says 'quiet, please' in four languages. Ondra has a workshop now and is building something out of a broom and an umbrella; he says it is for the weekly wave. The Protocol notes, in its driest voice, that the walls are now four storeys tall, that your name is on the door downstairs, and that both were earned one ordinary morning at a time."},{"id":5,"key":"block","name":"The Block","domainPointsRequired":1100,"wallBonus":17,"facilities":[{"id":"cornerShop","name":"Corner Shop","effect":"Resurrection token costs 450 settlement instead of 500; quest reroll costs 10 instead of 15."},{"id":"courtyard","name":"Courtyard","effect":"The Well-kept Haven wave bonus is +8 defense instead of +5."}],"vignette":"Domain expanded: the block. The corner shop, the courtyard with the one stubborn tree, the launderette that hums at night. Basil has negotiated with the shop (negotiated meaning 'bought vegetables and chatted') and reports that the owner knows your name now. Tobi insists this is the single greatest fortification in the Haven's history and has drawn a banner. Lunel walks the block at dusk, checking that windows go dark at sensible hours, which is not in his job description but he enjoys it. The Protocol confirms that the perimeter now includes places you walk to without thinking about it. It would like you to notice that 'without thinking about it' used to be impossible."},{"id":6,"key":"district","name":"The District","domainPointsRequired":1700,"wallBonus":20,"facilities":[{"id":"clinic","name":"District Clinic","effect":"Utility decay reduced by 25% for all three utilities."},{"id":"library","name":"District Library","effect":"Title XP multipliers stack up to +25% instead of +20%."}],"vignette":"Domain expanded: the district. The library, the clinic, the park with the pond Wren keeps calling 'the lake' for morale reasons. Marisol has befriended the clinic receptionist and now gets appointment reminders delivered as if they were dispatches. Imre has a library card and has used it as a key to the entire district, which the Protocol admits is roughly how it works. Pell runs the park loop every morning and has started waving at a man with a dog, who waves back; Tobi has logged this as an alliance. You remember when the Room was the whole world. The Protocol does too, and keeps the first entry in the Ledger exactly where it was: one room, one step, one quest."},{"id":7,"key":"city","name":"The City","domainPointsRequired":2500,"wallBonus":23,"facilities":[{"id":"observatory","name":"Observatory","effect":"Cosmetic: the Haven map shows the whole city at night, every ring lit."},{"id":"openSky","name":"Open Sky","effect":"Weekly waves continue; Domain Points keep accumulating for the Ledger's record."}],"vignette":"Domain expanded: the city. The Protocol pauses, which it has never done before, then reports that there is no further ring to register, because the boundary now runs along the river, the hills and the last bus stop on the night route. Eight vassals stand on the rooftop with you. Ondra has brought chairs. Basil has brought soup. Lunel points out that it is late and you should all go to bed soon, and everyone agrees that he is right and nobody moves. The city glows the way it always did; the difference is that you have been in most of it. The Protocol closes tonight's entry with its usual line, which it would like you to read slowly: the Haven is safe. It was always going to be. You went out anyway."}];
+var HABITS = {move:['Pell','Move'],outside:['Wren','Outside'],clean:['Ondra','Clean'],social:['Tobi','Social'],study:['Imre','Study'],sleep:['Lunel','Sleep'],eat:['Basil','Eat'],hygiene:['Marisol','Hygiene']};
+var HCOL = ['#f2893b','#5ba7d9','#e0b33a','#4fc3c7','#d9774f','#a98bd6'];
+var TYPES = {
+  gym:{label:'Gym',habits:['move','hygiene']}, park:{label:'Park',habits:['outside','move']},
+  library:{label:'Library',habits:['study']}, friend:{label:"Friend's home",habits:['social']},
+  family:{label:'Family home',habits:['social','eat']}, cafe:{label:'Cafe',habits:['social','eat']},
+  clinic:{label:'Clinic',habits:['hygiene','sleep']}, market:{label:'Market',habits:['eat']},
+  pool:{label:'Pool',habits:['move','hygiene']}, 'class':{label:'Class or club',habits:['study','social']},
+  other:{label:'Somewhere else',habits:['outside']}
+};
+var STATES = [{id:'marked',min:0,label:'Marked'},{id:'scouted',min:3,label:'Scouted'},{id:'corridor',min:10,label:'Corridor'},{id:'stronghold',min:30,label:'Stronghold'}];
+
+/* ---------------- geometry ---------------- */
+var S = 14.5, CX = 180, CY = 158, K = S * Math.SQRT2;
+var R = [0.62, 1.62, 2.62, 3.82, 5.02, 6.52, 8.25];
+var T = RINGS.map(function (r) { return r.domainPointsRequired; });
+function P(x, y, z) { z = z || 0; return [CX + (x - y) * S, CY + (x + y) * S / 2 - z * S]; }
+function f1(n) { return Math.round(n * 10) / 10; }
+function pts(a) { return a.map(function (p) { return f1(p[0]) + ',' + f1(p[1]); }).join(' '); }
+function zoneOf(d) { for (var k = 0; k < 7; k++) if (d <= R[k]) return k + 1; return 8; }
+function ringFor(dp) { var r = 1; for (var i = 0; i < 7; i++) if (dp >= T[i]) r = i + 1; return r; }
+function prog(dp) { var r = ringFor(dp); if (r === 7) return {ring: 7, f: 1, next: null}; return {ring: r, f: (dp - T[r - 1]) / (T[r] - T[r - 1]), next: r + 1}; }
+function wallR(dp) { var p = prog(dp), inner = R[p.ring - 1]; if (!p.next) return inner + 0.2; return inner + 0.2 + (R[p.ring] - inner - 0.2) * 0.85 * p.f; }
+function mod(a, n) { return ((a % n) + n) % n; }
+function hash2(a, b) { var h = 2166136261 >>> 0; h ^= (a + 97); h = Math.imul(h, 16777619); h ^= (b + 389); h = Math.imul(h, 16777619); h ^= h >>> 13; h = Math.imul(h, 0x5bd1e995); h ^= h >>> 15; return (h >>> 0) / 4294967296; }
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function ellD(r) { var rx = r * K, ry = rx / 2; return 'M' + f1(CX - rx) + ' ' + CY + 'a' + f1(rx) + ' ' + f1(ry) + ' 0 1 0 ' + f1(2 * rx) + ' 0a' + f1(rx) + ' ' + f1(ry) + ' 0 1 0 ' + f1(-2 * rx) + ' 0z'; }
+function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+/* ---------------- state ---------------- */
+var q = new URLSearchParams(location.search);
+var st = {
+  dp: q.has('dp') ? Math.max(0, Math.min(2500, +q.get('dp') || 0)) : 212,
+  day: 120, base: null, compare: q.get('compare') === '1', list: q.get('list') === '1',
+  rm: q.get('rm') === '1' || matchMedia('(prefers-reduced-motion: reduce)').matches,
+  waves: [], lastSeen: null, nextWaveIn: 3,
+  outposts: [],
+  /* Sample outposts appear and gain visits as the DP slider moves, so every DP tells a plausible story. */
+  all: [
+    {name:'Riverside Gym', type:'gym', note:'Tuesday and Friday, before work.', gx:2, gy:-3, born:0, full:1300, max:40, lastDays:1},
+    {name:'Hollow Park', type:'park', note:'The long loop, past the pond.', gx:-6, gy:2, born:0, full:1600, max:16, lastDays:3},
+    {name:'The Corner Cafe', type:'cafe', note:'', gx:-1, gy:-2, born:0, full:1800, max:9, lastDays:2},
+    {name:"Marta's place", type:'friend', note:'Bring the good biscuits.', gx:2, gy:5, born:200, full:2000, max:6, lastDays:6},
+    {name:'Central Library', type:'library', note:'Third floor, by the window.', gx:5, gy:-2, born:600, full:2200, max:2, lastDays:9},
+    {name:"Dr. Okafor's clinic", type:'clinic', note:'Check-up is due in spring.', gx:-3, gy:7, born:900, full:2500, max:0, lastDays:20}
+  ].map(function (o) { o.sample = true; o.extra = 0; o.today = false; return o; })
+};
+function refreshOutposts() {
+  st.all.forEach(function (o) {
+    if (!o.sample) return;
+    var f = Math.max(0, Math.min(1, (st.dp - o.born) / (o.full - o.born)));
+    o.visits = Math.round(o.max * f) + o.extra;
+    o.last = o.today ? 0 : (o.visits > 0 ? o.lastDays : null);
+    o.fresh = st.dp - o.born < 150;
+  });
+  st.outposts = st.all.filter(function (o) { return !o.sample || st.dp >= o.born; });
+}
+refreshOutposts();
+function seedWaves() {
+  st.waves = [];
+  if (st.dp >= 40) st.waves.push({age: 10, result: 'decisive', dp: Math.max(0, st.dp - 90), seed: 11});
+  if (st.dp >= 15) st.waves.push({age: 3, result: 'win', dp: Math.max(0, st.dp - 30), seed: 23});
+  st.held = Math.max(st.waves.length, Math.round(st.dp / 55));
+}
+seedWaves();
+st.lastSeen = Math.max(0, st.dp - 38);
+st.base = Math.max(0, st.dp - 64);
+
+function stateOf(o) { var s = STATES[0]; STATES.forEach(function (x) { if (o.visits >= x.min) s = x; }); return s; }
+function nextState(o) { for (var i = 0; i < STATES.length; i++) if (o.visits < STATES[i].min) return STATES[i]; return null; }
+function isQuiet(o) { return o.last === null ? o.visits === 0 && !o.fresh : o.last >= 14; }
+function opDist(o) { return Math.hypot(o.gx, o.gy); }
+function opZone(o) { return zoneOf(opDist(o)); }
+function capFor(ring) { return Math.min(10, ring + 3); }
+function habitsText(hs, joiner) { return hs.map(function (h) { return HABITS[h][1]; }).join(joiner || ' and '); }
+function aOrAn(w) { return /^[AEIOU]/.test(w) ? 'an ' : 'a '; }
+function lastText(o) { if (o.last === null) return 'No visits yet'; if (o.last === 0) return 'Visited today'; if (o.last === 1) return 'Visited yesterday'; return 'Last visit ' + o.last + ' days ago'; }
+
+/* ---------------- build the static map ---------------- */
+var svg = document.getElementById('map');
+var tiles = [], tileKey = {}, elTile = new WeakMap();
+(function makeTiles() {
+  for (var gy = -8; gy <= 8; gy++) for (var gx = -8; gx <= 8; gx++) {
+    var d = Math.hypot(gx, gy); if (d > R[6]) continue;
+    var z = zoneOf(d), ang = Math.atan2(gy, gx) * 180 / Math.PI, r = hash2(gx, gy);
+    var isRoad = z >= 4 && (mod(gx, 4) === 0 || mod(gy, 4) === 0);
+    var isRiver = z === 7 && d > 6.95 && ang > -40 && ang < 80;
+    var kind = 'lot';
+    if (!gx && !gy) kind = 'haven';
+    else if (isRoad && isRiver) kind = 'bridge';
+    else if (isRoad) kind = 'road';
+    else if (isRiver) kind = 'river';
+    else if (z === 7 && d > 6.8 && (ang > 140 || ang < -165)) kind = 'hill';
+    else if (z === 6 && gx <= -5 && gx >= -6 && gy >= 1 && gy <= 3) kind = (gx === -5 && gy === 2) ? 'pond' : 'park';
+    else if (gx === 5 && gy === -2) kind = 'library';
+    else if (gx === 2 && gy === -5) kind = 'clinic';
+    var t = {gx: gx, gy: gy, d: d, z: z, ang: ang, r: r, kind: kind, s: null};
+    tiles.push(t); tileKey[gx + ',' + gy] = t;
+  }
+  tiles.sort(function (a, b) { return (a.gx + a.gy) - (b.gx + b.gy) || a.gx - b.gx; });
+  tiles.forEach(function (t, i) { t.idx = i; });
+})();
+
+/* One box = three relative paths (left face, right face, top). Kept compact: the whole map must stay under 60 KB. */
+function n(v) { var r = f1(v); return (r < 0 ? '-' : '') + String(Math.abs(r)).replace(/^0\./, '.'); }
+function sp(v) { var t = n(v); return t[0] === '-' ? t : ' ' + t; }
+function M(p) { return 'M' + Math.round(p[0]) + (p[1] < 0 ? '' : ' ') + Math.round(p[1]); }
+function box(x0, y0, w, d, z0, h) {
+  var x1 = x0 + w, y1 = y0 + d, z1 = z0 + h, W = w * S, D = d * S, Hh = h * S;
+  return '<path d="' + M(P(x0, y1, z0)) + 'l' + n(W) + sp(W / 2) + 'v' + n(-Hh) + 'l' + n(-W) + sp(-W / 2) + 'z"/>' +
+         '<path d="' + M(P(x1, y0, z0)) + 'l' + n(-D) + sp(D / 2) + 'v' + n(-Hh) + 'l' + n(D) + sp(-D / 2) + 'z"/>' +
+         '<path d="' + M(P(x0, y0, z1)) + 'l' + n(W) + sp(W / 2) + 'l' + n(-D) + sp(D / 2) + 'l' + n(-W) + sp(-W / 2) + 'z"/>';
+}
+function tree(x, y, sz) { return box(x - sz / 2, y - sz / 2, sz, sz, 0.08, sz * 1.15); }
+
+function buildingFor(t) {
+  var rnd = mulberry32(Math.floor(t.r * 1e9) + 7), gx = t.gx, gy = t.gy, ins, h;
+  var v = rnd() < 0.5 ? ' vb' : '';
+  switch (t.kind) {
+    case 'haven':
+      var top = P(0, 0, 4.2);
+      return {fam: 'haven', html: box(-0.3, -0.3, 0.6, 0.6, 0, 3.1) + box(-0.19, -0.19, 0.38, 0.38, 3.1, 0.42) +
+        '<rect class="ant" x="' + f1(top[0] - 0.6) + '" y="' + f1(top[1]) + '" width="1.2" height="9.5"/>' +
+        '<rect class="beacon" x="' + f1(top[0] - 1.3) + '" y="' + f1(top[1] - 1.3) + '" width="2.6" height="2.6"/>'};
+    case 'road': case 'river': case 'bridge': case 'pond': return null;
+    case 'park': return {fam: 'tree', html: tree(gx - 0.2, gy - 0.15, 0.36) + (rnd() < 0.7 ? tree(gx + 0.22, gy + 0.2, 0.3) : '')};
+    case 'hill': h = 0.25 + rnd() * 0.35; return {fam: 'hill', html: box(gx - 0.46, gy - 0.46, 0.92, 0.92, 0, h) + box(gx - 0.25, gy - 0.25, 0.5, 0.5, h, 0.2 + rnd() * 0.25)};
+    case 'library': return {fam: 'civic', html: box(gx - 0.42, gy - 0.4, 0.84, 0.8, 0, 0.75) + box(gx - 0.2, gy - 0.2, 0.4, 0.4, 0.75, 0.3)};
+    case 'clinic':
+      var c = P(gx, gy, 1.12);
+      return {fam: 'civic', html: box(gx - 0.38, gy - 0.38, 0.76, 0.76, 0, 1.1) +
+        '<rect class="cross" x="' + f1(c[0] - 4) + '" y="' + f1(c[1] - 1) + '" width="8" height="2"/><rect class="cross" x="' + f1(c[0] - 1) + '" y="' + f1(c[1] - 2.5) + '" width="2" height="5"/>'};
+  }
+  var z = t.z;
+  if (z === 2) { if (t.r > 0.92) return null; h = 0.42 + rnd() * 0.3; return {fam: 'home', html: box(gx - 0.36, gy - 0.36, 0.72, 0.72, 0, h)}; }
+  if (z === 3) { if (t.r > 0.88) return null; h = 0.7 + rnd() * 0.55; return {fam: 'home', html: box(gx - 0.38, gy - 0.38, 0.76, 0.76, 0, h)}; }
+  if (z === 4) { if (t.r > 0.86) return {fam: 'tree', html: tree(gx, gy, 0.4)}; h = 1.25 + rnd() * 1.0; ins = 0.08 + rnd() * 0.06; return {fam: 'bld', v: v, html: box(gx - 0.5 + ins, gy - 0.5 + ins, 1 - 2 * ins, 1 - 2 * ins, 0, h)}; }
+  if (z === 5) {
+    if (t.r > 0.84) return {fam: 'tree', html: tree(gx - 0.15, gy, 0.38) + tree(gx + 0.2, gy + 0.18, 0.3)};
+    h = 0.55 + rnd() * 0.5; ins = 0.08;
+    var x0 = gx - 0.5 + ins, y0 = gy - 0.5 + ins, w = 1 - 2 * ins, col = HCOL[Math.floor(rnd() * HCOL.length)];
+    var aw = '<polygon class="aw" style="--aw:' + col + '" points="' + pts([P(x0, y0 + w, 0.26), P(x0 + w, y0 + w, 0.26), P(x0 + w, y0 + w + 0.07, 0.2), P(x0, y0 + w + 0.07, 0.2)]) + '"/>';
+    return {fam: 'shop', v: v, html: box(x0, y0, w, w, 0, h) + aw};
+  }
+  if (z === 6) { if (t.r > 0.8) return {fam: 'tree', html: tree(gx - 0.18, gy - 0.1, 0.36) + tree(gx + 0.2, gy + 0.2, 0.32)}; h = 0.9 + rnd() * 1.3; ins = 0.08 + rnd() * 0.08; return {fam: 'bld', v: v, html: box(gx - 0.5 + ins, gy - 0.5 + ins, 1 - 2 * ins, 1 - 2 * ins, 0, h)}; }
+  if (t.r > 0.9) return {fam: 'tree', html: tree(gx, gy, 0.4)};
+  if (t.r > 0.78) { h = 0.9 + rnd() * 0.5; return {fam: 'bld', v: v, html: box(gx - 0.4, gy - 0.4, 0.8, 0.8, 0, h)}; }
+  ins = 0.15 + rnd() * 0.07; h = 1.9 + rnd() * 2.2;
+  return {fam: 'tower', v: v, html: box(gx - 0.5 + ins, gy - 0.5 + ins, 1 - 2 * ins, 1 - 2 * ins, 0, h) + (rnd() < 0.4 ? box(gx - 0.12, gy - 0.12, 0.24, 0.24, h, 0.35) : '')};
+}
+
+function noisePattern(id, bg, seed, dots) {
+  var rnd = mulberry32(seed), s = '<pattern id="' + id + '" patternUnits="userSpaceOnUse" width="9" height="9"><rect width="9" height="9" fill="' + bg + '"/>';
+  for (var i = 0; i < dots; i++) s += '<rect x="' + Math.floor(rnd() * 9) + '" y="' + Math.floor(rnd() * 9) + '" width="1" height="1" fill="' + (rnd() < 0.3 ? '#4a4a5c' : '#2b2b3a') + '"/>';
+  return s + '</pattern>';
+}
+function winPattern(id, side, bg, cells) {
+  var m = side === 'l' ? 'matrix(' + S + ',' + S / 2 + ',0,' + (-S) + ',' + CX + ',' + CY + ')' : 'matrix(' + (-S) + ',' + S / 2 + ',0,' + (-S) + ',' + CX + ',' + CY + ')';
+  var s = '<pattern id="' + id + '" patternUnits="userSpaceOnUse" width="0.5" height="0.62" patternTransform="' + m + '"><rect width="0.5" height="0.62" fill="' + bg + '"/>';
+  var pos = [[0.07, 0.1], [0.3, 0.1], [0.07, 0.41], [0.3, 0.41]];
+  cells.forEach(function (c, i) { if (c) s += '<rect x="' + pos[i][0] + '" y="' + pos[i][1] + '" width="0.13" height="0.17" fill="' + c + '"/>'; });
+  return s + '</pattern>';
+}
+
+function buildMap() {
+  var A = '#ffb84d', a = '#c98a35', o = '#3a3a52', V = '#b9a8ff', v2 = '#6a4fe0', H = '#efeaff', Dm = '#2c2c3c';
+  var defs = '<defs>' +
+    '<rect id="ss" width="1.4" height="1.4" class="star" opacity=".45"/><rect id="sb" width="2" height="2" class="star" opacity=".7"/>' +
+    '<g id="lp"><circle r="3.2" style="fill:var(--lh,#ffb84d);opacity:var(--lo,.22)"/><rect x="-.8" y="-.8" width="1.6" height="1.6" style="fill:var(--lc,#ffcf87)"/></g>' +
+    '<path id="tt" d="M0 0l' + n(S) + sp(S / 2) + 'l' + n(-S) + sp(S / 2) + 'l' + n(-S) + sp(-S / 2) + 'z"/>' +
+    '<path id="sl" d="M0 0l' + n(S) + sp(S / 2) + 'v' + n(0.3 * S) + 'l' + n(-S) + sp(-S / 2) + 'z"/>' +
+    '<path id="sr" d="M0 0l' + n(-S) + sp(S / 2) + 'v' + n(0.3 * S) + 'l' + n(S) + sp(-S / 2) + 'z"/>' +
+    '<radialGradient id="cm-glow"><stop offset="0" stop-color="#7c5cff" stop-opacity=".55"/><stop offset="1" stop-color="#7c5cff" stop-opacity="0"/></radialGradient>' +
+    '<pattern id="hatch" patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(30)"><rect width="1.2" height="4" fill="#ffb84d" opacity=".55"/></pattern>' +
+    noisePattern('fT', '#1a1a23', 3, 7) + noisePattern('fL', '#14141c', 5, 6) + noisePattern('fR', '#101016', 9, 6) +
+    noisePattern('fG', '#121218', 13, 6) + noisePattern('fW', '#121a28', 17, 6) +
+    winPattern('bLa', 'l', '#2a2a3d', [A, A, o, a]) + winPattern('bRa', 'r', '#1f1f2d', [A, A, o, a]) +
+    winPattern('bLb', 'l', '#2a2a3d', [a, o, A, A]) + winPattern('bRb', 'r', '#1f1f2d', [a, o, A, A]) +
+    winPattern('hL', 'l', '#3c3079', [V, v2, V, V]) + winPattern('hR', 'r', '#2c235b', [V, v2, V, V]) +
+    winPattern('vL', 'l', '#7c5cff', [H, H, V, H]) + winPattern('vR', 'r', '#4a36a8', [H, H, V, H]) +
+    winPattern('dL', 'l', '#222230', [Dm, a, Dm, Dm]) + winPattern('dR', 'r', '#191925', [Dm, Dm, a, Dm]) +
+    '</defs>';
+  var sky = '<rect width="360" height="264" fill="#0f0f14"/><g id="stars">';
+  var rs = mulberry32(42);
+  for (var i = 0; i < 90; i++) {
+    var sx = rs() * 360, sy = rs() * 264, dx = (sx - CX) / (8.6 * K), dy = (sy - CY) / (8.6 * K / 2), big = i % 7 === 0, tw = i % 5 === 0, op = (0.25 + rs() * 0.45).toFixed(2);
+    if (dx * dx + dy * dy < 1 || sy > 220 || (sx < 40 && sy > 50 && sy < 90)) continue;
+    sky += '<use href="#' + (big ? 'sb' : 'ss') + '" x="' + Math.round(sx) + '" y="' + Math.round(sy) + '"' + (tw ? ' class="tw"' : '') + '/>';
+  }
+  sky += '</g><circle cx="22" cy="68" r="8" fill="#e8e8f0" opacity=".85"/><circle cx="26" cy="65" r="7.2" fill="#0f0f14"/>';
+  var ground = '<g id="ground">';
+  tiles.forEach(function (t, i) {
+    var x0 = t.gx - 0.5, y0 = t.gy - 0.5, x1 = t.gx + 0.5, y1 = t.gy + 0.5, inner = '';
+    var pt = P(x0, y0), pl = P(x0, y1), pr = P(x1, y0);
+    inner += '<use href="#tt" x="' + n(pt[0]) + '" y="' + n(pt[1]) + '"/>';
+    if (!tileKey[t.gx + ',' + (t.gy + 1)]) inner += '<use href="#sl" x="' + n(pl[0]) + '" y="' + n(pl[1]) + '"/>';
+    if (!tileKey[(t.gx + 1) + ',' + t.gy]) inner += '<use href="#sr" x="' + n(pr[0]) + '" y="' + n(pr[1]) + '"/>';
+    if ((t.kind === 'road' || t.kind === 'bridge') && (t.gx + t.gy) % 2 === 0) { var c = P(t.gx, t.gy); inner += '<use class="lp" href="#lp" x="' + n(c[0]) + '" y="' + n(c[1]) + '"/>'; }
+    if (t.kind === 'river' || t.kind === 'pond') { var c2 = P(t.gx, t.gy); inner += '<path class="rp" d="M' + f1(c2[0] - 5) + ' ' + f1(c2[1]) + 'h4m2 2h4"/>'; }
+    ground += '<g>' + inner + '</g>';
+  });
+  ground += '</g>';
+  var glow = '<ellipse id="glow" cx="' + CX + '" cy="' + CY + '" rx="60" ry="30" fill="url(#cm-glow)"/><ellipse class="wallfill" id="wallfill" cx="' + CX + '" cy="' + CY + '" rx="10" ry="5"/>';
+  var blds = '<g id="blds">';
+  tiles.forEach(function (t, i) {
+    var b = buildingFor(t); t.fam = b ? b.fam : null;
+    if (b) { t.bCls = 'b f-' + b.fam + (b.v || ''); blds += '<g>' + b.html + '</g>'; }
+  });
+  blds += '</g>';
+  var sparks = '<g id="sparks">', rr = mulberry32(77);
+  tiles.forEach(function (t, i) {
+    if (t.z < 3 || rr() > 0.19) return;
+    var c = P(t.gx + (rr() - 0.5) * 0.6, t.gy + (rr() - 0.5) * 0.6, t.fam && t.fam !== 'tree' ? 0.2 + rr() * 1.2 : 0);
+    t.spk = (t.spk || 0) + 1;
+    sparks += '<rect x="' + f1(c[0]) + '" y="' + f1(c[1]) + '" width="' + (rr() < 0.5 ? 2 : 1) + '" height="1"/>';
+  });
+  sparks += '</g>';
+  var guides = '<g id="guides">' + R.slice(0, 6).map(function (r) { return '<path class="zguide" d="' + ellD(r) + '"/>'; }).join('') + '</g>';
+  var over = '<g id="residue"></g>' +
+    '<path class="gained" id="gained" fill-rule="evenodd" d=""/>' +
+    '<ellipse class="ghost" id="ghost" cx="' + CX + '" cy="' + CY + '" rx="10" ry="5"/>' +
+    '<path class="nextring" id="nextring" d=""/>' +
+    '<ellipse class="wallglow" id="wallglow" cx="' + CX + '" cy="' + CY + '" rx="10" ry="5"/>' +
+    '<ellipse class="wall" id="wall" cx="' + CX + '" cy="' + CY + '" rx="10" ry="5"/>' +
+    '<g id="corridors"></g><g id="shields"></g><g id="pins"></g>';
+  var bands = '<g id="bands">';
+  for (var k = 1; k <= 7; k++) {
+    var dd = ellD(R[k - 1]) + (k > 1 ? ellD(R[k - 2]) : '');
+    bands += '<path class="band" fill-rule="evenodd" tabindex="0" role="button" data-band="' + k + '" d="' + dd + '"/>';
+  }
+  bands += '</g>';
+  svg.innerHTML = defs + sky + ground + glow + blds + sparks + guides + over + bands;
+  var gEls = svg.querySelector('#ground').children, bEls = svg.querySelector('#blds').children, sEls = svg.querySelector('#sparks').children, bi = 0, si = 0;
+  tiles.forEach(function (t) {
+    t.gEl = gEls[t.idx]; elTile.set(t.gEl, t);
+    if (t.bCls) { t.bEl = bEls[bi++]; elTile.set(t.bEl, t); }
+    for (var k = 0; k < (t.spk || 0); k++) { var e = sEls[si++]; e.setAttribute('class', 'spark'); (t.sp = t.sp || []).push(e); }
+  });
+}
+
+/* ---------------- dynamic layers ---------------- */
+function setEll(id, r) { var el = document.getElementById(id), rx = f1(r * K), ry = f1(r * K / 2); el.setAttribute('rx', rx); el.setAttribute('ry', ry); el.style.rx = rx + 'px'; el.style.ry = ry + 'px'; }
+function segDist(px, py, ax, ay, bx, by) { var vx = bx - ax, vy = by - ay, l = vx * vx + vy * vy, tt = l ? Math.max(0, Math.min(1, ((px - ax) * vx + (py - ay) * vy) / l)) : 0; return Math.hypot(px - ax - tt * vx, py - ay - tt * vy); }
+
+function corridorShapes(wr) {
+  var shapes = [];
+  st.outposts.forEach(function (o) {
+    var s = stateOf(o).id, d = opDist(o);
+    if (s === 'corridor' || s === 'stronghold') {
+      if (d > wr) { var ux = o.gx / d, uy = o.gy / d; shapes.push({type: 'strip', ax: ux * wr, ay: uy * wr, bx: o.gx, by: o.gy}); }
+      if (s === 'stronghold') shapes.push({type: 'bubble', x: o.gx, y: o.gy, r: 1.35});
+    }
+  });
+  return shapes;
+}
+function inShapes(t, shapes) {
+  for (var i = 0; i < shapes.length; i++) {
+    var s = shapes[i];
+    if (s.type === 'strip' && segDist(t.gx, t.gy, s.ax, s.ay, s.bx, s.by) <= 0.72) return true;
+    if (s.type === 'bubble' && Math.hypot(t.gx - s.x, t.gy - s.y) <= s.r) return true;
+  }
+  return false;
+}
+
+var prevWall = null;
+function renderMap(animate) {
+  var p = prog(st.dp), ring = p.ring, wr = wallR(st.dp), shapes = corridorShapes(wr);
+  var opTiles = {};
+  st.outposts.forEach(function (o) { opTiles[o.gx + ',' + o.gy] = true; });
+  var from = prevWall === null ? wr : Math.min(prevWall, wr);
+  tiles.forEach(function (t) {
+    var s = t.z <= ring ? 'c' : (t.d <= wr ? 'd' : (inShapes(t, shapes) ? 'k' : 'f'));
+    var lit = s !== 'f', wasLit = t.s && t.s !== 'f';
+    var pop = animate && !st.rm && lit && !wasLit && t.s !== null;
+    var dl = Math.max(0, Math.round((t.d - from) * 140));
+    var hidden = opTiles[t.gx + ',' + t.gy] && t.kind !== 'haven';
+    t.gEl.setAttribute('class', 'g' + (t.z <= 3 ? ' h' : '') + (t.kind !== 'lot' ? ' k-' + t.kind : '') + ' s-' + s + (pop ? ' pop' : ''));
+    if (pop) t.gEl.style.setProperty('--dl', dl + 'ms'); else if (t.gEl.hasAttribute('style')) t.gEl.removeAttribute('style');
+    if (t.bEl) {
+      t.bEl.setAttribute('class', t.bCls + ' s-' + s + (pop ? ' pop' : ''));
+      if (pop) t.bEl.style.setProperty('--dl', dl + 'ms'); else if (t.bEl.hasAttribute('style') && !hidden) t.bEl.removeAttribute('style');
+      t.bEl.style.display = hidden ? 'none' : '';
+    }
+    if (t.sp) t.sp.forEach(function (el) { el.classList.toggle('off', s !== 'f'); });
+    t.s = s;
+  });
+  prevWall = wr;
+  setEll('wall', wr); setEll('wallglow', wr); setEll('wallfill', wr);
+  var g = document.getElementById('glow'), gr = Math.max(2.2, wr * 1.05);
+  g.setAttribute('rx', f1(gr * K)); g.setAttribute('ry', f1(gr * K / 2));
+  document.getElementById('nextring').setAttribute('d', p.next ? ellD(R[p.ring]) : '');
+  var bw = wallR(st.base);
+  setEll('ghost', bw);
+  document.getElementById('gained').setAttribute('d', wr > bw + 0.02 ? ellD(wr) + ellD(bw) : '');
+  svg.classList.toggle('cmp', st.compare);
+  renderCorridors(wr, shapes);
+  renderResidue();
+  renderPins(ring, wr);
+  svg.classList.toggle('obs', ring === 7);
+}
+
+function renderCorridors(wr, shapes) {
+  var s = '';
+  shapes.forEach(function (sh) {
+    if (sh.type === 'strip') {
+      var dx = sh.bx - sh.ax, dy = sh.by - sh.ay, l = Math.hypot(dx, dy), nx = -dy / l * 0.62, ny = dx / l * 0.62;
+      var a1 = P(sh.ax + nx, sh.ay + ny), b1 = P(sh.bx + nx, sh.by + ny), a2 = P(sh.ax - nx, sh.ay - ny), b2 = P(sh.bx - nx, sh.by - ny);
+      s += '<polygon class="corr-fill" points="' + pts([a1, b1, b2, a2]) + '"/>';
+      s += '<path class="corr-edge" d="M' + f1(a1[0]) + ' ' + f1(a1[1]) + 'L' + f1(b1[0]) + ' ' + f1(b1[1]) + 'M' + f1(a2[0]) + ' ' + f1(a2[1]) + 'L' + f1(b2[0]) + ' ' + f1(b2[1]) + '"/>';
+    } else {
+      var c = P(sh.x, sh.y);
+      s += '<ellipse class="corr-fill" cx="' + f1(c[0]) + '" cy="' + f1(c[1]) + '" rx="' + f1(sh.r * K) + '" ry="' + f1(sh.r * K / 2) + '"/>' +
+           '<ellipse class="corr-edge" cx="' + f1(c[0]) + '" cy="' + f1(c[1]) + '" rx="' + f1(sh.r * K) + '" ry="' + f1(sh.r * K / 2) + '"/>';
+    }
+  });
+  st.outposts.forEach(function (o) {
+    var sid = stateOf(o).id, d = opDist(o);
+    if (d > wr && sid !== 'corridor' && sid !== 'stronghold') {
+      var a = P(o.gx / d * wr, o.gy / d * wr), b = P(o.gx, o.gy);
+      s += '<path class="trail" d="M' + f1(a[0]) + ' ' + f1(a[1]) + 'L' + f1(b[0]) + ' ' + f1(b[1]) + '"/>';
+    } else if (d <= wr && (sid === 'corridor' || sid === 'stronghold')) {
+      var h0 = P(o.gx / d * 0.5, o.gy / d * 0.5), b2 = P(o.gx, o.gy);
+      s += '<path class="supply" d="M' + f1(h0[0]) + ' ' + f1(h0[1]) + 'L' + f1(b2[0]) + ' ' + f1(b2[1]) + '"/>';
+    }
+  });
+  document.getElementById('corridors').innerHTML = s;
+}
+
+function renderResidue() {
+  var s = '', sh = '';
+  st.waves.forEach(function (w) {
+    if (w.age >= 14) return;
+    var rnd = mulberry32(w.seed * 31 + 5), n = {decisive: 2, win: 3, loss: 4}[w.result] || 3, r = wallR(w.dp) + 0.05;
+    var op = (1 - w.age / 14).toFixed(2), base = rnd() * 360;
+    for (var i = 0; i < n; i++) {
+      var ang = (base + i * (360 / n) + (rnd() - 0.5) * 40) * Math.PI / 180;
+      var c = P(Math.cos(ang) * r, Math.sin(ang) * r), x = f1(c[0]), y = f1(c[1]);
+      s += '<g class="scorch" opacity="' + op + '" transform="translate(' + x + ' ' + y + ')">' +
+        '<ellipse rx="9" ry="3.8" fill="#3a1a1e" opacity=".55"/><ellipse rx="7" ry="2.9" fill="#050507" opacity=".9"/><ellipse rx="3.8" ry="1.5" cx="1.5" cy="-.3" fill="#1a0c0e"/>' +
+        '<path d="M-7 0l-4 1.5M6 -1l5 -1.5M2 2l2.5 2.5M-3 -2l-1.5 -2" stroke="#5a2a30" stroke-width=".9"/>' +
+        (w.age < 7 ? '<rect class="em" x="-3" y="-1.5" width="1.5" height="1.5" fill="#ff6b85"/><rect class="em" x="2" y=".2" width="1.5" height="1.5" fill="#ffb84d"/><rect class="em" x="-.5" y="1" width="1" height="1" fill="#ffb84d"/>' : '') +
+        '</g>';
+      if (i === 0 && w.age < 7) {
+        sh += '<g class="held r-' + w.result + '" transform="translate(' + x + ' ' + y + ')">' +
+          '<rect class="pole" x="-.6" y="-15" width="1.2" height="15"/>' +
+          '<path class="flag" d="M-5 -22h10v5c0 3-2.5 4.5-5 5.5-2.5-1-5-2.5-5-5.5z"/>' +
+          (w.result === 'loss' ? '<path class="mark" d="M-2.5 -17h5"/>' : '<path class="mark" d="M-2.6 -17.5l1.8 1.8 3.4-3.6"/>') +
+          (w.result === 'decisive' ? '<path d="M0 -27l1 2 2 .2-1.5 1.4.5 2-2-1-2 1 .5-2-1.5-1.4 2-.2z" fill="#ffb84d" stroke="#0f0f14" stroke-width=".5"/>' : '') +
+          '</g>';
+      }
+    }
+  });
+  document.getElementById('residue').innerHTML = s;
+  document.getElementById('shields').innerHTML = sh;
+}
+
+var selPin = null, selBand = null;
+function renderPins(ring, wr) {
+  var order = st.outposts.map(function (o, i) { return i; }).sort(function (a, b) { var A = st.outposts[a], B = st.outposts[b]; return (A.gx + A.gy) - (B.gx + B.gy); });
+  var s = '';
+  order.forEach(function (i) {
+    var o = st.outposts[i], sid = stateOf(o).id, quiet = isQuiet(o), z = opZone(o), beyond = opDist(o) > wr && z > ring;
+    var c = P(o.gx, o.gy);
+    if (sid === 'stronghold') s += '<g class="b f-annex s-c">' + box(o.gx - 0.28, o.gy - 0.28, 0.56, 0.56, 0, 0.85) + box(o.gx - 0.3, o.gy - 0.3, 0.14, 0.14, 0.85, 0.16) + box(o.gx + 0.16, o.gy + 0.16, 0.14, 0.14, 0.85, 0.16) + box(o.gx + 0.16, o.gy - 0.3, 0.14, 0.14, 0.85, 0.16) + '</g>';
+    else if (sid === 'corridor') s += '<g class="b f-post s-c">' + box(o.gx - 0.22, o.gy - 0.22, 0.44, 0.44, 0, 0.45) + '</g>';
+    var label = o.name + ', ' + TYPES[o.type].label + ', ' + stateOf(o).label + (quiet ? ', quiet' : '') + ', zone ' + z + (beyond ? ', beyond the wall' : '') + ', ' + o.visits + ' visits';
+    var lift = sid === 'stronghold' ? 14 : sid === 'corridor' ? 8 : 0;
+    s += '<g class="pin st-' + sid + (quiet ? ' quiet' : '') + (selPin === i ? ' sel' : '') + '" data-pin="' + i + '" tabindex="0" role="button" aria-label="' + esc(label) + '" transform="translate(' + f1(c[0]) + ' ' + f1(c[1] - lift) + ')">' +
+      '<ellipse rx="5.5" ry="2.2" cy="' + lift + '" fill="#000" opacity=".45"/>' +
+      '<circle class="halo" cy="-22" r="12"/>' +
+      '<rect class="post" x="-.8" y="-16" width="1.6" height="' + (16 + lift) + '"/>' +
+      '<circle class="sel-ring" cy="-22" r="13"/>' +
+      '<path class="plaque" d="M-7 -29h14l2 2v10l-2 2h-14l-2-2v-10z"/>' +
+      '<use href="#op-' + o.type + '" x="-5.5" y="-27.5" width="11" height="11" class="picon"/>' +
+      (sid === 'stronghold' ? '<path class="crown" d="M-5 -30v-4.5l2.5 2 2.5-3 2.5 3 2.5-2v4.5z"/>' : '') +
+      (quiet ? '<path class="zz" d="M9 -33h3.5l-3.5 3.5h3.5M13.5 -38h2.5l-2.5 2.5h2.5"/>' : '') +
+      '<circle cy="-16" r="17" fill="transparent"/></g>';
+  });
+  document.getElementById('pins').innerHTML = s;
+}
+
+/* ---------------- HTML panels ---------------- */
+function fmt(n) { return n.toLocaleString('en-US'); }
+function renderUI() {
+  var p = prog(st.dp), ring = RINGS[p.ring - 1], next = p.next ? RINGS[p.next - 1] : null;
+  document.getElementById('dpVal').textContent = fmt(st.dp);
+  document.getElementById('ringLine').textContent = 'Ring ' + p.ring + ' of 7 · ' + ring.name;
+  document.getElementById('dRing').textContent = ring.name;
+  document.getElementById('dRingNo').textContent = 'Ring ' + p.ring + ' / 7';
+  var pct = next ? Math.round(p.f * 100) : 100;
+  document.getElementById('dFill').style.width = pct + '%';
+  var m = document.getElementById('dMeter'); m.setAttribute('aria-valuenow', pct); m.setAttribute('aria-valuetext', pct + ' percent');
+  document.getElementById('dSub').innerHTML = next
+    ? '<b>' + fmt(st.dp) + ' / ' + fmt(next.domainPointsRequired) + '</b> DP to ' + next.name + '. The wall is ' + pct + '% of the way there.'
+    : 'The City is registered. Every ring is lit. The Ledger keeps counting: <b>' + fmt(st.dp) + '</b> DP.';
+  document.getElementById('sHeld').textContent = st.held;
+  document.getElementById('sWall').textContent = ring.wallBonus;
+  document.getElementById('sOps').textContent = st.outposts.length;
+  document.getElementById('sCap').textContent = capFor(p.ring);
+  document.getElementById('dpRange').value = Math.min(2500, st.dp);
+  document.getElementById('dpRangeVal').textContent = st.dp;
+  var gain = st.dp - st.lastSeen, since = document.getElementById('since');
+  since.innerHTML = gain > 0 ? '<span class="up">+' + gain + ' DP</span> since your last look' : 'Same as your last look';
+  document.getElementById('waveChip').innerHTML = st.nextWaveIn <= 1 ? 'WAVE <b>TONIGHT</b>' : 'NEXT WAVE <b>' + st.nextWaveIn + ' DAYS</b>';
+  document.getElementById('legend').classList.toggle('on', st.compare && !st.list);
+  since.style.display = st.compare || st.list ? 'none' : '';
+  document.getElementById('btnCompare').setAttribute('aria-pressed', String(st.compare));
+  document.getElementById('btnCompare').style.visibility = st.list ? 'hidden' : '';
+  document.getElementById('btnList').setAttribute('aria-pressed', String(st.list));
+  document.getElementById('btnList').setAttribute('aria-label', st.list ? 'Show the map' : 'Show the map as a list');
+  document.getElementById('btnList').querySelector('use').setAttribute('href', st.list ? '#ui-mapv' : '#ui-list');
+  document.getElementById('btnList').querySelector('span').textContent = st.list ? 'Map' : 'List';
+  document.getElementById('mapView').hidden = st.list;
+  document.getElementById('listView').hidden = !st.list;
+  document.getElementById('btnRM').setAttribute('aria-pressed', String(st.rm));
+  document.body.classList.toggle('rm', st.rm);
+  renderOutpostList(p.ring);
+  if (st.list) renderListView(p.ring);
+  var cap = capFor(p.ring), free = cap - st.outposts.length;
+  document.getElementById('capLine').textContent = free > 0
+    ? 'Room for ' + free + ' more at ' + ring.name + '. Up to 3 per zone.'
+    : 'The Ledger holds ' + cap + ' outposts at ' + ring.name + '. Each new ring makes room for one more.';
+  document.getElementById('btnNew').disabled = free <= 0;
+}
+
+function opRow(o, i, ring) {
+  var sObj = stateOf(o), n = nextState(o), quiet = isQuiet(o), beyond = opZone(o) > ring;
+  var pct = n ? Math.round((o.visits - sObj.min) / (n.min - sObj.min) * 100) : 100;
+  var meta = n ? o.visits + '/' + n.min + ' visits' : o.visits + ' visits';
+  var done = o.last === 0;
+  return '<li class="op' + (quiet ? ' quiet' : '') + '" data-st="' + sObj.id + '">' +
+    '<button class="row-main" data-open-pin="' + i + '" aria-label="' + esc(o.name + ', ' + sObj.label + ', ' + meta + (quiet ? ', quiet' : beyond ? ', beyond the wall' : '')) + '">' +
+    '<span class="opicon" aria-hidden="true"><svg><use href="#op-' + o.type + '"/></svg></span>' +
+    '<span class="opname"><span>' + esc(o.name) + '</span>' + (quiet ? '<span class="badge quiet">Quiet</span>' : beyond ? '<span class="badge beyond">Beyond</span>' : '') + '</span>' +
+    '<span class="opmeta"><span class="badge ' + sObj.id + '">' + sObj.label + '</span><span class="meter sm amber" aria-hidden="true"><i style="width:' + pct + '%"></i></span><span class="t">' + meta + '</span></span>' +
+    '</button>' +
+    '<button class="checkbtn" data-visit="' + i + '"' + (done ? ' disabled' : '') + ' aria-label="' + (done ? 'Visit to ' + esc(o.name) + ' logged today' : 'I was there: log a visit to ' + esc(o.name)) + '"><svg class="ic" aria-hidden="true"><use href="#ui-check"/></svg><span>' + (done ? 'LOGGED' : 'I WAS<br>THERE') + '</span></button></li>';
+}
+function renderOutpostList(ring) {
+  document.getElementById('opList').innerHTML = st.outposts.map(function (o, i) { return opRow(o, i, ring); }).join('');
+}
+function renderListView(ring) {
+  var html = '<ul class="zlist" aria-label="Zones of the city">';
+  RINGS.forEach(function (r, k) {
+    var z = k + 1, cls = z < ring ? 'claimed' : z === ring ? 'claimed current' : '', stt = z < ring ? 'Claimed' : z === ring ? 'Current' : z === ring + 1 ? fmt(r.domainPointsRequired - st.dp) + ' DP<br>to go' : 'Beyond<br>the wall';
+    html += '<li><button class="zrow ' + cls + '" data-open-zone="' + z + '"><span class="no">' + z + '</span><span class="nm">' + r.name + '<span class="sub">' + (z === 1 ? 'The Haven itself' : 'Registers at ' + fmt(r.domainPointsRequired) + ' DP') + '</span></span><span class="st">' + stt + '</span></button>';
+    var ops = st.outposts.map(function (o, i) { return [o, i]; }).filter(function (x) { return opZone(x[0]) === z; });
+    if (ops.length) html += '<ul class="zops">' + ops.map(function (x) { return '<li><button data-open-pin="' + x[1] + '"><svg aria-hidden="true"><use href="#op-' + x[0].type + '"/></svg>' + esc(x[0].name) + ' <span class="muted">· ' + stateOf(x[0]).label + (isQuiet(x[0]) ? ' · quiet' : '') + '</span></button></li>'; }).join('') + '</ul>';
+    html += '</li>';
+  });
+  document.getElementById('listView').innerHTML = html + '</ul>';
+}
+
+/* ---------------- sheet ---------------- */
+var sheet = document.getElementById('sheet'), backdrop = document.getElementById('backdrop'), opener = null, typer = null;
+function openSheet(html, from) {
+  opener = from || document.activeElement;
+  sheet.innerHTML = html; sheet.hidden = false; backdrop.hidden = false;
+  var x = sheet.querySelector('.x'); if (x) x.focus({preventScroll: true});
+}
+function closeSheet() {
+  if (sheet.hidden) return;
+  sheet.hidden = true; backdrop.hidden = true; if (typer) clearInterval(typer);
+  selPin = null; if (selBand) { selBand.classList.remove('sel'); selBand = null; }
+  renderMap(false);
+  if (opener && opener.focus && document.contains(opener)) opener.focus({preventScroll: true});
+}
+function head(kick, title) { return '<div class="sheet-head"><div><span class="kick">' + kick + '</span><h3 id="sheetTitle">' + title + '</h3></div><button class="x" aria-label="Close"><svg class="ic" aria-hidden="true"><use href="#ui-close"/></svg></button></div>'; }
+
+function zoneSheet(z, from) {
+  var r = RINGS[z - 1], ring = ringFor(st.dp), claimed = z <= ring, p = prog(st.dp);
+  if (selBand) selBand.classList.remove('sel');
+  selBand = svg.querySelector('[data-band="' + z + '"]'); if (selBand) selBand.classList.add('sel');
+  var status;
+  if (z < ring) status = '<span class="badge claimed">Claimed</span><span class="muted">Registered at ' + fmt(r.domainPointsRequired) + ' DP</span>';
+  else if (z === ring) status = '<span class="badge scouted">Current ring</span><span class="muted">Walls +' + r.wallBonus + ' in every wave</span>';
+  else if (z === ring + 1) status = '<span class="badge beyond">Next</span><span class="muted">' + fmt(r.domainPointsRequired - st.dp) + ' DP to go</span>';
+  else status = '<span class="badge quiet">Beyond the wall</span><span class="muted">Registers at ' + fmt(r.domainPointsRequired) + ' DP</span>';
+  var html = head('Zone ' + z + ' of 7', r.name) + '<div class="statusline">' + status + '</div>';
+  if (z === ring + 1) html += '<div class="progrow"><div class="meter"><i style="width:' + Math.round(p.f * 100) + '%"></i></div><span class="n">' + Math.round(p.f * 100) + '%</span></div><p class="muted" style="font-size:13px">The wall creeps toward ' + r.name + ' with every quest. It crosses at ' + fmt(r.domainPointsRequired) + ' DP.</p>';
+  html += '<h4>Facilities</h4><ul class="facs">' + r.facilities.map(function (f) {
+    return claimed ? '<li class="ok"><svg class="ic" aria-hidden="true"><use href="#ui-check"/></svg><span><b>' + esc(f.name) + '.</b> ' + esc(f.effect) + '</span></li>'
+                   : '<li class="lock"><svg class="ic" aria-hidden="true"><use href="#ui-lock"/></svg><span><b>' + esc(f.name) + '</b>. Opens with ' + r.name + '.</span></li>';
+  }).join('') + '</ul>';
+  var ops = st.outposts.filter(function (o) { return opZone(o) === z; });
+  if (ops.length) html += '<h4>Outposts here</h4><ul class="facs">' + ops.map(function (o) { return '<li><svg class="ic" aria-hidden="true" style="color:#ffb84d"><use href="#op-' + o.type + '"/></svg><span><b>' + esc(o.name) + '</b> · ' + stateOf(o).label + '</span></li>'; }).join('') + '</ul>';
+  html += '<h4>Vignette</h4>';
+  if (claimed) html += '<div class="vig" id="vig">' + esc(r.vignette.split('. ')[0]) + '.</div><div class="actions"><button class="btn primary" id="btnReplay">Replay vignette</button></div>';
+  else html += '<div class="vig muted">The Protocol has not written this page yet. It will, the day the wall gets here.</div>';
+  openSheet(html, from);
+  var rb = document.getElementById('btnReplay');
+  if (rb) rb.onclick = function () {
+    var el = document.getElementById('vig'), txt = r.vignette, i = 0; rb.disabled = true;
+    if (st.rm) { el.textContent = txt; return; }
+    el.textContent = ''; if (typer) clearInterval(typer);
+    typer = setInterval(function () { i += 3; el.textContent = txt.slice(0, i); if (i >= txt.length) clearInterval(typer); }, 16);
+  };
+}
+
+function pinSheet(i, from) {
+  var o = st.outposts[i], sObj = stateOf(o), n = nextState(o), z = opZone(o), ring = ringFor(st.dp), quiet = isQuiet(o), beyond = z > ring;
+  selPin = i; renderMap(false);
+  var hs = TYPES[o.type].habits, who = hs.map(function (h) { return HABITS[h][0] + ' (' + HABITS[h][1] + ')'; }).join(', ');
+  var html = head('Outpost · ' + TYPES[o.type].label, esc(o.name));
+  html += '<div class="statusline"><span class="badge ' + sObj.id + '">' + sObj.label + '</span>' + (quiet ? '<span class="badge quiet">Quiet</span>' : '') + (beyond ? '<span class="badge beyond">Beyond the wall</span>' : '') + '<span class="muted">Zone ' + z + ' · ' + RINGS[z - 1].name + '</span></div>';
+  if (o.note) html += '<p style="font-style:italic;color:#c8c8d8">"' + esc(o.note) + '"</p>';
+  html += '<div class="ladder">' + STATES.map(function (x) { var on = o.visits >= x.min; return '<div class="' + (on ? 'on' : '') + (x.id === sObj.id ? ' cur' : '') + '"><b>' + x.min + '</b>' + x.label + '</div>'; }).join('') + '</div>';
+  if (n) html += '<div class="progrow"><div class="meter amber"><i style="width:' + Math.round((o.visits - sObj.min) / (n.min - sObj.min) * 100) + '%"></i></div><span class="n">' + o.visits + ' / ' + n.min + '</span></div><p class="muted" style="font-size:13px">' + (n.min - o.visits) + ' more visit' + (n.min - o.visits === 1 ? '' : 's') + ' to ' + n.label + '. ' + lastText(o) + '.</p>';
+  else html += '<p class="muted" style="font-size:13px">' + o.visits + ' visits. A Stronghold of the Haven. ' + lastText(o) + '.</p>';
+  if (quiet) html += '<p>' + esc(o.name) + ' is quiet. It keeps; nothing here fades. One visit wakes it.</p>';
+  else if (beyond) html += '<p>Beyond the wall for now. ' + (sObj.id === 'corridor' || sObj.id === 'stronghold' ? 'The corridor already reaches it.' : 'The dotted trail is the way you walk there.') + '</p>';
+  html += '<h4>What it gives</h4><ul class="facs">' +
+    perk(o.visits >= 3, 'Scouted', 'Swapping ' + aOrAn(HABITS[hs[0]][1]) + habitsText(hs, ' or ') + ' quest costs 5 less settlement.') +
+    perk(o.visits >= 10, 'Corridor', habitsText(hs) + ' quests return +10% settlement, and the wall reaches out to it on the map.') +
+    perk(o.visits >= 30, 'Stronghold', '+2 defense in every weekly wave, and a Haven annex stands here.') + '</ul>';
+  html += '<p class="muted" style="font-size:13px;margin-top:10px">Related vassals: ' + who + '. Tag their quests here from the settlement window.</p>';
+  var done = o.last === 0;
+  html += '<div class="actions"><button class="btn amber" id="btnVisit"' + (done ? ' disabled' : '') + '><svg class="ic" aria-hidden="true"><use href="#ui-check"/></svg>' + (done ? 'Logged today' : 'I was there today') + '</button><button class="btn ghost" id="btnEdit">Edit</button></div>';
+  openSheet(html, from);
+  document.getElementById('btnVisit').onclick = function () { logVisit(i); pinSheet(i, opener); };
+  document.getElementById('btnEdit').onclick = function () { toast('Not in the prototype', 'Edit changes name, type, note and position. Visits stay.'); };
+}
+function perk(on, name, txt) { return '<li class="' + (on ? 'ok' : 'lock') + '"><svg class="ic" aria-hidden="true"><use href="#' + (on ? 'ui-check' : 'ui-lock') + '"/></svg><span><b>' + name + '.</b> ' + esc(txt) + '</span></li>'; }
+
+function logVisit(i) {
+  var o = st.outposts[i]; if (o.last === 0) return;
+  var before = stateOf(o).id; o.visits += 1; o.last = 0; o.extra = (o.extra || 0) + 1; o.today = true;
+  var after = stateOf(o);
+  renderMap(true); renderUI();
+  if (after.id !== before) toast('Outpost ' + after.label, o.name + ' is now ' + (after.id === 'corridor' ? 'a Corridor' : after.id === 'stronghold' ? 'a Stronghold' : 'Scouted') + '. ' + {scouted: 'Swaps get cheaper for its vassals.', corridor: 'The wall reaches out to it.', stronghold: 'An annex of the Haven stands there now.'}[after.id]);
+  else toast('Visit logged', o.name + ': ' + o.visits + ' visit' + (o.visits === 1 ? '' : 's') + '. ' + (nextState(o) ? (nextState(o).min - o.visits) + ' to ' + nextState(o).label + '.' : 'The Stronghold holds.'));
+}
+
+var DIRS = [['North', -90], ['North-east', -45], ['East', 0], ['South-east', 45], ['South', 90], ['South-west', 135], ['West', 180], ['North-west', -135]];
+function newSheet(from) {
+  var ring = ringFor(st.dp);
+  var html = head('New outpost', 'Mark a place') + '<p class="muted" style="font-size:13px">A real place you keep going back to. No address, no GPS: put it as far from home as it feels.</p><form class="form" id="newForm" novalidate>' +
+    '<label for="nName">Name</label><input type="text" id="nName" maxlength="24" placeholder="Hollow Park" autocomplete="off">' +
+    '<label id="nTypeL">Type</label><div class="typegrid" role="radiogroup" aria-labelledby="nTypeL">' + Object.keys(TYPES).map(function (k, j) { return '<label><input type="radio" name="nType" value="' + k + '"' + (j === 0 ? ' checked' : '') + '><svg aria-hidden="true"><use href="#op-' + k + '"/></svg>' + TYPES[k].label + '</label>'; }).join('') + '</div>' +
+    '<div class="two"><div><label for="nZone">How far does it feel?</label><select id="nZone">' + RINGS.slice(1).map(function (r) { return '<option value="' + r.id + '"' + (r.id === Math.min(7, ring + 1) ? ' selected' : '') + '>' + r.name + (r.id > ring ? ' (beyond)' : '') + '</option>'; }).join('') + '</select></div>' +
+    '<div><label for="nDir">Which way?</label><select id="nDir">' + DIRS.map(function (d, j) { return '<option value="' + j + '">' + d[0] + '</option>'; }).join('') + '</select></div></div>' +
+    '<label for="nNote">Note (optional)</label><input type="text" id="nNote" maxlength="80" placeholder="Bring the good biscuits." autocomplete="off">' +
+    '<p class="err" id="nErr" role="alert"></p><div class="actions"><button class="btn primary" type="submit">Mark outpost</button></div></form>';
+  openSheet(html, from);
+  document.getElementById('newForm').onsubmit = function (e) {
+    e.preventDefault();
+    var name = document.getElementById('nName').value.trim(), type = (document.querySelector('input[name=nType]:checked') || {}).value || 'other';
+    var zone = +document.getElementById('nZone').value, dir = DIRS[+document.getElementById('nDir').value][1], note = document.getElementById('nNote').value.trim();
+    var err = createOutpost(name, type, zone, dir, note);
+    if (err) { document.getElementById('nErr').textContent = err; return; }
+    closeSheet(); renderMap(true); renderUI(); toast('Outpost marked', name + ' is on the map. Three visits and it is Scouted.');
+  };
+}
+function createOutpost(name, type, zone, dirDeg, note) {
+  var ring = ringFor(st.dp);
+  if (!name) return 'Give it a name, even a silly one. The Ledger is not fussy.';
+  if (st.outposts.some(function (o) { return o.name.toLowerCase() === name.toLowerCase(); })) return 'There is already an outpost called ' + name + '. Try another name.';
+  if (st.outposts.length >= capFor(ring)) return 'The Ledger holds ' + capFor(ring) + ' outposts at ' + RINGS[ring - 1].name + '. Each new ring makes room for one more.';
+  if (st.outposts.filter(function (o) { return opZone(o) === zone; }).length >= 3) return RINGS[zone - 1].name + ' already has three outposts. Try a ring further out, or closer in.';
+  var phi = dirDeg * Math.PI / 180, ux = (Math.cos(phi) + 2 * Math.sin(phi)) / 2, uy = (2 * Math.sin(phi) - Math.cos(phi)) / 2, ul = Math.hypot(ux, uy); ux /= ul; uy /= ul;
+  var best = null, bestScore = 1e9, mid = (R[zone - 2] + R[zone - 1]) / 2;
+  tiles.forEach(function (t) {
+    if (t.z !== zone || t.kind === 'road' || t.kind === 'river' || t.kind === 'bridge' || t.kind === 'pond' || t.kind === 'haven') return;
+    if (st.outposts.some(function (o) { return Math.hypot(o.gx - t.gx, o.gy - t.gy) < 3; })) return;
+    var cosA = (t.gx * ux + t.gy * uy) / t.d, score = (1 - cosA) * 10 + Math.abs(t.d - mid);
+    if (score < bestScore) { bestScore = score; best = t; }
+  });
+  if (!best) return 'No free spot that way in ' + RINGS[zone - 1].name + '. Outposts keep a little distance from each other; try another direction.';
+  var no = {name: name, type: type, note: note, gx: best.gx, gy: best.gy, visits: 0, last: null, fresh: true};
+  st.all.push(no); st.outposts.push(no);
+  return null;
+}
+
+/* ---------------- toast ---------------- */
+var toastT = null;
+function toast(title, body) {
+  var el = document.getElementById('toast');
+  el.innerHTML = '<div class="win"><h2>' + esc(title) + '</h2><p>' + esc(body) + '</p></div>';
+  clearTimeout(toastT); toastT = setTimeout(function () { el.innerHTML = ''; }, 3400);
+}
+
+/* ---------------- simulate week ---------------- */
+var weekNo = 9;
+function simulateWeek(silent) {
+  var rnd = mulberry32(weekNo * 977 + st.dp);
+  var before = st.dp, ringBefore = ringFor(st.dp);
+  var quests = 55 + Math.floor(rnd() * 40);
+  var roll = rnd(), result = roll < 0.35 ? 'decisive' : roll < 0.85 ? 'win' : 'loss';
+  var waveDp = {decisive: 22, win: 15, loss: 5}[result];
+  st.base = before; st.lastSeen = before;
+  st.dp = st.dp + quests + waveDp;
+  st.waves.forEach(function (w) { w.age += 7; });
+  st.waves = st.waves.filter(function (w) { return w.age < 14; });
+  st.waves.push({age: 0, result: result, dp: st.dp, seed: weekNo * 13 + 1});
+  st.held += 1; st.day += 7; st.nextWaveIn = 7;
+  st.outposts.forEach(function (o, i) {
+    var add = o.type === 'clinic' ? 0 : Math.floor(rnd() * (i % 3 === 0 ? 4 : 3));
+    o.extra = (o.extra || 0) + add; o.today = false; o.lastDays = add ? 1 + Math.floor(rnd() * 3) : o.lastDays + 7;
+    if (!o.sample) { o.visits += add; o.last = add ? o.lastDays : o.last; }
+  });
+  refreshOutposts();
+  weekNo++;
+  st.compare = true;
+  renderMap(!silent); renderUI();
+  if (!silent) {
+    var r = RINGS[ringFor(st.dp) - 1];
+    if (ringFor(st.dp) > ringBefore) toast('Domain expanded · ' + r.name, r.vignette.split('. ')[0] + '.');
+    else toast('Wave ' + weekNo + ' · ' + (result === 'loss' ? 'Held' : result === 'decisive' ? 'Decisive' : 'Win'), 'Quests +' + quests + ' DP, wave +' + waveDp + ' DP. The walls held, and moved ' + Math.max(0.1, Math.round((wallR(st.dp) - wallR(before)) * 10) / 10) + ' streets out.');
+  }
+}
+
+/* ---------------- events ---------------- */
+function setDp(v) { st.dp = Math.max(0, Math.min(2500, v)); refreshOutposts(); seedWaves(); st.base = Math.max(0, st.dp - 64); st.lastSeen = Math.max(0, st.dp - 38); renderMap(true); renderUI(); }
+document.getElementById('dpRange').addEventListener('input', function (e) { setDp(+e.target.value); });
+document.querySelectorAll('[data-dp]').forEach(function (b) { b.onclick = function () { setDp(+b.dataset.dp); }; });
+document.getElementById('btnWeek').onclick = function () { simulateWeek(false); };
+document.getElementById('btnRM').onclick = function () { st.rm = !st.rm; renderUI(); };
+document.getElementById('btnCompare').onclick = function () { st.compare = !st.compare; renderMap(false); renderUI(); };
+document.getElementById('btnList').onclick = function () { st.list = !st.list; renderUI(); };
+document.getElementById('btnNew').onclick = function (e) { newSheet(e.currentTarget); };
+backdrop.onclick = closeSheet;
+sheet.addEventListener('click', function (e) { if (e.target.closest('.x')) closeSheet(); });
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') closeSheet();
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.closest) {
+    var pin = e.target.closest('[data-pin]'), band = e.target.closest('[data-band]');
+    if (pin) { e.preventDefault(); pinSheet(+pin.dataset.pin, pin); }
+    else if (band) { e.preventDefault(); zoneSheet(+band.dataset.band, band); }
+  }
+  if (e.key === 'Tab' && !sheet.hidden) {
+    var f = sheet.querySelectorAll('button:not([disabled]),input,select'), first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+});
+svg.addEventListener('click', function (e) {
+  var pin = e.target.closest('[data-pin]'); if (pin) { pinSheet(+pin.dataset.pin, pin); return; }
+  var g = e.target.closest('#ground>g,#blds>g'), t = g && elTile.get(g); if (t) zoneSheet(t.z, g);
+});
+document.getElementById('frame').addEventListener('click', function (e) {
+  var b = e.target.closest('[data-open-pin]'); if (b) { pinSheet(+b.dataset.openPin, b); return; }
+  var zb = e.target.closest('[data-open-zone]'); if (zb) { zoneSheet(+zb.dataset.openZone, zb); return; }
+  var v = e.target.closest('[data-visit]'); if (v) logVisit(+v.dataset.visit);
+  if (e.target.closest('.tab')) e.preventDefault();
+});
+
+/* ---------------- boot ---------------- */
+buildMap();
+if (q.get('week') === '1') simulateWeek(true);
+renderMap(false); renderUI();
+var pq = q.get('panel');
+if (pq) { var pp = pq.split(':'); if (pp[0] === 'zone') zoneSheet(+pp[1]); else if (pp[0] === 'pin') pinSheet(+pp[1]); else if (pp[0] === 'new') newSheet(); }
+window.__cm = {st: st, svgBytes: function () { return new XMLSerializer().serializeToString(svg).length; }, elements: function () { return svg.querySelectorAll('*').length; }};
+})();
+</script>
+</body>
+</html>

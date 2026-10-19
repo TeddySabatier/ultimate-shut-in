@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="miter" stroke-linecap="square">
+  <!-- family: house with chimney and door -->
+  <path d="M4 11l8-7 8 7v9.5H4z"/>
+  <path d="M16.5 7V3.5M10 20.5v-5h4v5"/>
+</svg>
