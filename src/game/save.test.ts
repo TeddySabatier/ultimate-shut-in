@@ -313,6 +313,7 @@ describe('migrate: v4 (city map)', () => {
     expect(op1.peak).toBe('corridor'); // 12 visits earn Corridor, whatever the stored peak said
     expect(op1.stateDays).toEqual({ marked: op1.createdDay, corridor: DAY0 });
     expect(op1.habits).toEqual(['move', 'hygiene']);
+    expect(op1.lastVisitDay).toBe(DAY0); // rebuilt from the remaining counted visit
     // Too close to op1 for the spacing rule: kept, but retired rather than lost.
     expect(s.map.outposts[1]).toMatchObject({ id: 'op8', retired: true, visits: 1 });
     expect(s.map.outposts[2]).toMatchObject({ id: 'op9', retired: false, peak: 'stronghold' }); // a stored peak is kept; 'yes' is not a boolean

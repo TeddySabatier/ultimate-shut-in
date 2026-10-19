@@ -2,6 +2,15 @@
  * Read-only view model of the City Map (docs/design/CITY-MAP.md). Every
  * number comes from an engine function; this file only arranges results for
  * the Map screen, the list view and the sheets.
+ *
+ * STREAM-NEEDED (B): CityMapSvg tests still fail (serialized SVG over 60 KB,
+ * duplicate pin buttons, dawn cells missing under compare). Layout owns
+ * dawn / corridor-lit classification from `wallR` + pins; this view only
+ * supplies radii, pins, residue and the compare baseline.
+ * STREAM-NEEDED (C): MapScreen tests fail on ambiguous "Outposts" / "Retire"
+ * queries; `tsc` also rejects `getByRole(..., { exact: true })` in
+ * MapScreen.test.tsx. Store action names are stable (`createOutpost`,
+ * `visitOutpost`, `undoOutpostVisit`, `tagQuestAtOutpost`, `markMapSeen`, …).
  */
 import {
   activeOutposts,

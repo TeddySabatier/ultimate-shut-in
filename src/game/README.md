@@ -60,7 +60,10 @@ current board and its done quests until the index catches up again.
 | `combos.ts` | Forge on same-day habit pairs, unforge on undo, counted items for the wave. |
 | `resurrection.ts` | Token offer, eligibility window, `applyResurrection`. |
 | `tick.ts` | `processBoundaries(save, now)`: the single entry point on app open/focus (catch-up replay capped at 400 boundaries). `changeResetHour(save, hour, now)`. |
-| `save.ts` | `createNewSave`, `migrate` (legacy `{name, level, xp}`, v2 and v3 with or without a persist envelope; boards, combos, titles, history, custom templates, proposals and activity are normalised), `exportSave`. Save version 3 added `customTemplates`, `proposals` and `activity`. |
+| `mapGeometry.ts` | Island grid (221 cells, seven zones), `zoneOfCell`, `wallRadius(dp)`, `canHoldOutpost`, `islandCells`. Shared with the UI; no seed, no save. |
+| `outposts.ts` | City Map outposts (CITY-MAP 3–4): create / suggest / edit / move / retire / restore / forget, log and undo visits, tag a quest, perk selectors. Mutators follow the contract; refusals are short codes whose copy lives in `strings.map.errors`. |
+| `map.ts` | Domain snapshots on every wave settlement (quiet included), `markMapSeen`, `compareSnapshot` for the *7 days* ghost, wave residue. |
+| `save.ts` | `createNewSave`, `migrate` (legacy `{name, level, xp}`, v2, v3 and v4 with or without a persist envelope; boards, combos, titles, history, custom templates, proposals, activity and the map are normalised), `exportSave`. Save version 3 added `customTemplates`, `proposals` and `activity`; version 4 added `map` and `WaveBreakdown.outposts`. |
 | `template.ts` | `resolveTemplate(save, id)` (shipped or `c-` custom), `customToTemplate`, effort tiers and caps (`effortTier`, `maxTier`, `resolveTier`), recurrence and weekday helpers. |
 | `custom.ts` | Custom quests: `addCustomTemplate`, `updateCustomTemplate`, `archiveCustomTemplate`, `addCustomQuestToBoard`, `previewCustomRewards`, recurrence (`recurrenceDue`, `placeRecurringDraft`). Max two on a board, never the Bonus. |
 | `adapt.ts` | "The Haven notices": `recordActivityDraft`, `evaluateProposals` (five rules), `computeProposalsDraft` (limits, snoozes), `acceptProposal`, `dismissProposal`. |

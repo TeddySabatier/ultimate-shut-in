@@ -196,3 +196,48 @@ changes nothing else.
   seed includes the name, as 6.3 step 1 specifies).
 - The vassal receives the post-multiplier `xp` (6.4), not `baseXp`; the
   content schema note now says so.
+
+---
+
+Entries 20–23 come from the City Map (`docs/design/CITY-MAP.md`, 2026-10-19).
+GDD 1.0 never adopted source hook 15 (outposts and corridors) and shipped the
+ring map as a single scene header (15.1). The map is now a fifth tab; these
+are the places the engine departs from GDD 1.0 numbers.
+
+## 20. Save version 4 (4) [CITY-MAP 4.1]
+
+Custom quests already moved the working tree to version 3. The City Map adds
+`save.map` (`outposts`, `visits`, `snapshots`, `lastSeen`, `nextSeq`) and
+`WaveBreakdown.outposts`, so the file is version 4. `migrate` lifts v2 and v3
+saves with an empty map seeded by one snapshot of the current state, fills
+`outposts: 0` on every stored wave record, and normalises a damaged map the
+way it already normalises boards (drop bad cells and types, clamp text, raise
+`peak` to what the visits earn, rebuild `nextSeq` and `lastVisitDay`, drop
+orphan visits, keep snapshots strictly increasing).
+
+## 21. Scouted reroll discount (6.3, 8.3) [CITY-MAP 3.3]
+
+GDD 6.3 prices a once-per-day swap at 15 settlement (10 with the Corner Shop
+at ring 5). A Scouted-or-better outpost related to the quest's habit now
+takes 5 off that price (15 → 10, and 10 → 5 with the shop). Two Scouted gyms
+still give one discount. Retired outposts and unrelated habits pay the GDD
+price. Visits themselves still grant no XP, settlement or Domain Points.
+
+## 22. Corridor settlement (6.4) [CITY-MAP 3.3]
+
+GDD 6.4 settlement is `base × difficulty × bonus × (1 + titleCoinMult)`, with
+title coin bonuses capped. A Corridor-or-better outpost related to the habit
+adds its own term outside that cap: `1 + titleCoinMult + outpostCoinMult`
+(`outpostCoinMult` is 0 or 0.10). Two Corridors of the same habit do not
+stack. XP and Domain Points are unchanged. A corridor that sits beyond the
+wall is visual only: it never changes `player.domainPoints` or `player.ring`,
+so `pacing.test.ts` is the GDD 19 table as before.
+
+## 23. Stronghold wave defense (9.3) [CITY-MAP 3.3]
+
+GDD 9.3 defense is vassals + trust + walls + combos + titles + Well-kept.
+Each Stronghold now adds +2 in its own `breakdown.outposts` term, capped at
++6 across all of them, with one battle-log line ("The Riverside Gym
+stronghold holds. +2" / "Three strongholds hold the outer line. +6").
+Retired outposts contribute nothing. Quiet never lowers visits, `peak` or
+perks; `peak` is sticky the way `highestRing` is (errata 15).
