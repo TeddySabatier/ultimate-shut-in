@@ -1,0 +1,187 @@
+/* Coin Duel. Tokens only (src/styles/tokens.css); rules from docs/RESPONSIVE-RULES.md. */
+
+.duel {
+  width: 100%;
+}
+
+.intro {
+  font-size: var(--text-sm);
+}
+
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.subtitle {
+  margin-top: var(--space-4);
+}
+
+.rivals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rival {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-2);
+  border: 2px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-panel);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+.rival[data-status='current'] {
+  border-color: var(--color-accent-2);
+}
+.rival[data-status='won'] {
+  border-color: var(--color-success);
+}
+.rival[data-status='lost'] {
+  border-color: var(--color-danger);
+}
+
+.rivalRound {
+  font-family: var(--font-heading);
+  font-size: var(--heading-xs);
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.flip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+}
+
+.coin {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  border: 3px solid var(--color-accent-2);
+  background: var(--color-panel-raised);
+  font-family: var(--font-heading);
+  font-size: var(--heading-md);
+  color: var(--color-accent-2);
+}
+.heads {
+  background: var(--color-accent-2);
+  color: var(--color-bg);
+}
+.tails {
+  border-color: var(--color-border-light);
+  color: var(--color-text);
+}
+.spin {
+  animation: coin-spin 480ms steps(6, end);
+}
+/* Reduced motion: same layout, no movement. */
+.still .spin {
+  animation: none;
+}
+
+@keyframes coin-spin {
+  from {
+    transform: rotateY(0deg);
+  }
+  to {
+    transform: rotateY(720deg);
+  }
+}
+
+.flipText {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+}
+
+.allies {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ally {
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  text-transform: none;
+}
+
+.allyName {
+  font-size: var(--heading-sm);
+  text-transform: uppercase;
+}
+
+.allyOdds,
+.allyTired {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+}
+.allyTired {
+  color: var(--color-danger);
+}
+
+.hint {
+  margin-top: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.banner {
+  margin: var(--space-4) 0 0;
+  padding: var(--space-3);
+  border: 2px solid var(--color-accent-2);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-heading);
+  font-size: var(--heading-md);
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--color-accent-2);
+}
+.banner[data-result='won'] {
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+@media (max-width: 359px) {
+  .allies {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .rivals {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 768px) {
+  .allies {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-height: 500px) {
+  .intro {
+    display: none;
+  }
+  .flip {
+    margin: var(--space-2) 0;
+  }
+}
