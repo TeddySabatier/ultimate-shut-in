@@ -1,0 +1,187 @@
+/* Still Water. Tokens only; rules from docs/RESPONSIVE-RULES.md. */
+
+.game {
+  width: 100%;
+  min-width: 0;
+}
+
+.disclaimer,
+.intro {
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.disclaimer {
+  color: var(--color-muted);
+  margin: 0 0 var(--space-2);
+}
+
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.pond {
+  position: relative;
+  width: 100%;
+  max-width: 16rem;
+  aspect-ratio: 1;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 50%;
+  border: 3px solid var(--color-info);
+  background: #152030;
+}
+
+.waterFill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #2a4a6a;
+  pointer-events: none;
+}
+
+.ring,
+.hintRing {
+  position: absolute;
+  inset: 18%;
+  border-radius: 50%;
+  pointer-events: none;
+  flex: none;
+}
+
+.ring {
+  border: 4px solid var(--color-info);
+  background: transparent;
+  transform-origin: center;
+}
+
+.ringHeld {
+  border-color: var(--color-success);
+}
+
+.hintRing {
+  inset: 22%;
+  border: 2px dashed var(--color-accent-text);
+}
+
+.barWrap {
+  width: 100%;
+  min-width: 0;
+}
+
+.cue {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: var(--heading-md);
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--color-accent-text);
+  overflow-wrap: anywhere;
+}
+
+.hint {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.hold {
+  width: 100%;
+  min-height: 3.5rem;
+  margin-top: var(--space-4);
+}
+
+.toggles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.ripples {
+  margin-top: var(--space-3);
+  min-width: 0;
+}
+
+.decoyList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+}
+
+.decoy {
+  width: 100%;
+  text-transform: none;
+}
+
+.banner {
+  margin: var(--space-4) 0 0;
+  padding: var(--space-3);
+  border: 2px solid var(--color-accent-2);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-heading);
+  font-size: var(--heading-md);
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--color-accent-2);
+  overflow-wrap: anywhere;
+}
+
+.banner[data-result='won'] {
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+/* Reduced motion: same layout, no ring scale decoration (the bar is the cue). */
+.still .ring,
+.still .hintRing,
+.still .waterFill {
+  transition: none;
+}
+
+@media (max-width: 359px) {
+  .toggles {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .decoyList {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pond {
+    max-width: 11rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .pond {
+    max-width: 18rem;
+  }
+}
+
+@media (max-height: 500px) {
+  .intro,
+  .disclaimer,
+  .hint {
+    display: none;
+  }
+  .pond {
+    max-width: 8rem;
+  }
+  .hold {
+    margin-top: var(--space-2);
+  }
+}
