@@ -56,7 +56,7 @@ describe('public API', () => {
       'zoneOfCell',
     ] as const;
     for (const n of names) expect(typeof game[n], n).toBe('function');
-    expect(game.SAVE_VERSION).toBe(4);
+    expect(game.SAVE_VERSION).toBe(5);
     expect(game.HABIT_IDS).toHaveLength(8);
     expect(game.MONSTERS.some((m) => m.boss)).toBe(true);
   });

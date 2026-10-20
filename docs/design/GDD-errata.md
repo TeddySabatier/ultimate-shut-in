@@ -241,3 +241,14 @@ Each Stronghold now adds +2 in its own `breakdown.outposts` term, capped at
 stronghold holds. +2" / "Three strongholds hold the outer line. +6").
 Retired outposts contribute nothing. Quiet never lowers visits, `peak` or
 perks; `peak` is sticky the way `highestRing` is (errata 15).
+
+## 24. The Arena (save v5) [ARENA.md]
+
+Settlement coins gain a permanent sink and a run loop in save version 5
+(`arena` on `SaveFile` after `map`). Domain Points are never spent or
+awarded by the Arena. Entry fees scale with ring and are capped at one day
+of typical Steady earnings at 90% adherence so a patient player can run
+every two days. Weekly training purchases are capped at 25% of expected habit
+coins for the wave period. Wave defense gains an `arena` term in
+`WaveBreakdown` when the player banks a run for defense; it applies to the
+next wave settlement at `week.index` and then clears.

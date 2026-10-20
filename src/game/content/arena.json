@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "entry": {
+    "base": 36,
+    "perRing": 4,
+    "maxDailyFraction": 1
+  },
+  "training": {
+    "baseCost": 22,
+    "costPerRing": 3,
+    "weeklyCapFraction": 0.25,
+    "powerSteps": [2, 1, 1, 1, 0],
+    "maxSessions": 40
+  },
+  "gearSlots": ["blade", "mail", "charm"],
+  "gear": [
+    { "id": "practice-blade", "slot": "blade", "tier": 1, "name": "Practice Blade", "power": 2, "trait": null, "basePrice": 35 },
+    { "id": "patrol-saber", "slot": "blade", "tier": 2, "name": "Patrol Saber", "power": 4, "trait": "arena_blade_2", "basePrice": 70 },
+    { "id": "ledger-rapier", "slot": "blade", "tier": 3, "name": "Ledger Rapier", "power": 7, "trait": "arena_blade_3", "basePrice": 120 },
+    { "id": "quilted-vest", "slot": "mail", "tier": 1, "name": "Quilted Vest", "power": 2, "trait": null, "basePrice": 32 },
+    { "id": "haven-mail", "slot": "mail", "tier": 2, "name": "Haven Mail", "power": 4, "trait": "arena_mail_2", "basePrice": 68 },
+    { "id": "bulwark-coat", "slot": "mail", "tier": 3, "name": "Bulwark Coat", "power": 6, "trait": "arena_mail_3", "basePrice": 115 },
+    { "id": "lucky-charm", "slot": "charm", "tier": 1, "name": "Lucky Charm", "power": 1, "trait": "arena_luck_1", "basePrice": 28 },
+    { "id": "signal-whistle", "slot": "charm", "tier": 2, "name": "Signal Whistle", "power": 3, "trait": "arena_hint_1", "basePrice": 55 },
+    { "id": "revive-token", "slot": "charm", "tier": 3, "name": "Revive Token", "power": 2, "trait": "arena_revive_1", "basePrice": 95 }
+  ],
+  "decor": [
+    { "comboId": "sprinting_umbrella", "basePrice": 45 },
+    { "comboId": "dustpan_buckler", "basePrice": 45 },
+    { "comboId": "park_bench_banner", "basePrice": 50 },
+    { "comboId": "morning_light_lantern", "basePrice": 50 },
+    { "comboId": "fluffy_towel_cape", "basePrice": 55 },
+    { "comboId": "the_full_set", "basePrice": 120 }
+  ],
+  "lottery": {
+    "drawCount": 3,
+    "buffs": [
+      { "id": "strike-10", "kind": "attack", "amount": 10, "weight": 22 },
+      { "id": "strike-15", "kind": "attack", "amount": 15, "weight": 12 },
+      { "id": "guard-10", "kind": "defense", "amount": 10, "weight": 22 },
+      { "id": "guard-15", "kind": "defense", "amount": 15, "weight": 12 },
+      { "id": "time-20", "kind": "time", "amount": 20, "weight": 18 },
+      { "id": "time-30", "kind": "time", "amount": 30, "weight": 8 },
+      { "id": "hint-1", "kind": "hint", "amount": 1, "weight": 16 },
+      { "id": "hint-2", "kind": "hint", "amount": 2, "weight": 6 },
+      { "id": "revive-1", "kind": "revive", "amount": 1, "weight": 10 },
+      { "id": "luck-10", "kind": "luck", "amount": 10, "weight": 18 },
+      { "id": "luck-15", "kind": "luck", "amount": 15, "weight": 8 }
+    ]
+  },
+  "banking": {
+    "coinsPerScore": 0.08,
+    "defensePerScore": 0.04,
+    "rareGearMinScore": 850,
+    "defenseScoreShare": 0.35,
+    "coinScoreShare": 0.55,
+    "gearScoreShare": 0.1
+  },
+  "requests": {
+    "maxEntries": 20,
+    "textMax": 500
+  }
+}

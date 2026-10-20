@@ -80,8 +80,12 @@ export function waveDefense(save: SaveFile): DefenseDetail {
   const titles = titleDefenseFlat(save);
   const wellKept = wellKeptBonus(save);
   const outposts = outpostDefense(save);
-  const breakdown: WaveBreakdown = { vassals: levelSum, trust: trustSum, walls, combos: comboSum, titles, wellKept, outposts };
-  return { total: levelSum + trustSum + walls + comboSum + titles + wellKept + outposts, breakdown, vassals, combos };
+  const arena =
+    save.arena.waveBoost.forWeekIndex !== null && save.arena.waveBoost.forWeekIndex === save.week.index
+      ? save.arena.waveBoost.bonus
+      : 0;
+  const breakdown: WaveBreakdown = { vassals: levelSum, trust: trustSum, walls, combos: comboSum, titles, wellKept, outposts, arena };
+  return { total: levelSum + trustSum + walls + comboSum + titles + wellKept + outposts + arena, breakdown, vassals, combos };
 }
 
 export function classifyWave(attack: number, defense: number): Exclude<WaveResult, 'quiet'> {
@@ -139,6 +143,7 @@ function buildLog(save: SaveFile, week: number, attack: number, detail: DefenseD
         : `${holds.length >= 3 ? 'Three' : 'Two'} strongholds hold the outer line. +${detail.breakdown.outposts}`,
     );
   }
+  if (detail.breakdown.arena > 0) lines.push(`Arena troops still have wind in their sails. +${detail.breakdown.arena}`);
 
   const pool = result === 'decisive' ? strings.waveDecisive : result === 'win' ? strings.waveWin : strings.waveLoss;
   lines.push(formatLine(pickLine(pool, seed), { defense: detail.total, attack }));
@@ -168,7 +173,7 @@ export function settleWaveDraft(draft: SaveFile, periodIndex: number, now: numbe
       ring: ringAtSettlement,
       attack: 0,
       defense: 0,
-      breakdown: { vassals: 0, trust: 0, walls: 0, combos: 0, titles: 0, wellKept: 0, outposts: 0 },
+      breakdown: { vassals: 0, trust: 0, walls: 0, combos: 0, titles: 0, wellKept: 0, outposts: 0, arena: 0 },
       result: 'quiet',
       dpAwarded: 0,
       log: [pickLine(strings.waveQuiet, seed)],
@@ -203,6 +208,9 @@ export function settleWaveDraft(draft: SaveFile, periodIndex: number, now: numbe
   draft.week.history.push(record);
   if (draft.week.history.length > WAVE_HISTORY_MAX) draft.week.history.splice(0, draft.week.history.length - WAVE_HISTORY_MAX);
   draft.week.index = periodIndex + 1;
+  if (draft.arena.waveBoost.forWeekIndex !== null && draft.arena.waveBoost.forWeekIndex <= periodIndex) {
+    draft.arena.waveBoost = { bonus: 0, forWeekIndex: null };
+  }
   resetTrustDraft(draft);
   draft.combos = [];
   events.push({ type: 'waveSettled', record });

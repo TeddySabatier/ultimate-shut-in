@@ -79,6 +79,20 @@ export function eventKey(e: GameEvent): string {
       return `${e.type}:${e.outpostId}:${e.state}`;
     case 'outpostWithinWalls':
       return `${e.type}:${e.outpostId}:${e.ring}`;
+    case 'arenaRunStarted':
+      return `${e.type}:${e.fee}`;
+    case 'arenaRunEnded':
+      return `${e.type}:${e.banked}:${e.rooms}`;
+    case 'arenaGearBought':
+      return `${e.type}:${e.habit}:${e.itemId}`;
+    case 'arenaTrainingBought':
+      return `${e.type}:${e.habit}:${e.sessions}`;
+    case 'arenaDecorBought':
+      return `${e.type}:${e.comboId}`;
+    case 'arenaRequestSent':
+      return `${e.type}:${e.id}`;
+    case 'arenaBuffPicked':
+      return `${e.type}:${e.buffId}`;
   }
 }
 

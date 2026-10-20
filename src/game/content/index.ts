@@ -9,6 +9,7 @@ import titlesJson from './titles.json';
 import combosJson from './combos.json';
 import stringsJson from './strings.json';
 import outpostsJson from './outposts.json';
+import arenaJson from './arena.json';
 import type { HabitId, OutpostState, OutpostTypeId, QuestKind, RingId, Tier, UtilityId } from '../types';
 import { HABIT_IDS, OUTPOST_STATES, OUTPOST_TYPE_IDS, UTILITY_IDS } from '../types';
 
@@ -176,6 +177,7 @@ export const strings: Strings = stringsJson;
 export const outpostRules: OutpostRules = outpostsJson.rules;
 export const outpostStates: readonly OutpostStateDef[] = outpostsJson.states as OutpostStateDef[];
 export const outpostTypes: readonly OutpostTypeDef[] = outpostsJson.types as OutpostTypeDef[];
+export const arenaCatalog = arenaJson;
 
 const habitById = new Map(habits.map((h) => [h.id, h] as const));
 const questById = new Map(quests.map((q) => [q.id, q] as const));
@@ -412,6 +414,21 @@ export function validateContent(): string[] {
   if (!(r.strongholdDefenseCap >= r.strongholdDefense && r.strongholdDefense > 0)) errors.push('outpost rules: defense cap below one stronghold');
   if (!(r.quietAfterDays > 0 && r.quietIfNeverVisitedAfterDays > 0)) errors.push('outpost rules: quiet days must be positive');
   for (const [code, line] of Object.entries(strings.map.errors)) if (!line) errors.push(`strings.map.errors.${code}: empty`);
+
+  const arena = arenaCatalog as {
+    gear?: Array<{ id: string; slot: string; basePrice: number; power: number }>;
+    lottery?: { buffs?: Array<{ id: string; weight: number }> };
+    entry?: { base: number };
+  };
+  if (!arena.entry || !(arena.entry.base > 0)) errors.push('arena.entry.base must be positive');
+  if (!Array.isArray(arena.gear) || arena.gear.length < 3) errors.push('arena.gear: need gear items');
+  const gearIds = new Set<string>();
+  for (const g of arena.gear ?? []) {
+    if (gearIds.has(g.id)) errors.push(`arena gear ${g.id}: duplicate`);
+    gearIds.add(g.id);
+    if (!(g.basePrice > 0 && g.power >= 0)) errors.push(`arena gear ${g.id}: bad price or power`);
+  }
+  if ((arena.lottery?.buffs?.length ?? 0) < 3) errors.push('arena.lottery.buffs: need at least 3');
 
   return errors;
 }

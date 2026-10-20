@@ -2,9 +2,9 @@
  * Save creation and migration. `migrate` accepts the legacy `usi.player`
  * shape (`{name, level, xp}`, version missing or 1), v2 files (no custom
  * quests, proposals or activity: they get empty arrays), v3 files (no city
- * map: they get an empty one seeded with one snapshot of the current state)
- * and the current v4 file (City Map: `map`, `WaveBreakdown.outposts`), filling
- * any missing field with a default so older saves keep loading.
+ * map: they get an empty one seeded with one snapshot of the current state),
+ * v4 files (City Map: `map`, `WaveBreakdown.outposts`) and v5 (Arena: `arena`,
+ * `WaveBreakdown.arena`), filling any missing field with a default so older saves keep loading.
  */
 import { getCombo, habits } from './content';
 import { instanceId } from './board';
@@ -29,11 +29,14 @@ import {
 } from './template';
 import { canHoldOutpost } from './mapGeometry';
 import { SNAPSHOT_MAX } from './map';
+import { defaultArenaState } from './arena/defaults';
+import type { ArenaState } from './types';
 import { OUTPOST_NAME_MAX, OUTPOST_NOTE_MAX, VISIT_LOG_MAX, higherState, isOutpostTypeId, outpostStateFor, placementError, resolveOutpostHabits } from './outposts';
 import { gameDayIndex, type TimeOptions } from './time';
 import type {
   ActivityDay,
   ActivityEntry,
+  ArenaRunLogEntry,
   Benevolence,
   Board,
   BoardQuest,
@@ -72,7 +75,7 @@ import type {
 } from './types';
 import { HABIT_IDS, OUTPOST_STATES, UTILITY_IDS } from './types';
 
-export const SAVE_VERSION = 4 as const;
+export const SAVE_VERSION = 5 as const;
 export const DEFAULT_NAME = 'Absolute';
 export const DEFAULT_RESET_HOUR = 4;
 export const NAME_MAX_LENGTH = 24;
@@ -165,6 +168,7 @@ export function createNewSave(now: number, name?: string, opts?: NewSaveOptions)
     proposals: [],
     activity: [],
     map: emptyMap(),
+    arena: defaultArenaState(),
     firstPlayDay: today,
     lastOpenDay: today,
   };
@@ -362,6 +366,7 @@ function migrateWaveRecord(raw: unknown): WaveRecord | null {
       titles: num(b.titles, 0),
       wellKept: num(b.wellKept, 0),
       outposts: num(b.outposts, 0),
+      arena: num(b.arena, 0),
     },
     result: oneOf(raw.result, WAVE_RESULTS, 'quiet'),
     dpAwarded: num(raw.dpAwarded, 0),
@@ -575,6 +580,94 @@ function migrateOutpost(raw: unknown, fallbackDay: number): Outpost | null {
  * strictly increasing. Active outposts that break the caps or the spacing
  * (two saves merged by hand, say) are retired rather than lost.
  */
+function migrateArena(raw: unknown): ArenaState {
+  const base = defaultArenaState();
+  if (!isDict(raw)) return base;
+  const gear = base.gear;
+  if (isDict(raw.gear)) {
+    for (const h of HABIT_IDS) {
+      const slots = raw.gear[h];
+      if (Array.isArray(slots) && slots.length === 3) {
+        gear[h] = [
+          typeof slots[0] === 'string' ? slots[0] : null,
+          typeof slots[1] === 'string' ? slots[1] : null,
+          typeof slots[2] === 'string' ? slots[2] : null,
+        ];
+      }
+    }
+  }
+  if (isDict(raw.trainingSessions)) {
+    for (const h of HABIT_IDS) {
+      const n = raw.trainingSessions[h];
+      if (typeof n === 'number' && Number.isFinite(n)) base.trainingSessions[h] = Math.max(0, Math.floor(n));
+    }
+  }
+  if (Array.isArray(raw.decor)) {
+    base.decor = raw.decor.filter((d): d is string => typeof d === 'string');
+  }
+  base.trainingCoinsThisPeriod = Math.max(0, num(raw.trainingCoinsThisPeriod, 0));
+  base.trainingPeriodIndex = Math.max(0, Math.floor(num(raw.trainingPeriodIndex, 0)));
+  if (raw.activeRun === null || raw.activeRun === undefined) base.activeRun = null;
+  else if (isDict(raw.activeRun)) {
+    const r = raw.activeRun;
+    base.activeRun = {
+      seed: num(r.seed, 0),
+      roomIndex: Math.max(0, Math.floor(num(r.roomIndex, 0))),
+      lastGameId: typeof r.lastGameId === 'string' ? r.lastGameId : null,
+      buffs: Array.isArray(r.buffs)
+        ? r.buffs
+            .filter((b): b is Dict => isDict(b))
+            .map((b) => ({
+              id: typeof b.id === 'string' ? b.id : 'unknown',
+              kind: oneOf(b.kind, ['attack', 'defense', 'time', 'hint', 'revive', 'luck'] as const, 'attack'),
+              amount: num(b.amount, 0),
+            }))
+        : [],
+      pendingScore: Math.max(0, num(r.pendingScore, 0)),
+      bankedCoins: Math.max(0, num(r.bankedCoins, 0)),
+      log: Array.isArray(r.log)
+        ? r.log
+            .filter((e): e is Dict => isDict(e))
+            .map((e) => {
+              const row: ArenaRunLogEntry = {
+                gameId: typeof e.gameId === 'string' ? e.gameId : 'unknown',
+                result: oneOf(e.result, ['won', 'lost', 'fled'] as const, 'fled'),
+                score: Math.max(0, num(e.score, 0)),
+              };
+              if (typeof e.learnedTopic === 'string') row.learnedTopic = e.learnedTopic;
+              return row;
+            })
+        : [],
+      startedAt: num(r.startedAt, 0),
+      entryFee: Math.max(0, num(r.entryFee, 0)),
+      lotteryChoice: Array.isArray(r.lotteryChoice)
+        ? r.lotteryChoice.filter((x): x is string => typeof x === 'string')
+        : null,
+    };
+  }
+  const wb = isDict(raw.waveBoost) ? raw.waveBoost : isDict(raw.banked) ? raw.banked : null;
+  if (wb) {
+    base.waveBoost = {
+      bonus: Math.max(0, num(wb.bonus, num(wb.defenseBonus, 0))),
+      forWeekIndex: nullableNum(wb.forWeekIndex ?? wb.defenseBonusExpiresPeriod),
+    };
+  }
+  if (Array.isArray(raw.requests)) {
+    for (const req of raw.requests) {
+      if (!isDict(req) || typeof req.text !== 'string') continue;
+      base.requests.push({
+        id: typeof req.id === 'string' ? req.id : `req-${base.requests.length}`,
+        text: req.text.slice(0, 500),
+        at: num(req.at, 0),
+        day: Math.floor(num(req.day, 0)),
+      });
+    }
+    base.requests = base.requests.slice(-20);
+  }
+  base.totalRuns = Math.max(0, Math.floor(num(raw.totalRuns, 0)));
+  return base;
+}
+
 function migrateMap(raw: unknown, seed: DomainSnapshot, fallbackDay: number): MapState {
   const map = emptyMap();
   const r = isDict(raw) ? raw : {};
@@ -656,7 +749,7 @@ function looksLikeV2(v: unknown): v is Dict {
 }
 
 /**
- * Accept any previously persisted shape and return a valid v4 SaveFile.
+ * Accept any previously persisted shape and return a valid v5 SaveFile.
  * Unknown or corrupt input yields a fresh save (name kept when readable).
  *
  * A zustand/persist envelope `{ state, version }` is unwrapped; the inner
@@ -707,6 +800,7 @@ export function migrate(raw: unknown, now: number, opts?: TimeOptions): SaveFile
   const lastOpenDay = Math.max(firstPlayDay, Math.floor(num(unwrapped.lastOpenDay, today)));
   const player = migratePlayer(unwrapped.player, fresh.player);
   const map = migrateMap(unwrapped.map, seedSnapshot(player, week, lastOpenDay), lastOpenDay);
+  const arena = migrateArena(unwrapped.arena);
   // A template may only default to an outpost that is on the map and active.
   for (const t of customTemplates) {
     if (t.outpostId !== undefined && !map.outposts.some((o) => o.id === t.outpostId && !o.retired)) delete t.outpostId;
@@ -728,6 +822,7 @@ export function migrate(raw: unknown, now: number, opts?: TimeOptions): SaveFile
     proposals: migrateProposals(unwrapped.proposals),
     activity: migrateActivity(unwrapped.activity),
     map,
+    arena,
     firstPlayDay,
     lastOpenDay,
   };

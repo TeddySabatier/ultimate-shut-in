@@ -308,7 +308,7 @@ describe('8. catch-up is bounded', () => {
 
   it('keeps at most WAVE_HISTORY_MAX records', () => {
     const save = fresh();
-    const rec = (index: number): WaveRecord => ({ index, ring: 1, attack: 0, defense: 0, breakdown: { vassals: 0, trust: 0, walls: 0, combos: 0, titles: 0, wellKept: 0, outposts: 0 }, result: 'quiet', dpAwarded: 0, log: [], settledAt: 0 });
+    const rec = (index: number): WaveRecord => ({ index, ring: 1, attack: 0, defense: 0, breakdown: { vassals: 0, trust: 0, walls: 0, combos: 0, titles: 0, wellKept: 0, outposts: 0, arena: 0 }, result: 'quiet', dpAwarded: 0, log: [], settledAt: 0 });
     save.week.history = Array.from({ length: WAVE_HISTORY_MAX }, (_, i) => rec(i));
     const r = settleWave(save, WAVE_HISTORY_MAX, T0, DAY0).save;
     expect(r.week.history).toHaveLength(WAVE_HISTORY_MAX);

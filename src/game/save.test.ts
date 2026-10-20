@@ -9,8 +9,8 @@ const DAY0 = gameDayIndex(T0, 4, TZ.tz);
 describe('createNewSave', () => {
   it('builds the GDD defaults', () => {
     const s = createNewSave(T0, undefined, TZ);
-    expect(s.version).toBe(4);
-    expect(SAVE_VERSION).toBe(4);
+    expect(s.version).toBe(5);
+    expect(SAVE_VERSION).toBe(5);
     expect(s.player).toEqual({ name: 'Absolute', level: 1, xp: 0, coins: 0, domainPoints: 0, ring: 1, highestRing: 1, resurrectionMonth: null });
     expect(s.settings).toEqual(defaultSettings());
     expect(s.settings.enabledHabits).toEqual([...HABIT_IDS]);
@@ -38,7 +38,7 @@ describe('createNewSave', () => {
 describe('migrate', () => {
   it('accepts the legacy { name, level, xp } shape with or without the persist wrapper', () => {
     const a = migrate({ name: 'Old Hand', level: 3, xp: 50 }, T0, TZ);
-    expect(a.version).toBe(4);
+    expect(a.version).toBe(5);
     expect(a.player).toMatchObject({ name: 'Old Hand', level: 3, xp: 50, coins: 0, ring: 1 });
     expect(a.firstPlayDay).toBe(DAY0);
     const b = migrate({ state: { name: 'Wrapped', level: 99, xp: -5 }, version: 1 }, T0, TZ);
@@ -57,7 +57,7 @@ describe('migrate', () => {
     s.combos.push({ comboId: 'sprinting_umbrella', power: 4, forgedDay: DAY0 });
     s.log.push({ at: T0, day: DAY0, kind: 'x', text: 'y' });
     s.board = { day: DAY0, seed: 1, quests: [], bonusId: '', rerolledToday: true };
-    s.week.history.push({ index: 0, ring: 1, attack: 1, defense: 2, breakdown: { vassals: 0, trust: 0, walls: 0, combos: 0, titles: 0, wellKept: 0, outposts: 0 }, result: 'win', dpAwarded: 15, log: [], settledAt: T0 });
+    s.week.history.push({ index: 0, ring: 1, attack: 1, defense: 2, breakdown: { vassals: 0, trust: 0, walls: 0, combos: 0, titles: 0, wellKept: 0, outposts: 0, arena: 0 }, result: 'win', dpAwarded: 15, log: [], settledAt: T0 });
     const back = migrate(JSON.parse(exportSave(s)), T0 + 99, TZ);
     expect(back).toEqual(s);
   });
@@ -104,7 +104,7 @@ describe('migrate', () => {
   it('returns a fresh save for garbage', () => {
     expect(migrate(null, T0, TZ).player.name).toBe('Absolute');
     expect(migrate('text', T0, TZ).firstPlayDay).toBe(DAY0);
-    expect(migrate([1, 2], T0, TZ).version).toBe(4);
+    expect(migrate([1, 2], T0, TZ).version).toBe(5);
   });
 });
 
@@ -121,7 +121,7 @@ describe('migrate: v3 (custom quests, proposals, activity)', () => {
   it('upgrades a v2 save with empty arrays and keeps everything else', () => {
     const old = v2();
     const s = migrate(old, T0, TZ);
-    expect(s.version).toBe(4);
+    expect(s.version).toBe(5);
     expect(s.customTemplates).toEqual([]);
     expect(s.proposals).toEqual([]);
     expect(s.activity).toEqual([]);
@@ -225,6 +225,18 @@ describe('migrate: v3 (custom quests, proposals, activity)', () => {
   });
 });
 
+describe('migrate: v5 (arena)', () => {
+  it('adds arena to a v4-shaped save missing the field', () => {
+    const raw = createNewSave(T0, 'Pre-arena', TZ) as unknown as Record<string, unknown>;
+    raw.version = 4;
+    delete raw.arena;
+    const s = migrate(raw, T0, TZ);
+    expect(s.version).toBe(5);
+    expect(s.arena.totalRuns).toBe(0);
+    expect(s.arena.waveBoost.bonus).toBe(0);
+  });
+});
+
 describe('migrate: v4 (city map)', () => {
   const v3 = (): Record<string, unknown> => {
     const s = createNewSave(T0, 'Mapless', TZ) as unknown as Record<string, unknown>;
@@ -241,7 +253,7 @@ describe('migrate: v4 (city map)', () => {
       { index: 2, ring: 3, attack: 10, defense: 12, breakdown: { vassals: 1, trust: 2, walls: 3, combos: 0, titles: 0, wellKept: 0 }, result: 'win', dpAwarded: 15, log: [], settledAt: T0 },
     ];
     const s = migrate(old, T0, TZ);
-    expect(s.version).toBe(4);
+    expect(s.version).toBe(5);
     expect(s.map.outposts).toEqual([]);
     expect(s.map.visits).toEqual([]);
     expect(s.map.lastSeen).toBeNull();

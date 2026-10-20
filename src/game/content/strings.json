@@ -210,6 +210,26 @@
       "blurb": "Five quests a day, mostly big. Vassals need attention; waves hit harder. Rings roughly twice as fast."
     }
   },
+  "arena": {
+    "cardTitle": "The Arena",
+    "cardBlurb": "Spend settlement on gear, then send the troops through the mini games. Coins stay in the Haven; Domain Points do not.",
+    "entryTitle": "Arena",
+    "armoryTitle": "Armory",
+    "runTitle": "Run",
+    "bankTitle": "Bank the run",
+    "lotteryTitle": "Pick a buff",
+    "requestTitle": "Ask for a game",
+    "requestSent": "Message logged. The engineers are reading.",
+    "noGames": "No games yet. The workshop is still building.",
+    "troopsHome": "The troops come home.",
+    "errors": {
+      "shortCoins": "Not enough settlement for that.",
+      "runActive": "A run is already in progress.",
+      "noRun": "No active run.",
+      "lotteryPending": "Pick a lottery buff first.",
+      "trainingCap": "Training cap reached for this wave. Habits still earn most of your coins."
+    }
+  },
   "benevolence": {
     "benevolent": {
       "label": "Benevolent",

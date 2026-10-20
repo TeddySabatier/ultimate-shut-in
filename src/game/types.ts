@@ -32,7 +32,7 @@ export const HABIT_IDS: readonly HabitId[] = [
 export const UTILITY_IDS: readonly UtilityId[] = ['power', 'water', 'gas'] as const;
 
 export interface SaveFile {
-  version: 4;
+  version: 5;
   player: Player;
   settings: Settings;
   vassals: Record<HabitId, Vassal>;
@@ -54,8 +54,69 @@ export interface SaveFile {
   activity: ActivityDay[];
   /** The City Map: outposts, visits, domain snapshots (`docs/design/CITY-MAP.md`). */
   map: MapState;
+  /** Arena: Armory, runs, lottery buffs, requests (`docs/design/ARENA.md`). */
+  arena: ArenaState;
   firstPlayDay: number;
   lastOpenDay: number;
+}
+
+/** Three gear slots per vassal (blade, mail, charm). Values are gear item ids or null. */
+export type ArenaGearSlots = [string | null, string | null, string | null];
+
+export type ArenaRunBuffKind = 'attack' | 'defense' | 'time' | 'hint' | 'revive' | 'luck';
+
+export interface ArenaRunLogEntry {
+  gameId: string;
+  result: 'won' | 'lost' | 'fled';
+  score: number;
+  learnedTopic?: string;
+}
+
+/** An active Arena run; null when the player is not in a run. */
+export interface ArenaRun {
+  seed: number;
+  roomIndex: number;
+  lastGameId: string | null;
+  buffs: Array<{ id: string; kind: ArenaRunBuffKind; amount: number }>;
+  /** Score banked this run but not yet converted to settlement. */
+  pendingScore: number;
+  /** Coins earned this run, already added on bank or kept on loss from prior banks only. */
+  bankedCoins: number;
+  log: ArenaRunLogEntry[];
+  startedAt: number;
+  entryFee: number;
+  /** When set, the player must pick one of these lottery buff ids before the next game. */
+  lotteryChoice: string[] | null;
+}
+
+export interface ArenaRequest {
+  id: string;
+  text: string;
+  at: number;
+  day: number;
+}
+
+/** One-wave defense bonus from banking a run (`wave.ts` reads `defenseBonus`). */
+export interface ArenaWaveBoost {
+  bonus: number;
+  /** `week.index` the bonus applies to; null when spent or expired. */
+  forWeekIndex: number | null;
+}
+
+export interface ArenaState {
+  gear: Record<HabitId, ArenaGearSlots>;
+  /** Training sessions bought per vassal (permanent, diminishing returns). */
+  trainingSessions: Record<HabitId, number>;
+  /** Combo ids purchased as Haven decor (cosmetic). */
+  decor: string[];
+  /** Settlement spent on training in the current wave period. */
+  trainingCoinsThisPeriod: number;
+  /** `week.index` when `trainingCoinsThisPeriod` was last reset. */
+  trainingPeriodIndex: number;
+  activeRun: ArenaRun | null;
+  waveBoost: ArenaWaveBoost;
+  requests: ArenaRequest[];
+  totalRuns: number;
 }
 
 export interface Player {
@@ -154,6 +215,8 @@ export interface WaveBreakdown {
   wellKept: number;
   /** Stronghold outposts, +2 each, capped (CITY-MAP 3.3). */
   outposts: number;
+  /** Banked Arena defense for this wave period (ARENA.md). */
+  arena: number;
 }
 
 export interface WaveRecord {
@@ -405,7 +468,14 @@ export type GameEvent =
   | { type: 'outpostStateReached'; outpostId: string; state: OutpostState }
   | { type: 'outpostRetired'; outpostId: string }
   | { type: 'outpostRestored'; outpostId: string }
-  | { type: 'outpostWithinWalls'; outpostId: string; ring: RingId };
+  | { type: 'outpostWithinWalls'; outpostId: string; ring: RingId }
+  | { type: 'arenaRunStarted'; fee: number }
+  | { type: 'arenaRunEnded'; banked: boolean; rooms: number }
+  | { type: 'arenaGearBought'; habit: HabitId; itemId: string; slot: number }
+  | { type: 'arenaTrainingBought'; habit: HabitId; sessions: number }
+  | { type: 'arenaDecorBought'; comboId: string }
+  | { type: 'arenaRequestSent'; id: string }
+  | { type: 'arenaBuffPicked'; buffId: string };
 
 export interface ActionResult {
   save: SaveFile;
