@@ -1,61 +1,11 @@
 import { act, fireEvent, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { arenaContent, carriedHome, entryFee, formatLine, getArenaBuff, strings } from '../game';
-import type { GameScreenProps, Outcome } from '../games/contract';
 import { useGameStore } from '../state/gameStore';
+import { fake } from '../components/arena/host/testCatalog';
 import { currentSave, renderWithRouter, seedStore } from '../test/storeUtils';
 
-/** Two fake games, so the real registry is never needed. `games` is what the catalog lists. */
-const fake = vi.hoisted(() => {
-  const make = (id: string, name: string, extra: Record<string, unknown> = {}) => ({
-    manifest: {
-      id,
-      name: { en: name, fr: `${name} (fr)` },
-      tagline: { en: `${name} tagline`, fr: `${name} slogan` },
-      category: 'puzzle',
-      minRing: 1,
-      rosterSize: { min: 1, max: 3 },
-      estMinutes: 2,
-      supportsReducedMotion: true,
-      ...extra,
-    },
-    engine: {},
-    strings: { en: {}, fr: {} },
-  });
-  const all = [
-    make('alpha', 'Alpha Puzzle', { learning: { skill: { en: 'Reading odds', fr: 'Lire les chances' }, concepts: ['odds'] } }),
-    make('beta', 'Beta Arcade', { category: 'arcade', minRing: 3, rosterSize: { min: 2, max: 2 } }),
-  ];
-  return { all, games: [] as typeof all };
-});
-
-vi.mock('../components/arena/host/catalog', async () => {
-  const React = await import('react');
-  function Screen(props: GameScreenProps) {
-    const win: Outcome = {
-      result: 'won',
-      score: 700,
-      log: ['A fine game.'],
-      troopsUsed: [],
-      learned: { topic: { en: 'Odds', fr: 'Chances' }, note: { en: 'Weights tilt a coin.', fr: 'Les poids penchent une pièce.' } },
-    };
-    return React.createElement(
-      'div',
-      null,
-      React.createElement('h2', null, 'Fake game'),
-      React.createElement('button', { type: 'button', onClick: () => props.onFinish(win) }, 'Win the game'),
-      React.createElement('button', { type: 'button', onClick: () => props.onFinish({ result: 'lost', score: 100, log: ['Close.'], troopsUsed: [] }) }, 'Lose the game'),
-      React.createElement('button', { type: 'button', onClick: () => window.setTimeout(() => props.onFinish(win), 10) }, 'Win in a moment'),
-    );
-  }
-  return {
-    getGame: (id: string) => fake.all.find((g) => g.manifest.id === id),
-    loadScreen: async () => Screen,
-    listedGames: () => fake.games,
-    gameCandidates: (games = fake.games) => games.map((g) => ({ id: g.manifest.id, minRing: g.manifest.minRing, rosterMin: g.manifest.rosterSize.min })),
-    gameLocale: () => 'en' as const,
-  };
-});
+vi.mock('../components/arena/host/catalog', async () => (await import('../components/arena/host/testCatalog')).catalog);
 
 import ArenaScreen from './ArenaScreen';
 

@@ -1,67 +1,14 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { GameScreenProps, Outcome } from '../../../games/contract';
 import { seedStore, currentSave } from '../../../test/storeUtils';
 import { useGameStore } from '../../../state/gameStore';
+import { fake } from './testCatalog';
 
-const mode = vi.hoisted(() => ({ value: 'ok' as 'ok' | 'crash' | 'fail' }));
-
-const fake = vi.hoisted(() => ({
-  manifest: {
-    id: 'fake',
-    name: { en: 'Fake', fr: 'Faux' },
-    tagline: { en: 'A fake game', fr: 'Un faux jeu' },
-    category: 'puzzle',
-    minRing: 1,
-    rosterSize: { min: 1, max: 3 },
-    estMinutes: 1,
-    supportsReducedMotion: true,
-  },
-  engine: {},
-  strings: { en: {}, fr: {} },
-}));
-
-vi.mock('./catalog', async () => {
-  const React = await import('react');
-  function Screen(props: GameScreenProps) {
-    if (mode.value === 'crash') throw new Error('boom');
-    const ids = props.party.members.map((m) => m.id);
-    const win: Outcome = { result: 'won', score: 700, log: ['Fine.'], troopsUsed: ids.slice(0, 1) };
-    return React.createElement(
-      'div',
-      null,
-      React.createElement('p', { 'data-testid': 'ctx' }, `${ids.length}|${props.run.roomIndex}|${props.run.difficulty}|${props.run.buffs.length}|${props.locale}|${String(props.reducedMotion)}`),
-      React.createElement('button', { type: 'button', onClick: () => props.onFinish(win) }, 'win'),
-      React.createElement('button', { type: 'button', onClick: () => props.onFinish({ ...win, score: 5000, troopsUsed: ['ghost'] }) }, 'bad'),
-      React.createElement('button', { type: 'button', onClick: () => props.onExit() }, 'exit'),
-      React.createElement(
-        'button',
-        {
-          type: 'button',
-          onClick: () => {
-            props.onExit();
-            props.onFinish(win);
-          },
-        },
-        'exit then finish',
-      ),
-    );
-  }
-  return {
-    getGame: (id: string) => (id === 'fake' ? fake : undefined),
-    loadScreen: async () => {
-      if (mode.value === 'fail') throw new Error('offline');
-      return Screen;
-    },
-    listedGames: () => [fake],
-    gameCandidates: () => [{ id: 'fake', minRing: 1, rosterMin: 1 }],
-    gameLocale: () => 'en' as const,
-  };
-});
+vi.mock('./catalog', async () => (await import('./testCatalog')).catalog);
 
 import { ArenaHost } from './ArenaHost';
 
-const CANDIDATES = [{ id: 'fake', minRing: 1, rosterMin: 1 }];
+const CANDIDATES = [{ id: 'alpha', minRing: 1, rosterMin: 1 }];
 
 function startRun(): void {
   seedStore('Host', { reducedMotion: true });
@@ -80,7 +27,7 @@ function mount() {
 
 let errorSpy: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
-  mode.value = 'ok';
+  fake.mode = 'ok';
   errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
 });
 afterEach(() => {
@@ -103,7 +50,7 @@ describe('the Arena host', () => {
     const run = currentSave().arena.run!;
     expect(run.phase).toBe('lottery');
     expect(run.pending.wins).toBe(1);
-    expect(run.games[0]).toMatchObject({ gameId: 'fake', result: 'won', score: 700 });
+    expect(run.games[0]).toMatchObject({ gameId: 'alpha', result: 'won', score: 700 });
     expect(screen.getByTestId('arena-result-title')).toHaveTextContent('Won');
     // The final board stays on show under the panel.
     expect(screen.getByRole('button', { name: 'win' })).toBeInTheDocument();
@@ -174,7 +121,7 @@ describe('the Arena host', () => {
 
   it('a game that crashes ends the run as fled instead of taking the Arena down', async () => {
     startRun();
-    mode.value = 'crash';
+    fake.mode = 'crash';
     mount();
     await waitFor(() => expect(currentSave().arena.run).toBeNull());
     expect(currentSave().arena.log[0]).toMatchObject({ end: 'fled' });
@@ -183,10 +130,10 @@ describe('the Arena host', () => {
 
   it('a game that fails to load offers Retry and Leave, and Leave closes the run', async () => {
     startRun();
-    mode.value = 'fail';
+    fake.mode = 'fail';
     mount();
     expect(await screen.findByRole('button', { name: 'Try again' })).toBeInTheDocument();
-    mode.value = 'ok';
+    fake.mode = 'ok';
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(await screen.findByRole('button', { name: 'win' })).toBeInTheDocument();
   });
