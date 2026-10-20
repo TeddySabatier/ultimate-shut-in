@@ -44,7 +44,7 @@ export function LotteryPick({ save, onBanked }: Props) {
                   type="button"
                   className={styles.offer}
                   aria-label={[name, amount, rare ? u.lottery.rare : null].filter(Boolean).join(', ')}
-                  aria-describedby={blurbId}
+                  aria-describedby={def ? blurbId : undefined}
                   onClick={() => report(arenaPickBuff(offer.id), null)}
                 >
                   <Icon src={BUFF_ICON[offer.kind]} size="2rem" className={styles.offerIcon} />

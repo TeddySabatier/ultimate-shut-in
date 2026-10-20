@@ -30,7 +30,7 @@ function strongSave() {
 }
 
 describe('every registered game through the host', () => {
-  it('lists at least the sample game with the debug flag', () => {
+  it('lists at least the dev-only sample game when dev games are included', () => {
     expect(games.length).toBeGreaterThanOrEqual(1);
   });
 

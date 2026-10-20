@@ -84,3 +84,7 @@
     padding: var(--space-1);
   }
 }
+
+.view {
+  outline: none;
+}

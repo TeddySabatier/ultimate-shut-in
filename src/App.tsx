@@ -19,7 +19,7 @@ const ArenaScreen = lazy(() => import('./screens/ArenaScreen'));
 /** `#/arena`: loaded on demand; a chunk that fails to load (offline, a deploy in between) shows a retry. */
 function ArenaRoute() {
   return (
-    <LabLoadBoundary title={strings.arena.host.routeFailed}>
+    <LabLoadBoundary title={strings.arena.host.routeFailed} retry={strings.arena.host.retry}>
       <Suspense fallback={<p className="muted">{strings.arena.host.loading}</p>}>
         <ArenaScreen />
       </Suspense>
@@ -49,7 +49,7 @@ function GameRoutes() {
 const GamesLab = lazy(() => import('./games/lab/LabRoutes'));
 
 /** A chunk that fails to load (offline, a deploy in between) shows a retry instead of a blank page. */
-class LabLoadBoundary extends Component<{ children: ReactNode; title?: string }, { error: Error | null }> {
+class LabLoadBoundary extends Component<{ children: ReactNode; title?: string; retry?: string }, { error: Error | null }> {
   override state: { error: Error | null } = { error: null };
   static getDerivedStateFromError(error: Error) {
     return { error };
@@ -61,7 +61,7 @@ class LabLoadBoundary extends Component<{ children: ReactNode; title?: string },
         <h1>{this.props.title ?? 'The Games Lab did not load'}</h1>
         <p className="muted">{this.state.error.message}</p>
         <button type="button" className="btn btn--primary" onClick={() => window.location.reload()}>
-          Retry
+          {this.props.retry ?? 'Retry'}
         </button>
       </main>
     );

@@ -4,6 +4,8 @@ import type { GameScreenProps, Outcome } from '../../../games/contract';
 import { seedStore, currentSave } from '../../../test/storeUtils';
 import { useGameStore } from '../../../state/gameStore';
 
+const mode = vi.hoisted(() => ({ value: 'ok' as 'ok' | 'crash' | 'fail' }));
+
 const fake = vi.hoisted(() => ({
   manifest: {
     id: 'fake',
@@ -22,6 +24,7 @@ const fake = vi.hoisted(() => ({
 vi.mock('./catalog', async () => {
   const React = await import('react');
   function Screen(props: GameScreenProps) {
+    if (mode.value === 'crash') throw new Error('boom');
     const ids = props.party.members.map((m) => m.id);
     const win: Outcome = { result: 'won', score: 700, log: ['Fine.'], troopsUsed: ids.slice(0, 1) };
     return React.createElement(
@@ -46,7 +49,10 @@ vi.mock('./catalog', async () => {
   }
   return {
     getGame: (id: string) => (id === 'fake' ? fake : undefined),
-    loadScreen: async () => Screen,
+    loadScreen: async () => {
+      if (mode.value === 'fail') throw new Error('offline');
+      return Screen;
+    },
     listedGames: () => [fake],
     gameCandidates: () => [{ id: 'fake', minRing: 1, rosterMin: 1 }],
     gameLocale: () => 'en' as const,
@@ -74,6 +80,7 @@ function mount() {
 
 let errorSpy: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
+  mode.value = 'ok';
   errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
 });
 afterEach(() => {
@@ -164,4 +171,46 @@ describe('the Arena host', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Bring the troops home' }));
     expect(currentSave().arena.run).toBeNull();
   });
+
+  it('a game that crashes ends the run as fled instead of taking the Arena down', async () => {
+    startRun();
+    mode.value = 'crash';
+    mount();
+    await waitFor(() => expect(currentSave().arena.run).toBeNull());
+    expect(currentSave().arena.log[0]).toMatchObject({ end: 'fled' });
+    expect(errorSpy).toHaveBeenCalled();
+  });
+
+  it('a game that fails to load offers Retry and Leave, and Leave closes the run', async () => {
+    startRun();
+    mode.value = 'fail';
+    mount();
+    expect(await screen.findByRole('button', { name: 'Try again' })).toBeInTheDocument();
+    mode.value = 'ok';
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByRole('button', { name: 'win' })).toBeInTheDocument();
+  });
+
+  it('the host always has its own way out while the game is on', async () => {
+    startRun();
+    mount();
+    await screen.findByRole('button', { name: 'win' });
+    fireEvent.click(screen.getByTestId('arena-leave'));
+    expect(currentSave().arena.run).toBeNull();
+    expect(currentSave().arena.log[0]).toMatchObject({ end: 'fled' });
+    expect(screen.queryByTestId('arena-leave')).toBeNull();
+  });
+
+  it('when the engine refuses the outcome the host moves on instead of showing a stale result', async () => {
+    startRun();
+    const { onDone } = mount();
+    const win = await screen.findByRole('button', { name: 'win' });
+    useGameStore.setState((s) => {
+      if (s.save) s.save.arena.run = null; // the save changed under the host
+    });
+    fireEvent.click(win);
+    expect(onDone).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId('arena-result')).toBeNull();
+  });
 });
+

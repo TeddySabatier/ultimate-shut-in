@@ -8,7 +8,7 @@
  * This is the only screen that reads the games catalog (host/catalog.ts), so
  * the registry stays out of the main bundle.
  */
-import { useCallback, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Link } from 'react-router-dom';
 import { strings, type ArenaRunRecord } from '../game';
 import { ArenaHost } from '../components/arena/host/ArenaHost';
@@ -81,6 +81,16 @@ export default function ArenaScreen() {
   const onBanked = useCallback((record: ArenaRunRecord) => setSummary(record), []);
   const gameName = useCallback((id: string) => getGame(id)?.manifest.name[locale] ?? id, [locale]);
 
+  // Keyboard and screen-reader focus follows the view: a new view (entry, lottery, next game, results) takes it.
+  const viewKey = hostKey !== null ? `host:${hostKey}` : (run?.phase ?? 'hub');
+  const viewRef = useRef<HTMLDivElement>(null);
+  const lastView = useRef(viewKey);
+  useEffect(() => {
+    if (lastView.current === viewKey) return;
+    lastView.current = viewKey;
+    viewRef.current?.focus();
+  }, [viewKey]);
+
   let view;
   if (hostKey !== null) {
     view = <ArenaHost key={hostKey} onHold={onHold} onDone={onDone} />;
@@ -116,7 +126,9 @@ export default function ArenaScreen() {
           <Purse coins={save.player.coins} className={styles.purse} />
         </div>
       </header>
-      {view}
+      <div ref={viewRef} tabIndex={-1} className={styles.view} data-testid="arena-view">
+        {view}
+      </div>
     </div>
   );
 }

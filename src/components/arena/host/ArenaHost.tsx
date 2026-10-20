@@ -127,11 +127,16 @@ export function ArenaHost({ onHold, onDone }: Props) {
       const { outcome, problems } = resolveHostOutcome(raw, partyIds, t.left);
       onHold();
       const r = abandon ? arenaAbandon() : arenaResolve({ result: outcome.result, score: outcome.score, ...(outcome.learned ? { learned: outcome.learned } : {}) });
+      // The engine refused (the save changed under the host): the notice says why, and the screen moves on.
+      if (!r.applied) {
+        onDone();
+        return;
+      }
       const save = useGameStore.getState().save;
       const record = r.ended?.games[r.ended.games.length - 1] ?? save?.arena.run?.games[save.arena.run.games.length - 1] ?? null;
       setResult({ outcome, invalid: problems.length > 0, record, ended: r.ended });
     },
-    [arenaAbandon, arenaResolve, onHold, partyIds],
+    [arenaAbandon, arenaResolve, onDone, onHold, partyIds],
   );
 
   const onFinish = useCallback((outcome: Outcome) => finish(outcome), [finish]);
@@ -164,6 +169,11 @@ export function ArenaHost({ onHold, onDone }: Props) {
           {formatLine(t.roomLine, { room: session.room, difficulty: session.difficulty })}
         </p>
         <p className={styles.line}>{formatLine(t.spoilsLine, { coins: session.pendingCoins })}</p>
+        {result ? null : (
+          <button type="button" className="btn" onClick={leave} data-testid="arena-leave">
+            {t.leave}
+          </button>
+        )}
         <p className={styles.buffs}>
           <span className={styles.buffsLabel}>{t.buffsHeading}: </span>
           {session.run.buffs.length === 0
