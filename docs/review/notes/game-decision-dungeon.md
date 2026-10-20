@@ -102,4 +102,16 @@ None. The lab, helpers, kit and lint were enough. (Observation only: `expectResp
 
 ## 7. Verification
 
-See the PR description for the exact commands and counts. Responsive check done by eye on screenshots from a production preview (`#/lab/decision-dungeon?difficulty=1..5&lang=fr`, `localStorage['haven.debug']='1'`): 320x568, 390x844 at 150 percent text and 844x390; findings and fixes are listed in the commit messages.
+```
+npm run lint                                  clean
+npm run typecheck                             clean
+npm test                                      76 files, 1048 tests pass (Decision Dungeon: 96 = 22 content + 49 engine + 15 Screen + 10 contract kit)
+npm run build                                 ok
+node scripts/games-budget.mjs                 decision-dungeon code 80.6 KB / 150 KB, assets 0 / 200 KB
+node scripts/check-main-chunk.mjs             ok (no game in the main chunk)
+npm run screenshots:check                     ok
+npx playwright test e2e/games/decision-dungeon.spec.ts --workers=2
+                                              13 passed, 1 skipped (axe on desktop by design), both projects, every test under 3 s
+```
+
+Responsive check, by eye on screenshots taken from a production preview (`#/lab/decision-dungeon?difficulty=1..5&lang=fr` and `lang=en`, `localStorage['haven.debug']='1'`, five states each: start, a reflection, hints and Sleep on it on the mixed buffed party, the end of a run): 320x568, 390x844 at 150 percent root text and 844x390. No horizontal scroll (`scrollWidth` equals the viewport at every size), nothing clipped, doors and buttons wrap their text. Two fixes came out of it: the not-therapy line was hidden in landscape (now always visible), and the cue and tag lines were 12 px (now 14 px).
