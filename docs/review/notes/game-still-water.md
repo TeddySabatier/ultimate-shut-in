@@ -86,6 +86,15 @@ Nothing needed. Observations only, for the maintainers:
 - `src/components/SystemWindow.tsx` hard-codes its tone colours (`#6b6b8a`, `#ffb84d`, ...) instead of tokens; not touched.
 - The Lab's `Bot play` after `Replay same seed` (the earlier workaround in this file): `replay()` sets `previous` to the current result and clears it, so a bot run after a replay compares against `null` only when no result existed. The e2e no longer depends on that (the replay spec plays the same scripted breath twice).
 
+## CI on this branch
+
+Lint, typecheck, test and build pass, E2E mobile 2/2 passes, and every `still-water.spec.ts` test passes on both projects in CI. E2E desktop and E2E mobile 1/2 are red for reasons that are not in this game and that PR #25 (the base, `feat/game-tower-defense-v2`) shows too, on its own head commit:
+
+- `e2e/arena.spec.ts`: "a run: play the sample game through the host", "banking: coins come home...", "banking wave defense...", and the axe check on the hub wait for the Coin Duel heading in the Arena host; with real games registered in the Arena the lottery no longer offers only the dev-only Coin Duel.
+- `e2e/games/tower-defense.spec.ts`: "replaying the same seed gives the same outcome".
+
+Both are files this PR does not own (`e2e/arena.spec.ts`, the tower-defense spec); the fix belongs to #25 or a maintainer.
+
 ## Pull request
 
 PR #26 is a draft stacked on #25 (`feat/game-tower-defense-v2`): its description starts with "Stacked on #25. Merge that one first." Do not mark it ready or merge it before the independent review.
