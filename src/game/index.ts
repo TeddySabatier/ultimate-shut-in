@@ -169,6 +169,7 @@ export {
   rosterFor,
   entryFee,
   expectedDailyCoins,
+  typicalDayCoins,
   maxTrainingSpendPerPeriod,
   startRun,
   applyRunOutcome,

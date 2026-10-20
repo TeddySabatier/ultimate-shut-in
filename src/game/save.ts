@@ -658,6 +658,7 @@ function migrateArena(raw: unknown): ArenaState {
       base.requests.push({
         id: typeof req.id === 'string' ? req.id : `req-${base.requests.length}`,
         text: req.text.slice(0, 500),
+        source: req.source === 'voice' ? 'voice' : 'text',
         at: num(req.at, 0),
         day: Math.floor(num(req.day, 0)),
       });

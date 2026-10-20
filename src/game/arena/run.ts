@@ -26,18 +26,25 @@ function runSeed(save: SaveFile, now: number): number {
 }
 
 /** Pick the next game id; never repeats when more than one eligible game exists. */
-export function pickNextGame(lastGameId: string | null, eligible: GamePickCandidate[], seed: number, roomIndex: number): string | null {
-  if (eligible.length === 0) return null;
-  let choices = eligible;
-  if (lastGameId && eligible.length > 1) choices = eligible.filter((g) => g.id !== lastGameId);
-  if (choices.length === 0) choices = eligible;
+export function pickNextGame(
+  lastGameId: string | null,
+  eligible: GamePickCandidate[],
+  seed: number,
+  roomIndex: number,
+  ring = 7,
+): string | null {
+  const pool = eligible.filter((g) => g.minRing <= ring);
+  if (pool.length === 0) return null;
+  let choices = pool;
+  if (lastGameId && pool.length > 1) choices = pool.filter((g) => g.id !== lastGameId);
+  if (choices.length === 0) choices = pool;
   const rng = mulberry32(fnv1a(`${seed >>> 0}:pick:${roomIndex}`));
   return rngPick(rng, choices).id;
 }
 
 export function startRun(save: SaveFile, now: number, _opts?: TimeOptions): ActionResult {
   if (save.arena.activeRun) return refuse(save, 'arena.runActive');
-  const fee = entryFee(save.player.ring);
+  const fee = entryFee(save.player.ring, save.settings.difficulty);
   if (save.player.coins < fee) return refuse(save, 'arena.shortCoins');
   const draft = clone(save);
   draft.player.coins -= fee;

@@ -92,6 +92,7 @@ export interface ArenaRun {
 export interface ArenaRequest {
   id: string;
   text: string;
+  source: 'text' | 'voice';
   at: number;
   day: number;
 }
@@ -215,8 +216,11 @@ export interface WaveBreakdown {
   wellKept: number;
   /** Stronghold outposts, +2 each, capped (CITY-MAP 3.3). */
   outposts: number;
-  /** Banked Arena defense for this wave period (ARENA.md). */
-  arena: number;
+  /**
+   * Banked Arena defense for this wave period (ARENA.md). Optional so older
+   * overlay fixtures keep typechecking; the engine always writes it.
+   */
+  arena?: number;
 }
 
 export interface WaveRecord {

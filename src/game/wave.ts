@@ -143,7 +143,7 @@ function buildLog(save: SaveFile, week: number, attack: number, detail: DefenseD
         : `${holds.length >= 3 ? 'Three' : 'Two'} strongholds hold the outer line. +${detail.breakdown.outposts}`,
     );
   }
-  if (detail.breakdown.arena > 0) lines.push(`Arena troops still have wind in their sails. +${detail.breakdown.arena}`);
+  if ((detail.breakdown.arena ?? 0) > 0) lines.push(`The Arena's last outing still counts. +${detail.breakdown.arena}`);
 
   const pool = result === 'decisive' ? strings.waveDecisive : result === 'win' ? strings.waveWin : strings.waveLoss;
   lines.push(formatLine(pickLine(pool, seed), { defense: detail.total, attack }));
@@ -211,6 +211,8 @@ export function settleWaveDraft(draft: SaveFile, periodIndex: number, now: numbe
   if (draft.arena.waveBoost.forWeekIndex !== null && draft.arena.waveBoost.forWeekIndex <= periodIndex) {
     draft.arena.waveBoost = { bonus: 0, forWeekIndex: null };
   }
+  draft.arena.trainingPeriodIndex = draft.week.index;
+  draft.arena.trainingCoinsThisPeriod = 0;
   resetTrustDraft(draft);
   draft.combos = [];
   events.push({ type: 'waveSettled', record });

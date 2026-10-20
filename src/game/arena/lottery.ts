@@ -12,21 +12,17 @@ export function lotterySeed(runSeed: number, roomIndex: number, draw: number): n
 
 /** Three distinct buff options for the room just won; deterministic from the run seed. */
 export function drawLotteryOptions(runSeed: number, roomIndex: number): ArenaLotteryBuff[] {
-  const pool = arenaContent.lottery.buffs;
-  const count = Math.min(arenaContent.lottery.drawCount, pool.length);
+  const remaining = [...arenaContent.lottery.buffs];
+  const count = Math.min(arenaContent.lottery.drawCount, remaining.length);
   const rng = mulberry32(lotterySeed(runSeed, roomIndex, 0));
   const picked: ArenaLotteryBuff[] = [];
-  const used = new Set<string>();
-  let guard = 0;
-  while (picked.length < count && guard++ < 200) {
+  for (let i = 0; i < count; i++) {
     const idx = rngWeightedIndex(
       rng,
-      pool.map((b) => b.weight),
+      remaining.map((b) => b.weight),
     );
-    const buff = pool[idx];
-    if (!buff || used.has(buff.id)) continue;
-    used.add(buff.id);
-    picked.push(buff);
+    const buff = remaining.splice(idx, 1)[0];
+    if (buff) picked.push(buff);
   }
   return picked;
 }

@@ -1,34 +1,42 @@
 /**
- * Arena economy proof helpers (G1 acceptance): entry fees vs habit earnings.
+ * Arena economy proof helpers (G1 acceptance): fees and training caps
+ * computed from `src/game/economy.ts` (`questRewards`, `DIFFICULTY`, `tierDefaults`).
  */
-import { DIFFICULTY, type DifficultyTable } from '../economy';
+import { DIFFICULTY, questRewards } from '../economy';
 import { tierDefaults } from '../content';
-import type { Difficulty, RingId } from '../types';
+import type { Difficulty, RingId, Tier } from '../types';
 import { arenaContent } from './content';
 
-function weightedBaseCoins(table: DifficultyTable): number {
-  const w = table.tierWeights;
-  const sum = w[0] + w[1] + w[2];
-  return (w[0] * tierDefaults[1].baseCoins + w[1] * tierDefaults[2].baseCoins + w[2] * tierDefaults[3].baseCoins) / sum;
+/** Settlement for one typical quest of `tier` at `difficulty` (no bonus, no titles). */
+export function typicalQuestCoins(difficulty: Difficulty, tier: Tier): number {
+  const t = tierDefaults[tier];
+  return questRewards({ tier, baseXp: t.baseXp, baseCoins: t.baseCoins }, { difficulty, bonus: false, timedBonus: false }).coins;
 }
 
-/** Expected settlement per game day from quests alone (no bonus contract). */
-export function expectedDailyCoins(difficulty: Difficulty, adherence: number): number {
+/** Expected settlement from a full board of typical-tier quests (GDD 6.4, no bonus). */
+export function typicalDayCoins(difficulty: Difficulty): number {
   const table = DIFFICULTY[difficulty];
-  const perQuest = Math.round(weightedBaseCoins(table) * table.rewardMult);
-  return Math.round(perQuest * table.questsPerDay * adherence);
+  const [w1, w2, w3] = table.tierWeights;
+  const per =
+    (w1 * typicalQuestCoins(difficulty, 1) + w2 * typicalQuestCoins(difficulty, 2) + w3 * typicalQuestCoins(difficulty, 3)) / 100;
+  return per * table.questsPerDay;
 }
 
-/** Entry fee for a run at `ring`, capped at one day of typical Steady earnings. */
-export function entryFee(ring: RingId): number {
+/** Expected settlement per game day from quests, scaled by adherence (0..1). */
+export function expectedDailyCoins(difficulty: Difficulty, adherence: number): number {
+  return typicalDayCoins(difficulty) * adherence;
+}
+
+/** Entry fee for a run at `ring`, never more than one typical day of that difficulty. */
+export function entryFee(ring: RingId, difficulty: Difficulty = 'steady'): number {
   const e = arenaContent.entry;
-  const raw = e.base + e.perRing * (ring - 1);
-  const cap = Math.round(expectedDailyCoins('steady', 0.9) * e.maxDailyFraction);
-  return Math.min(raw, cap);
+  const typical = typicalDayCoins(difficulty);
+  const raw = e.base + e.perRing * Math.max(0, ring - 1);
+  const cap = typical * e.maxDailyFraction;
+  return Math.min(Math.round(raw), Math.round(cap));
 }
 
-/** Maximum training spend allowed in one wave period (25% of habit coins). */
-export function maxTrainingSpendPerPeriod(difficulty: Difficulty, adherence: number): number {
-  const weeklyHabitCoins = expectedDailyCoins(difficulty, adherence) * 7;
-  return Math.floor(weeklyHabitCoins * arenaContent.training.weeklyCapFraction);
+/** Maximum training spend allowed in one wave period (25% of a typical habit week). */
+export function maxTrainingSpendPerPeriod(difficulty: Difficulty): number {
+  return Math.floor(typicalDayCoins(difficulty) * 7 * arenaContent.training.weeklyCapFraction);
 }

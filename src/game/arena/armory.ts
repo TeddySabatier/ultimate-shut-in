@@ -48,7 +48,7 @@ export function buyTraining(save: SaveFile, habit: HabitId, _now: number, _opts?
   if (save.player.coins < price) return refuse(save, 'arena.shortCoins');
   const draft = clone(save);
   syncTrainingPeriod(draft);
-  const cap = maxTrainingSpendPerPeriod(draft.settings.difficulty, 0.9);
+  const cap = maxTrainingSpendPerPeriod(draft.settings.difficulty);
   if (draft.arena.trainingCoinsThisPeriod + price > cap) return refuse(save, 'arena.trainingCap');
   draft.player.coins -= price;
   draft.arena.trainingCoinsThisPeriod += price;

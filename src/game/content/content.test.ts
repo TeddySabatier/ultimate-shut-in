@@ -23,6 +23,7 @@ import {
   titles,
   utilityForHabit,
   validateContent,
+  arenaCatalog,
 } from './index';
 import { HABIT_IDS, OUTPOST_TYPE_IDS } from '../types';
 
@@ -116,8 +117,18 @@ describe('outposts content', () => {
     expect(getOutpostState('corridor').label).toBe('Corridor');
     expect(outpostRules).toMatchObject({ baseCap: 3, capPerRing: 1, maxCap: 10, perZone: 3, minSpacing: 3, quietAfterDays: 14, rerollDiscount: 5, corridorCoinMult: 0.1, strongholdDefense: 2, strongholdDefenseCap: 6, visitLogMax: 400 });
     expect(Object.keys(strings.map.errors).length).toBeGreaterThanOrEqual(14);
+    expect(strings.arena.cardTitle).toBe('The Arena');
+    expect(strings.arena.troopsHome.length).toBeGreaterThan(0);
     for (const t of outpostTypes) {
       expect(existsSync(resolve('src/assets/outposts', `${t.icon}.svg`)), t.icon).toBe(true);
     }
+  });
+});
+
+describe('arena content', () => {
+  it('ships at least three gear pieces and three lottery buffs', () => {
+    expect(arenaCatalog.gear.length).toBeGreaterThanOrEqual(3);
+    expect(arenaCatalog.lottery.buffs.length).toBeGreaterThanOrEqual(3);
+    expect(arenaCatalog.entry.base).toBeGreaterThan(0);
   });
 });
