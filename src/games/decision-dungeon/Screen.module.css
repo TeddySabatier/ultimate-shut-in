@@ -1,0 +1,193 @@
+/* Decision Dungeon. Tokens only; rules from docs/RESPONSIVE-RULES.md. */
+
+.dungeon {
+  width: 100%;
+}
+
+.disclaimer {
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  margin: 0 0 var(--space-2);
+}
+
+.intro {
+  font-size: var(--text-sm);
+  margin: 0 0 var(--space-3);
+}
+
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.subtitle {
+  margin: var(--space-3) 0 var(--space-2);
+}
+
+.room {
+  min-width: 0;
+  padding: var(--space-3);
+  border: 2px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-panel);
+  overflow-wrap: anywhere;
+  transition: opacity var(--duration-med) var(--ease-snap);
+}
+
+.still .room {
+  transition: none;
+}
+
+.situation {
+  margin: 0;
+  font-size: var(--text-md);
+}
+
+.reframe {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-accent-text);
+}
+
+.reframeLabel {
+  font-family: var(--font-heading);
+  font-size: var(--heading-xs);
+  text-transform: uppercase;
+  color: var(--color-muted);
+  display: block;
+  margin-bottom: var(--space-1);
+}
+
+.live {
+  min-width: 0;
+}
+
+.reflection {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3);
+  border: 2px solid var(--color-accent-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-panel-raised);
+  overflow-wrap: anywhere;
+}
+
+.reflection p {
+  margin: 0;
+}
+
+.doors {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.door {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.doorBtn {
+  width: 100%;
+  height: auto;
+  min-height: var(--touch-target);
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  text-transform: none;
+  gap: var(--space-1);
+}
+
+.doorName {
+  font-size: var(--heading-xs);
+  text-transform: uppercase;
+  color: var(--color-accent-2);
+}
+
+.doorLabel {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  text-transform: none;
+  overflow-wrap: anywhere;
+}
+
+.cue,
+.tag {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  text-transform: none;
+  color: var(--color-accent-text);
+}
+
+.tag {
+  color: var(--color-info);
+}
+
+.peek {
+  width: 100%;
+  text-transform: none;
+}
+
+.tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.hint {
+  margin-top: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.banner {
+  margin: var(--space-4) 0 0;
+  padding: var(--space-3);
+  border: 2px solid var(--color-accent-2);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-heading);
+  font-size: var(--heading-sm);
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--color-accent-2);
+  overflow-wrap: anywhere;
+}
+
+.banner[data-result='won'] {
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.banner[data-result='lost'] {
+  border-color: var(--color-border-light);
+  color: var(--color-muted);
+}
+
+@media (min-width: 768px) {
+  .doors {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 359px) {
+  .intro {
+    font-size: var(--text-xs);
+  }
+}
+
+@media (max-height: 500px) {
+  .intro,
+  .disclaimer {
+    display: none;
+  }
+  .room {
+    padding: var(--space-2);
+  }
+}
