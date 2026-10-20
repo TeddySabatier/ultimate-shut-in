@@ -199,7 +199,7 @@ export function drawStatic(ctx: CanvasRenderingContext2D, w: number, h: number, 
   ctx.lineWidth = Math.max(1.5, cell * 0.05);
   ctx.setLineDash(DASH_PAD);
   ctx.fillStyle = pal.muted;
-  ctx.font = `${Math.max(8, Math.round(cell * 0.2))}px sans-serif`;
+  ctx.font = `bold ${Math.max(10, Math.round(cell * 0.26))}px sans-serif`;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
   for (let i = 0; i < s.pads.length; i++) {

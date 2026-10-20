@@ -31,12 +31,15 @@ test('places a tower with the keyboard and pauses with P', async ({ page }, test
   const glowBefore = Number(/Glow (\d+)/.exec(await hud(page).innerText())?.[1]);
   await page.keyboard.press('ArrowRight');
   await page.keyboard.press('1');
+  await page.keyboard.press('Enter');
   await expect(stage.getByTestId('td-feed')).toContainText(/takes a post: Runner on pad/);
   expect(Number(/Glow (\d+)/.exec(await hud(page).innerText())?.[1])).toBeLessThan(glowBefore);
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('2');
+  await page.keyboard.press('Enter');
   await page.keyboard.press('ArrowRight');
   await page.keyboard.press('3');
+  await page.keyboard.press('Enter');
   // Call the first wave and let a few monsters walk in before the screenshot.
   await page.keyboard.press('n');
   await expect(hud(page)).toContainText('Wave 1 of 6');
@@ -63,7 +66,7 @@ test('plays a gentle game to an outcome', async ({ page }, testInfo) => {
   // The Lab shows the bot's outcome while the stage still holds a fresh game: play a few real seconds, then stand down mid-wave to show the closing screen.
   const stage = page.getByTestId('lab-stage');
   await board(page).focus();
-  for (const key of ['1', 'ArrowRight', '2', 'ArrowDown', '3', 'n']) await page.keyboard.press(key);
+  for (const key of ['1', 'Enter', 'ArrowRight', '2', 'Enter', 'ArrowDown', '3', 'Enter', 'n']) await page.keyboard.press(key);
   await expect.poll(async () => Number(await page.getByTestId('td-root').getAttribute('data-tick')), { timeout: 10_000 }).toBeGreaterThan(160);
   await stage.getByRole('button', { name: 'Give up' }).click();
   await expect(stage.getByRole('status')).toContainText('The troops head home');
@@ -83,7 +86,7 @@ test('replaying the same seed gives the same outcome', async ({ page }) => {
   expect(first.log).toMatch(/The path: /);
   await expectValidOutcome(page);
   await page.getByRole('button', { name: 'Replay same seed' }).click();
-  await expect(hud(page)).toContainText('Wave 0 of 5');
+  await expect(hud(page)).toContainText('Get ready: 5 waves');
 });
 
 // This game's own checks.
@@ -91,9 +94,10 @@ test('plays in French', async ({ page }) => {
   await openLab(page, ID, { seed: 3, lang: 'fr', party: 'starter' });
   const stage = page.getByTestId('lab-stage');
   await expect(stage.getByRole('heading', { name: 'Tenir le Havre' })).toBeVisible();
-  await expect(hud(page)).toContainText('Vague 0 sur 6');
+  await expect(hud(page)).toContainText('Prépare-toi : 6 vagues');
   await board(page).focus();
   await page.keyboard.press('1');
+  await page.keyboard.press('Enter');
   await expect(stage.getByTestId('td-feed')).toContainText('prend son poste');
   await stage.getByRole('button', { name: 'Abandonner' }).click();
   expect((await readOutcome(page)).result).toBe('fled');
