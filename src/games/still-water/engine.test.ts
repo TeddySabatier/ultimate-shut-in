@@ -608,7 +608,7 @@ describe('determinism and the bot', () => {
     for (const party of [parties.starter, parties.full]) {
       const { winRate } = botStats(party, 2, 200);
       expect(winRate).toBeGreaterThanOrEqual(0.4);
-      expect(winRate).toBeLessThanOrEqual(0.75);
+      expect(winRate).toBeLessThanOrEqual(0.7);
     }
   });
 

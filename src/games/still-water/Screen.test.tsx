@@ -4,7 +4,7 @@
  * reduced motion shows the bar and the same text cue, French follows the
  * locale, and the optional modes (tap each phase, pulse) stay off by default.
  */
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { emptyRun, makeMember, type GameScreenProps, type Outcome, type Party } from '../contract';
 import { parties, runs } from '../testing/contract';
@@ -299,6 +299,74 @@ describe('Still Water screen: reduced motion, leaving and the end', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Leave' }));
     expect(p.onExit).toHaveBeenCalledTimes(1);
     expect(p.onFinish).toHaveBeenCalledTimes(1);
+  });
+
+  it('a game stepped away from while paused says Done, not Paused', () => {
+    render(<StillWaterScreen {...props()} />);
+    begin();
+    fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
+    expect(screen.getByTestId('still-water-phase')).toHaveTextContent('Paused');
+    fireEvent.click(screen.getByRole('button', { name: 'Step away' }));
+    expect(screen.getByTestId('still-water-phase')).toHaveTextContent('Done');
+    expect(screen.getByTestId('still-water-phase')).not.toHaveTextContent('Paused');
+  });
+
+  it('a hidden tab does not pause a board that has not begun or has ended', () => {
+    const hide = () => {
+      Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+      act(() => void document.dispatchEvent(new Event('visibilitychange')));
+      Reflect.deleteProperty(document, 'hidden');
+    };
+    const { unmount } = render(<StillWaterScreen {...props()} />);
+    hide();
+    expect(screen.getByTestId('still-water-phase')).toHaveTextContent('Get ready');
+    begin();
+    expect(screen.getByRole('button', { name: 'Pause' })).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(screen.getByRole('button', { name: 'Step away' }));
+    hide();
+    expect(screen.getByTestId('still-water-phase')).toHaveTextContent('Done');
+    unmount();
+  });
+
+  it('after Resume and after a toggle the focus goes back to the hold button, so Space holds', () => {
+    render(<StillWaterScreen {...props()} />);
+    begin();
+    wait(100);
+    fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Resume' }));
+    wait(100);
+    expect(hold()).toHaveFocus();
+    const toggle = screen.getByRole('button', { name: 'Tap each phase' });
+    toggle.focus();
+    fireEvent.click(toggle);
+    wait(100);
+    expect(hold()).toHaveFocus();
+  });
+
+  it('the hint perk says "cycle" for one and "cycles" for more, in both languages', () => {
+    const hinted = (amount: number, locale: 'en' | 'fr') =>
+      props({ party: noMove, locale, run: { buffs: [{ id: 'h', kind: 'hint', amount }], roomIndex: 0, difficulty: 1 } });
+    const { unmount: u1 } = render(<StillWaterScreen {...hinted(1, 'en')} />);
+    expect(screen.getByText('A hint lights the first cycle.')).toBeInTheDocument();
+    u1();
+    const { unmount: u2 } = render(<StillWaterScreen {...hinted(3, 'en')} />);
+    expect(screen.getByText('A hint lights the first 3 cycles.')).toBeInTheDocument();
+    u2();
+    const { unmount: u3 } = render(<StillWaterScreen {...hinted(1, 'fr')} />);
+    expect(screen.getByText('Un indice éclaire le premier cycle.')).toBeInTheDocument();
+    u3();
+    render(<StillWaterScreen {...hinted(2, 'fr')} />);
+    expect(screen.getByText('Un indice éclaire les 2 premiers cycles.')).toBeInTheDocument();
+  });
+
+  it('French keeps a non-breaking space before the colon and between a number and "s", and a decimal comma in the grace', () => {
+    render(<StillWaterScreen {...props({ locale: 'fr', party: parties.starter, run: emptyRun(1) })} />);
+    const text = document.body.textContent ?? '';
+    expect(text).toContain('Marge de tempo ±0,4 s');
+    expect(text).toContain('Rides laissées passer : 0 sur 1');
+    cleanup();
+    render(<StillWaterScreen {...props({ locale: 'fr', run: emptyRun(1) })} />);
+    expect(screen.getByTestId('still-water-next').textContent).toContain('Dans 2 s : inspire');
   });
 
   it('after the end the cue says Done, never an instruction to breathe', () => {

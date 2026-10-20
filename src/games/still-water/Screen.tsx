@@ -120,7 +120,7 @@ export default function StillWaterScreen(props: GameScreenProps) {
   // A hidden tab pauses the game (the clock already stops; this says so when the player comes back).
   useEffect(() => {
     const onHidden = () => {
-      if (document.hidden) setPaused(true);
+      if (document.hidden && live.current.running) setPaused(true);
     };
     document.addEventListener('visibilitychange', onHidden);
     return () => document.removeEventListener('visibilitychange', onHidden);
@@ -166,10 +166,11 @@ export default function StillWaterScreen(props: GameScreenProps) {
     };
   }, [setHold, tapPhase]);
 
+  /** The hold button takes the focus, so Space and Enter go straight to the breath (not back to the toggle just pressed). */
+  const focusHold = () => requestAnimationFrame(() => holdRef.current?.focus({ preventScroll: true }));
   const begin = () => {
     setBegun(true);
-    // The hold button takes the focus, so Space and Enter go straight to the breath.
-    requestAnimationFrame(() => holdRef.current?.focus({ preventScroll: true }));
+    focusHold();
   };
 
   const cue = s.phase[phase];
@@ -179,7 +180,7 @@ export default function StillWaterScreen(props: GameScreenProps) {
   const next = nextPhase(state);
   const left = Math.max(1, Math.ceil((phaseTicksLeft(state) * FIXED_DT_MS) / 1000));
   const nextLine = next ? formatText(s.next, { n: left, phase: s.phaseLower[next] }) : formatText(s.nextEnd, { n: left });
-  const grace = Math.round((state.tolerance * FIXED_DT_MS) / 100) / 10;
+  const grace = seconds(state.tolerance, '{n}', locale);
   const endText = outcome ? s.end[outcome.result] : null;
 
   return (
@@ -226,8 +227,8 @@ export default function StillWaterScreen(props: GameScreenProps) {
           )}
 
           <p className={styles.cue} aria-live="polite" data-testid="still-water-phase">
-            {paused ? s.paused : cue}
-            {spokenLength && !paused ? <span className="srOnly">, {spokenLength}</span> : null}
+            {paused && !over ? s.paused : cue}
+            {spokenLength && !paused && !over ? <span className="srOnly">, {spokenLength}</span> : null}
           </p>
           {state.hintCycles > 0 ? (
             <p className={cx('muted', styles.next)} data-testid="still-water-next" aria-hidden="true">
@@ -252,7 +253,7 @@ export default function StillWaterScreen(props: GameScreenProps) {
               <p className={cx('muted', styles.line)}>{formatText(s.grace, { n: grace })}</p>
               {state.sleepName ? <p className={cx('muted', styles.line)}>{formatText(s.sleepPerk, { name: state.sleepName })}</p> : null}
               {state.eatName ? <p className={cx('muted', styles.line)}>{formatText(s.eatPerk, { name: state.eatName })}</p> : null}
-              {!state.eatName && state.hintCycles > 0 ? <p className={cx('muted', styles.line)}>{formatText(s.hintPerk, { n: state.hintCycles })}</p> : null}
+              {!state.eatName && state.hintCycles > 0 ? <p className={cx('muted', styles.line)}>{state.hintCycles === 1 ? s.hintPerkOne : formatText(s.hintPerk, { n: state.hintCycles })}</p> : null}
               {state.moveName ? <p className={cx('muted', styles.line)}>{formatText(s.movePerk, { name: state.moveName })}</p> : null}
               {canChoosePace(state) ? (
                 <div role="group" aria-label={s.paceGroup} className={styles.paces}>
@@ -335,14 +336,23 @@ export default function StillWaterScreen(props: GameScreenProps) {
             <>
               {tapMode ? <p className={cx('muted', styles.line)}>{s.tapHint}</p> : null}
               <div role="group" aria-label={s.options} className={styles.options}>
-                <button type="button" className="btn" aria-pressed={paused} onClick={() => setPaused((p) => !p)}>
+                <button type="button" className="btn" aria-pressed={paused} onClick={() => {
+                    if (paused) focusHold();
+                    setPaused((p) => !p);
+                  }}>
                   {paused ? s.resume : s.pause}
                 </button>
-                <button type="button" className="btn" aria-pressed={tapMode} onClick={() => setTapMode((v) => !v)}>
+                <button type="button" className="btn" aria-pressed={tapMode} onClick={() => {
+                    focusHold();
+                    setTapMode((v) => !v);
+                  }}>
                   {s.tapMode}
                 </button>
                 {canVibrate ? (
-                  <button type="button" className="btn" aria-pressed={vibrate} onClick={() => setVibrate((v) => !v)}>
+                  <button type="button" className="btn" aria-pressed={vibrate} onClick={() => {
+                      focusHold();
+                      setVibrate((v) => !v);
+                    }}>
                     {s.vibrate}
                   </button>
                 ) : null}

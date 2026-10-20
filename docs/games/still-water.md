@@ -53,7 +53,7 @@ Each tick of a cycle is one of three kinds. The first and last `grace` ticks of 
 
 - Perfect: 100. Never held: 0. Always held: 0.
 - Press `L` ticks late, past the grace: you lose `L / H` of the hold. Release `L` ticks late: `L / R` is counted as a false hold. Release `E` ticks early: you lose `E / H`.
-- Skipping only the rest at the top (holding during the breath in, letting go when the ring stops growing) loses only the rest's share of `H` (a quarter to 40 percent), so a player can still win that way; the rest phase counts for what it is, not more.
+- Skipping only the rest at the top (holding during the breath in, letting go when the ring stops growing) loses only the rest's share of `H` (a quarter to 40 percent); difficulty 5 is the most lenient there (its rest is 1 s of 4 s, a quarter), difficulty 4 the strictest (2 s of 5 s, 40 percent), so a player can still win that way; the rest phase counts for what it is, not more.
 - A cycle under 50 percent is forgiven by a `revive` buff and counts as 70 (at most a third of the cycles, so a buff cannot turn no play into a win).
 
 `score = round(mean cycle accuracy × ceiling / 100)`, where cycles you did not play count as 0 and `ceiling = 850 + floor(100 × ripples let go / ripples) + floor(50 × calm / 100)` (with no ripples the whole 100 is kept). `calm` starts at 100 and every ripple touched costs 15. The ceiling is why ignoring the ripples matters: perfect breathing and no touch scores 1000, perfect breathing and every ripple touched is at most 892.
@@ -97,7 +97,7 @@ Setup comes from `mulberry32(fnv1a('still-water:<seed>'))`: only the ripples (ki
 | 4 | 36 / 40 / 20 | 35 % | 53 % |
 | 5 | 32 / 40 / 25 | 22 % | 42 % |
 
-The bot is a clumsy breather on purpose (its press is up to 2 seconds late at difficulty 1) so that normal difficulty sits in the 40 to 70 percent band; a person following the ring is much more precise than that.
+The step from difficulty 1 to 2 is partly the bot's own spread (40 ticks at difficulty 1, 52 at difficulty 2, a looser breather; the table is a tuning of win rates, not of how a person breathes), not only the rhythm. The bot is a clumsy breather on purpose (its press is up to 2 seconds late at difficulty 1) so that normal difficulty sits in the 40 to 70 percent band; a person following the ring is much more precise than that.
 
 ## Known limits
 

@@ -109,6 +109,17 @@ Skipped, with the reason:
 - **Minor 4 (skipping the rest phase still wins).** Forgiving by design: the rest is a quarter to 40 percent of the hold, and a player who holds only the breath in earns that much less. Documented in the docs page; no weighting added.
 - **Minor 7, moving the ripple row above the stage.** Kept the row under the hold button (a reserved row, no layout shift) and widened the gap instead; moving it would put it in the thumb's path to the Pause row or above the pond, away from where the eyes are.
 
+## Review round 2 (cold re-review of `57678f2`: no majors)
+
+Fixed, each with a unit test:
+
+1. The cue showed "Paused" over a finished game (a pause, then Step away) and a hidden tab could pause a board that had not begun or had ended: the visibility handler only pauses a running game, and the cue is `paused && !over ? Paused : cue`.
+2. Keyboard focus trap: after Resume, and after the Tap each phase and Pulse toggles, the focus returns to the hold button (as Begin does), so the next Space holds instead of pressing the toggle again.
+3. "first 1 cycles": the hint perk has a singular string (`hintPerkOne`) in English and French.
+4. The bot test now asserts at most 0.70 on normal difficulty, as its title says (measured 54.8 and 63.3 percent).
+5. French typography: non-breaking spaces in `next`, `nextEnd` and `grace` (and in the English ones), and the grace line goes through the decimal-comma `seconds()` helper ("±0,4 s").
+6. Docs: the difficulty 1 to 2 step of the bot table is partly the bot's spread, and difficulty 5 is the most lenient when skipping the rest.
+
 CI note: after merging `origin/integration/arena` (PR #28) the shared specs no longer depend on the registered games.
 
 ## CI on this branch
