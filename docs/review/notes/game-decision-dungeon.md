@@ -105,9 +105,9 @@ None. The lab, helpers, kit and lint were enough. (Observation only: `expectResp
 ```
 npm run lint                                  clean
 npm run typecheck                             clean
-npm test                                      76 files, 1048 tests pass (Decision Dungeon: 96 = 22 content + 49 engine + 15 Screen + 10 contract kit)
+npm test                                      79 files, 1180 tests pass with the merged base (Decision Dungeon: 96 = 22 content + 49 engine + 15 Screen + 10 contract kit)
 npm run build                                 ok
-node scripts/games-budget.mjs                 decision-dungeon code 80.6 KB / 150 KB, assets 0 / 200 KB
+node scripts/games-budget.mjs                 decision-dungeon code 80.6 KB / 150 KB, assets 0 / 200 KB (the engine and strings that ship with the registry are about 20 KB of it; the scene texts load with the Screen)
 node scripts/check-main-chunk.mjs             ok (no game in the main chunk)
 npm run screenshots:check                     ok
 npx playwright test e2e/games/decision-dungeon.spec.ts --workers=2
