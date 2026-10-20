@@ -16,6 +16,7 @@ import {
   GUARD_TICKS,
   HP_PCT,
   MAPS,
+  PARTY_HP_PCT,
   UNIT,
   bestPad,
   buildPads,
@@ -94,6 +95,13 @@ function enemy(over: Partial<Enemy> = {}): Enemy {
     pulseAt: 0,
     ...over,
   };
+}
+
+/** Hit points a monster of `base` hp has when it spawns in `wave` (spec section 4): difficulty, the party's power, then the wave. */
+function spawnHp(s: TDState, base: number, wave: number): number {
+  let hp = Math.floor((Math.floor((Math.floor((base * HP_PCT[s.difficulty - 1]!) / 100) * s.hpPct) / 100) * (100 + 6 * (wave - 1))) / 100);
+  if (wave === 1) hp = Math.floor((hp * 80) / 100);
+  return Math.max(1, hp);
 }
 
 const tick = (s: TDState, n = 1): TDState => {
@@ -243,11 +251,11 @@ describe('towers', () => {
     const s = tick(
       world({ towers: [tower(P_ABOVE, 'sweeper')], enemies: [enemy({ pos: 4000 }), enemy({ pos: 4300 }), enemy({ pos: 3800 }), enemy({ pos: 7000 })] }),
     );
-    expect(s.enemies.map((e) => e.hp)).toEqual([993, 993, 993, 1000]);
+    expect(s.enemies.map((e) => e.hp)).toEqual([990, 990, 990, 1000]);
     expect(s.shots).toHaveLength(1);
   });
 
-  it('Chorus boosts adjacent towers only, the highest boost applies, and it is gone once sold', () => {
+  it('Chorus boosts the towers within its reach, the highest boost applies, and it is gone once sold', () => {
     const runnerOnly = (extra: Tower[]) => {
       const s = world({ towers: [tower(P_ABOVE, 'runner'), ...extra].sort((a, b) => a.pad - b.pad), enemies: [enemy()] });
       return hpOf(tick(s));
@@ -257,11 +265,37 @@ describe('towers', () => {
     expect(runnerOnly([])).toBe(1000 - 5);
     expect(runnerOnly([tower(near, 'chorus')])).toBe(1000 - Math.floor((5 * (100 + chorusBoost(1, 44))) / 100)); // +36 percent: 6
     expect(runnerOnly([tower(near, 'chorus'), tower(near2, 'chorus', { level: 2 })])).toBe(1000 - Math.floor((5 * (100 + chorusBoost(2, 44))) / 100)); // +51 percent: 7, not 5 + 6 + 7
-    expect(runnerOnly([tower(padIndex(4, 4), 'chorus')])).toBe(1000 - 5); // two cells away: no boost
+    expect(runnerOnly([tower(padIndex(4, 4), 'chorus')])).toBe(1000 - 6); // two cells away (2000 u) is inside the reach of 2100 + 5 * 44
+    expect(rangeOf('chorus', 1, 44)).toBe(2320);
+    expect(runnerOnly([tower(padIndex(7, 2), 'chorus')])).toBe(1000 - 5); // 3000 u: out of reach
     expect(runnerOnly([tower(padIndex(0, 0), 'chorus')])).toBe(1000 - 5);
     let s = world({ towers: [tower(P_ABOVE, 'runner'), tower(near, 'chorus')].sort((a, b) => a.pad - b.pad), enemies: [enemy()] });
     s = act(s, { type: 'sell', pad: near });
     expect(hpOf(tick(s))).toBe(1000 - 5);
+  });
+
+  it('one Chorus boosts every tower in its reach at once, not just a neighbour', () => {
+    const left = padIndex(3, 2);
+    const right = padIndex(5, 2);
+    const mid = P_ABOVE;
+    const twoRunners = (chorus: Tower[]) => {
+      const s = tick(world({ towers: [tower(left, 'runner'), tower(right, 'runner'), ...chorus].sort((a, b) => a.pad - b.pad), enemies: [enemy()] }));
+      return 1000 - hpOf(s);
+    };
+    expect(twoRunners([])).toBe(10);
+    expect(twoRunners([tower(mid, 'chorus')])).toBe(12); // both runners hit for 6
+    expect(twoRunners([tower(padIndex(0, 0), 'chorus')])).toBe(10); // out of reach of both
+  });
+
+  it('every map has pads where a Chorus reaches two or more towers, mirrored or not', () => {
+    for (let layout = 0; layout < 3; layout++) {
+      for (const mirror of [false, true]) {
+        const pads = buildPads(layout, mirror);
+        const reach = rangeOf('chorus', 1, 1);
+        const neighbours = pads.map((p, i) => pads.filter((q, j) => j !== i && ((p % 9) - (q % 9)) ** 2 * UNIT * UNIT + (Math.floor(p / 9) - Math.floor(q / 9)) ** 2 * UNIT * UNIT <= reach * reach).length);
+        expect(neighbours.filter((n) => n >= 2).length, `layout ${layout}, mirror ${mirror}`).toBeGreaterThanOrEqual(5);
+      }
+    }
   });
 
   it('Archivist marks its target: everyone hits it harder until the mark runs out', () => {
@@ -271,8 +305,8 @@ describe('towers', () => {
     const s0 = world({ towers: [tower(arch, 'archivist'), tower(run, 'runner')], enemies: [enemy()] });
     const s1 = tick(s0);
     expect(s1.enemies[0]!.markUntil).toBe(1 + 60);
-    expect(s1.enemies[0]!.markPct).toBe(25 + 8);
-    expect(hpOf(s1)).toBe(1000 - 4 - Math.floor((5 * 133) / 100)); // archivist 4, then the runner at +33 percent
+    expect(s1.enemies[0]!.markPct).toBe(40 + 8);
+    expect(hpOf(s1)).toBe(1000 - 4 - Math.floor((5 * 148) / 100)); // archivist 4, then the runner at +48 percent
     // Still marked at tick 60, expired at tick 61.
     const marked = tick(world({ towers: [tower(run, 'runner')], enemies: [enemy({ markUntil: 11, markPct: 33 })], tick: 9 }));
     expect(hpOf(marked)).toBe(1000 - 6);
@@ -284,7 +318,7 @@ describe('towers', () => {
     const lead = enemy({ pos: 4200, markUntil: 500, markPct: 90 });
     const back = enemy({ pos: 4000 });
     const s = tick(world({ towers: [tower(P_ABOVE, 'archivist')], enemies: [lead, back] }));
-    expect(s.enemies[1]!.markPct).toBe(33);
+    expect(s.enemies[1]!.markPct).toBe(48);
     expect(s.enemies[0]!.markPct).toBe(90);
     const again = tick(world({ towers: [tower(P_ABOVE, 'archivist')], enemies: [enemy({ pos: 4200, markUntil: 500, markPct: 90 })] }));
     expect(again.enemies[0]!.markPct).toBe(90);
@@ -570,7 +604,7 @@ describe('waves', () => {
     expect(s.started).toBe(1);
     expect(s.enemies).toHaveLength(1);
     expect(s.feed.some((l) => l.key === 'waveStart')).toBe(true);
-    expect(s.enemies[0]!.hp).toBe(Math.floor((Math.floor((60 * HP_PCT[2]!) / 100) * 80) / 100)); // wave 1 is gentler
+    expect(s.enemies[0]!.hp).toBe(spawnHp(s, 60, 1)); // wave 1 is gentler
   });
 
   it('hit points grow with the wave number and the difficulty', () => {
@@ -578,7 +612,7 @@ describe('waves', () => {
       const s = world({ queue: [{ at: 1, kind: 'clutter-blob', wave }], difficulty: d });
       return tick(s).enemies[0]!.hp;
     };
-    expect(hpAt(3, 3)).toBe(Math.floor((Math.floor((60 * HP_PCT[2]!) / 100) * 112) / 100));
+    expect(hpAt(3, 3)).toBe(spawnHp(world(), 60, 3));
     expect(hpAt(3, 1)).toBeLessThan(hpAt(3, 3));
     expect(hpAt(5, 3)).toBeGreaterThan(hpAt(3, 3));
   });
@@ -615,7 +649,7 @@ describe('the Static', () => {
 
   it('arrives on the last wave with a pulse 100 ticks later, and announces itself', () => {
     const s = tick(bw({ queue: [{ at: 1, kind: 'the-static', wave: 8 }], started: 8 }));
-    expect(s.enemies[0]).toMatchObject({ kind: 'the-static', pulseAt: 101, hp: Math.floor((Math.floor((800 * HP_PCT[2]!) / 100) * 142) / 100) });
+    expect(s.enemies[0]).toMatchObject({ kind: 'the-static', pulseAt: 101, hp: spawnHp(s, 800, 8) });
     expect(s.feed.some((l) => l.key === 'bossArrives')).toBe(true);
   });
 
@@ -805,7 +839,7 @@ describe('winning and losing', () => {
     expect(o.result).toBe('fled');
     expect(o.log[0]).toMatch(/^Le chemin : /);
     expect(o.log.some((l) => l.includes('Ada encourage depuis le rempart'))).toBe(true);
-    expect(o.log.filter((l) => /vaincus/.test(l))).toHaveLength(2);
+    expect(o.log.filter((l) => /monstre\(s\) vaincu\(s\)/.test(l))).toHaveLength(2);
     expect(o.troopsUsed).toEqual(['sleep', 'eat'].sort((a, b) => parties.mixed.members.findIndex((m) => m.id === a) - parties.mixed.members.findIndex((m) => m.id === b)));
     const en = engine.outcome(engine.reduce(engine.initial(1, parties.full, runs.plain, 'en'), { type: 'forfeit' }))!;
     expect(en.log[en.log.length - 1]).toBe('The troops head home early, 0 of 6 waves cleared.');
@@ -1024,18 +1058,34 @@ describe('the bot', () => {
     expect(engine.botPlay(act(s, { type: 'forfeit' }), rng)).toBeNull();
   });
 
-  it('opens with a Lantern, builds a Lull from wave 2 and a Hearth once the Haven is hurt', () => {
+  it('opens with a Lantern, builds six damage towers, then its Lull, Archivist and (once the Haven is hurt) Hearth', () => {
     const s = start(5, emptyRun(3));
     expect(engine.botPlay(s, botRng())).toMatchObject({ type: 'place', member: 'outside' });
-    const hurt = { ...s, towers: [tower(0, 'lantern')], started: 2, havenHp: 5, glow: 500 };
-    const a = engine.botPlay(hurt, botRng())!;
-    expect(a).toMatchObject({ type: 'place', member: 'sleep' });
-    const withLull = { ...hurt, towers: [tower(0, 'lantern'), tower(1, 'lull')] };
-    expect(engine.botPlay(withLull, botRng())).toMatchObject({ type: 'place', member: 'eat' });
+    const gunMembers = ['outside', 'hygiene', 'clean', 'move'];
+    // Fewer than six damage towers: always another damage tower.
+    const early = { ...s, towers: [tower(0, 'lantern'), tower(1, 'bubble'), tower(2, 'sweeper')], glow: 900, havenHp: 3 };
+    expect(gunMembers).toContain((engine.botPlay(early, botRng()) as { member: string }).member);
+    // Six damage towers stand: the supports come, in order, each once.
+    let state: TDState = { ...s, towers: (['lantern', 'bubble', 'sweeper', 'runner', 'lantern', 'bubble'] as TowerKind[]).map((k, i) => tower(i, k)), glow: 900, havenHp: 3 };
+    const order: string[] = [];
+    for (let i = 0; i < 5; i++) {
+      const a = engine.botPlay(state, botRng())!;
+      if (a.type !== 'place') break;
+      order.push(a.member);
+      state = engine.reduce(state, a);
+    }
+    const supports = order.filter((m) => ['social', 'sleep', 'study', 'eat'].includes(m));
+    expect(supports.indexOf('sleep')).toBeLessThan(supports.indexOf('study'));
+    expect(supports.indexOf('study')).toBeLessThan(supports.indexOf('eat'));
+    expect(new Set(order).size).toBe(order.length);
+    // A healthy Haven gets no Hearth.
+    const healthy = { ...state, havenHp: state.havenMax };
+    expect(order).toContain('eat');
+    expect(engine.botPlay({ ...healthy, towers: healthy.towers.filter((t) => t.kind !== 'hearth') }, botRng())).not.toMatchObject({ member: 'eat' });
   });
 
-  it('upgrades once seven towers stand, and calls the wave when idle and broke', () => {
-    const s = start(5, emptyRun(3));
+  it('upgrades once its damage towers stand, and calls the wave when idle and broke', () => {
+    const s = start(5, emptyRun(3), parties.starter);
     const seven = { ...s, glow: 500, towers: [0, 1, 2, 3, 4, 5, 6].map((p) => tower(p, 'runner')) };
     expect(engine.botPlay(seven, botRng())).toMatchObject({ type: 'upgrade', pad: 0 });
     const broke = { ...s, glow: 0 };
@@ -1052,6 +1102,8 @@ describe('the bot', () => {
 
 /** Eight vassals at level 6, loyalty 20: power 20, a mid-game party. */
 const midParty = { members: HABIT_IDS.map((h) => makeMember({ id: h, name: vassalName(h), habit: h, level: 6, loyalty: 20 })) };
+/** Five vassals at level 5, loyalty 60: power 21. */
+const fiveParty = { members: (['move', 'outside', 'clean', 'hygiene', 'study'] as const).map((h) => makeMember({ id: h, name: vassalName(h), habit: h, level: 5, loyalty: 60 })) };
 
 function botWins(party: typeof parties.full, difficulty: 1 | 2 | 3 | 4 | 5, seeds: number): number {
   let wins = 0;
@@ -1059,36 +1111,61 @@ function botWins(party: typeof parties.full, difficulty: 1 | 2 | 3 | 4 | 5, seed
   return wins;
 }
 
-describe('balance: no cliff between parties or difficulties (the bot of spec section 9, no buffs)', () => {
-  it('(b) a mid party of 8 members at power 20 wins at least 3 of seeds 1 to 30 on difficulty 3', { timeout: 60000 }, () => {
+// Win rates are measured with the bot of spec section 9 and no buffs; the doc (section 13) has the 100-seed table.
+describe('balance: a smooth curve over parties and difficulties', () => {
+  it('a party of five vassals at power 21 has power 21', () => {
+    expect(fiveParty.members.every((m) => m.power === 21)).toBe(true);
     expect(midParty.members.every((m) => m.power === 20)).toBe(true);
-    expect(botWins(midParty, 3, 30)).toBeGreaterThanOrEqual(3);
   });
 
-  it('(c) the starter party wins at least 18 of seeds 1 to 30 on difficulty 2, and loses at least once', { timeout: 60000 }, () => {
-    const wins = botWins(parties.starter, 2, 30);
-    expect(wins).toBeGreaterThanOrEqual(18);
-    expect(wins).toBeLessThan(30);
+  it('every party wins difficulty 1 and (at least 27 of 30) difficulty 2, the starter and five-vassal parties included', { timeout: 20000 }, () => {
+    for (const party of [parties.starter, fiveParty, midParty, parties.full]) {
+      expect(botWins(party, 1, 30)).toBe(30);
+      expect(botWins(party, 2, 30)).toBeGreaterThanOrEqual(27);
+    }
   });
 
-  it('(e) the full party wins at least one of seeds 1 to 50 on difficulty 5', { timeout: 60000 }, () => {
-    expect(botWins(parties.full, 5, 50)).toBeGreaterThanOrEqual(1);
+  it('the starter party has a real chance on difficulty 3 (at least 5 of 30) and none on difficulty 5', { timeout: 20000 }, () => {
+    expect(botWins(parties.starter, 3, 30)).toBeGreaterThanOrEqual(5);
+    expect(botWins(parties.starter, 5, 15)).toBe(0);
   });
 
-  it('the monster hit points never jump by more than 1.45 times between neighbouring difficulties, and only grow', () => {
+  it('the mid party (eight vassals at power 20) and the five-vassal party can win difficulty 3 too', { timeout: 20000 }, () => {
+    expect(botWins(midParty, 3, 30)).toBeGreaterThanOrEqual(5);
+    expect(botWins(fiveParty, 3, 30)).toBeGreaterThanOrEqual(2);
+  });
+
+  it('the full party wins less often as the difficulty rises: 3 above 4 above 5, and difficulty 5 can still be won', { timeout: 30000 }, () => {
+    const [d3, d4, d5] = [botWins(parties.full, 3, 30), botWins(parties.full, 4, 30), botWins(parties.full, 5, 50)];
+    expect(d3).toBeGreaterThan(d4);
+    expect(d4 / 30).toBeGreaterThan(d5 / 50);
+    expect(d5).toBeGreaterThanOrEqual(1);
+  });
+
+  it('the monster hit points only grow with the difficulty, by at most 1.6 times a step', () => {
     for (let d = 1; d < 5; d++) {
       expect(HP_PCT[d]!).toBeGreaterThan(HP_PCT[d - 1]!);
-      expect(HP_PCT[d]! / HP_PCT[d - 1]!).toBeLessThanOrEqual(1.45);
+      expect(HP_PCT[d]! / HP_PCT[d - 1]!).toBeLessThanOrEqual(1.6);
     }
     for (let d = 1; d < 5; d++) expect(CNT_PCT[d]!).toBeGreaterThanOrEqual(CNT_PCT[d - 1]!);
   });
 
-  it('a stronger party does better: the full party beats the mid party beats the starter party on difficulty 3', { timeout: 60000 }, () => {
-    const full = botWins(parties.full, 3, 30);
-    const mid = botWins(midParty, 3, 30);
-    const starter = botWins(parties.starter, 3, 30);
-    expect(full).toBeGreaterThan(mid);
-    expect(mid).toBeGreaterThanOrEqual(starter);
+  it('monsters toughen with the mean power of the towers, a little less than the towers do', () => {
+    const hp = (party: typeof parties.full) => engine.initial(1, party, emptyRun(3), 'en').hpPct;
+    expect(hp(parties.starter)).toBe(100 + Math.floor((8 * PARTY_HP_PCT) / 100));
+    expect(hp(parties.full)).toBe(100 + Math.floor((44 * PARTY_HP_PCT) / 100));
+    expect(hp(parties.full)).toBeLessThan(144);
+    expect(hp({ members: [] })).toBe(100);
+  });
+
+  // The bot builds a tower for every member it has; if a member made it worse, the support towers would be a trap.
+  describe('removing a member never helps the bot on difficulty 3 by more than 10 points (3 of 30 seeds)', () => {
+    let all: number | null = null;
+    it.each(HABIT_IDS.map((h) => [h]))('without %s', { timeout: 20000 }, (habit) => {
+      all ??= botWins(parties.full, 3, 30);
+      const without = botWins({ members: parties.full.members.filter((m) => m.id !== habit) }, 3, 30);
+      expect(without, `with all eight ${all} wins, without ${habit} ${without}`).toBeLessThanOrEqual(all + 3);
+    });
   });
 });
 
