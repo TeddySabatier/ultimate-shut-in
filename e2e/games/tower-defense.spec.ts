@@ -1,0 +1,103 @@
+/**
+ * Hold the Haven through the Games Lab. The required tests come first (it loads and
+ * axe passes, a game reaches an outcome, the same seed gives the same outcome), then
+ * this game's own checks: keyboard play, pause, French, small screens.
+ * The game is real time and runs about five minutes, so the outcome tests use the Lab's
+ * Bot play and the real UI is used for a few inputs only.
+ */
+import { expect, test, type Page } from '@playwright/test';
+import { botPlayToOutcome, expectNoSeriousA11yViolations, expectResponsiveGame, expectValidOutcome, openLab, readOutcome, replaySameSeed, shootGame } from './lab-helpers';
+
+const ID = 'tower-defense';
+
+const hud = (page: Page) => page.getByTestId('lab-stage').getByTestId('td-hud');
+const board = (page: Page) => page.getByTestId('lab-stage').getByTestId('td-board');
+
+// 1. Required: it loads, and axe finds no serious violation (the audit runs on the mobile project only).
+test('loads in the Lab and passes axe', async ({ page }, testInfo) => {
+  await openLab(page, ID, { seed: 11 });
+  await expect(page.getByTestId('lab-stage').getByRole('heading', { name: 'Hold the Haven' })).toBeVisible();
+  await expect(hud(page)).toContainText('Haven 15 of 15');
+  await shootGame(page, testInfo, ID, 'start');
+  test.skip(testInfo.project.name !== 'mobile-chromium', 'the a11y audit runs on the mobile project only');
+  await expectNoSeriousA11yViolations(page, 'hold the haven');
+});
+
+// 2. The keyboard places a tower, and P pauses the game.
+test('places a tower with the keyboard and pauses with P', async ({ page }, testInfo) => {
+  await openLab(page, ID, { seed: 11 });
+  const stage = page.getByTestId('lab-stage');
+  await board(page).focus();
+  const glowBefore = Number(/Glow (\d+)/.exec(await hud(page).innerText())?.[1]);
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('1');
+  await expect(stage.getByTestId('td-feed')).toContainText(/takes a post: Runner on pad/);
+  expect(Number(/Glow (\d+)/.exec(await hud(page).innerText())?.[1])).toBeLessThan(glowBefore);
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('2');
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('3');
+  // Call the first wave and let a few monsters walk in before the screenshot.
+  await page.keyboard.press('n');
+  await expect(hud(page)).toContainText('Wave 1 of 6');
+  await expect.poll(async () => Number(await page.getByTestId('td-root').getAttribute('data-tick')), { timeout: 10_000 }).toBeGreaterThan(120);
+  const pause = stage.getByRole('button', { name: 'Pause' });
+  await expect(pause).toHaveAttribute('aria-pressed', 'false');
+  await page.keyboard.press('p');
+  await expect(pause).toHaveAttribute('aria-pressed', 'true');
+  const frozen = await hud(page).innerText();
+  await page.waitForTimeout(1500);
+  expect(await hud(page).innerText()).toBe(frozen);
+  await shootGame(page, testInfo, ID, 'play');
+  await page.keyboard.press('p');
+  await expect(pause).toHaveAttribute('aria-pressed', 'false');
+});
+
+// 3. Required: a game reaches an outcome (the Lab's Bot play, since a real game takes minutes).
+test('plays a gentle game to an outcome', async ({ page }, testInfo) => {
+  await openLab(page, ID, { seed: 5, difficulty: 1 });
+  const outcome = await botPlayToOutcome(page);
+  expect(['won', 'lost']).toContain(outcome.result);
+  await expectValidOutcome(page);
+  expect(outcome.log).toMatch(/The path: /);
+  // The Lab shows the bot's outcome while the stage still holds a fresh game: build a little and stand down to show the closing screen.
+  const stage = page.getByTestId('lab-stage');
+  await board(page).focus();
+  for (const key of ['1', 'ArrowRight', '2', 'ArrowRight', '3']) await page.keyboard.press(key);
+  await stage.getByRole('button', { name: 'Give up' }).click();
+  await expect(stage.getByRole('status')).toContainText('The troops head home');
+  await shootGame(page, testInfo, ID, 'end');
+});
+
+// 4. Required: replaying the same seed gives the same outcome.
+test('replaying the same seed gives the same outcome', async ({ page }) => {
+  await openLab(page, ID, { seed: 42 });
+  const stage = page.getByTestId('lab-stage');
+  const outcome = await replaySameSeed(page, async () => {
+    await board(page).focus();
+    await page.keyboard.press('1');
+    await expect(stage.getByTestId('td-feed')).toContainText('takes a post');
+    await stage.getByRole('button', { name: 'Give up' }).click();
+  });
+  expect(outcome.result).toBe('fled');
+  expect(outcome.log).toMatch(/The path: /);
+});
+
+// This game's own checks.
+test('plays in French', async ({ page }) => {
+  await openLab(page, ID, { seed: 3, lang: 'fr', party: 'starter' });
+  const stage = page.getByTestId('lab-stage');
+  await expect(stage.getByRole('heading', { name: 'Tenir le Havre' })).toBeVisible();
+  await expect(hud(page)).toContainText('Vague 0 sur 6');
+  await board(page).focus();
+  await page.keyboard.press('1');
+  await expect(stage.getByTestId('td-feed')).toContainText('prend son poste');
+  await stage.getByRole('button', { name: 'Abandonner' }).click();
+  expect((await readOutcome(page)).result).toBe('fled');
+  await expectValidOutcome(page);
+});
+
+test('fits small and landscape phones', async ({ page }) => {
+  await openLab(page, ID, { seed: 2, party: 'mixed' });
+  await expectResponsiveGame(page);
+});

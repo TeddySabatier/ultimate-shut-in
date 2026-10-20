@@ -259,3 +259,11 @@ e2e, each under 20 s: loads, axe (shot `start`); keyboard place (arrow, `1`: glo
 ## 12. Cut line
 
 In order, only if time runs short: (1) level 3 upgrades (keep level 2), (2) Map 2, (3) speed x2, (4) sell. Never cut keyboard play, pause, the feed or reduced motion.
+
+## 13. As built
+
+- **Balance** (bot, seeds 1..100, `parties.full`, no buffs): difficulty 3 wins about half (51 of 100 at the time of writing; the engine test asserts 40 to 70). Difficulty 1 is won by a naive player with the starter party (cycle the cards, never upgrade, never call a wave) on 50 of 50 seeds 1..50; difficulty 2 and 4 are won by the bot about every game and one game in five; difficulty 5 is for strong play. Start glow and the Static's hit points kept their first values.
+- **Rules the spec left open:** towers skip a monster that is already down this tick; a kill goes to the member whose blow drops the monster; `cleared` is the oldest wave still queued or alive, minus one (so overlapping waves clear together); `glowEarned` includes the next-wave bonus; the bot builds its Archivist as the damage kind when the party has no Runner, Lantern, Sweeper or Bubble.
+- **Feed:** the engine writes lines as a key plus parameters already in the player's language; a `waveDone` line says "Wave n cleared." when a later wave is already on its way.
+- **Size:** about 46 KB of code (manifest, engine, strings, Screen, drawing, CSS) before gzip.
+- **Screenshots:** `docs/games/img/tower-defense-start.png`, `-play.png`, `-end.png`.
