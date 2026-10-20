@@ -123,7 +123,8 @@ export interface TDState {
 }
 export type TDAction =
   | { type: 'tick' }
-  | { type: 'place'; pad: number; member: string }
+  /** `hinted`: the Screen had starred this pad for this member; only then does a placement spend a hint. */
+  | { type: 'place'; pad: number; member: string; hinted?: boolean }
   | { type: 'upgrade'; pad: number }
   | { type: 'sell'; pad: number }
   | { type: 'callWave' }
@@ -143,7 +144,7 @@ export const FEED_KEEP = 6;
 /** Hit points of the boss. */
 export const STATIC_HP = 800;
 /** Percent of base hit points per difficulty. */
-export const HP_PCT: readonly number[] = [150, 300, 530, 600, 680];
+export const HP_PCT: readonly number[] = [220, 310, 410, 470, 520];
 /** Percent of the template's monster count per difficulty. */
 export const CNT_PCT: readonly number[] = [90, 100, 110, 115, 120];
 /** Glow at the start per difficulty. */
@@ -331,7 +332,7 @@ function padCenter(w: TDState, pad: number): Point {
 export function damageOf(kind: TowerKind, level: number, power: number): number {
   const base = BASE[kind].damage;
   if (base === 0) return 0;
-  return Math.max(1, Math.floor((Math.floor((base * DAMAGE_PCT[level - 1]!) / 100) * (100 + 2 * power)) / 100));
+  return Math.max(1, Math.floor((Math.floor((base * DAMAGE_PCT[level - 1]!) / 100) * (100 + power)) / 100));
 }
 export function rangeOf(kind: TowerKind, level: number, power: number): number {
   const base = BASE[kind].range;
@@ -412,16 +413,18 @@ export function enemySlow(state: TDState, e: Enemy, tick: number, pt: Point): nu
   if (e.kind === 'silence-specter') return 0;
   let slow = 0;
   let placed = false;
-  for (const l of state.towers) {
+  for (let i = 0; i < state.towers.length; i++) {
+    const l = state.towers[i]!;
     if (l.kind !== 'lull' || tick < l.jamUntil) continue;
     if (!placed) {
       pointInto(state.path, e.pos, pt);
       placed = true;
     }
-    const c = padCenter(state, l.pad);
+    const c = state.pads[l.pad] ?? 0;
+    const cx = c % COLS;
+    const dx = cx * UNIT + UNIT / 2 - pt.x;
+    const dy = ((c - cx) / COLS) * UNIT + UNIT / 2 - pt.y;
     const r = rangeOf('lull', l.level, l.power);
-    const dx = c.x - pt.x;
-    const dy = c.y - pt.y;
     if (dx * dx + dy * dy <= r * r) slow = Math.max(slow, lullSlow(l.level, l.power));
   }
   return e.kind === 'the-static' ? Math.floor(slow / 2) : slow;
@@ -605,9 +608,10 @@ function waveSummary(w: TDState, index: number): string {
   return [...counts].map(([kind, n]) => formatText(s.monsterCount, { name: s.monsters[kind], n })).join(', ');
 }
 
-function startWave(w: TDState): void {
+/** Queue the next wave. A scheduled wave starts inside a tick (`lead` 0: its first monster spawns that tick); a called wave starts between ticks (`lead` 1: the first spawns on the next tick), so the gaps match. */
+function startWave(w: TDState, lead: 0 | 1): void {
   const index = w.started;
-  const spawns: Spawn[] = (w.waves[index] ?? []).map((g) => ({ at: w.tick + g.offset, kind: g.kind, wave: index + 1 }));
+  const spawns: Spawn[] = (w.waves[index] ?? []).map((g) => ({ at: w.tick + lead + g.offset, kind: g.kind, wave: index + 1 }));
   w.queue = [...w.queue, ...spawns];
   w.started = index + 1;
   w.waveAt = -1;
@@ -664,7 +668,7 @@ function step(s: TDState): TDState {
   const tick = w.tick;
 
   // (2) the scheduled wave starts
-  if (tick === w.waveAt) startWave(w);
+  if (tick === w.waveAt) startWave(w, 0);
 
   // (3) due spawns, under the cap
   const enemies: Enemy[] = s.enemies.length > 0 ? s.enemies.map((e) => ({ ...e })) : [];
@@ -718,6 +722,17 @@ function step(s: TDState): TDState {
       }
     }
     if (leaked) w.enemies = enemies.filter((e) => e.pos >= 0);
+    // The Haven at 0 is settled right here: a second wind, or the end. Nothing later in the tick (a Hearth, a kill) can undo it.
+    if (w.havenHp === 0) {
+      if (w.revivesLeft > 0) {
+        w.revivesLeft -= 1;
+        w.havenHp = Math.ceil(w.havenMax / 2);
+        say(w, 'revive', { hp: w.havenHp });
+      } else {
+        end(w, 'lost');
+        return w;
+      }
+    }
   }
   const live = w.enemies;
 
@@ -792,14 +807,8 @@ function step(s: TDState): TDState {
     }
   }
 
-  // (10) revive, lost, won, the guard
-  if (w.havenHp === 0 && w.revivesLeft > 0) {
-    w.revivesLeft -= 1;
-    w.havenHp = Math.ceil(w.havenMax / 2);
-    say(w, 'revive', { hp: w.havenHp });
-  }
-  if (w.havenHp === 0) end(w, 'lost');
-  else if (w.cleared === w.total || tick >= GUARD_TICKS) end(w, 'won');
+  // (10) won, or the guard (a lost Haven ended the tick at step 4)
+  if (w.cleared === w.total || tick >= GUARD_TICKS) end(w, 'won');
   return w;
 }
 
@@ -948,7 +957,7 @@ function reduce(state: TDState, action: TDAction): TDState {
       const tower: Tower = { pad, member: member.id, kind: member.kind, level: 1, power: member.power, cd: 0, invested: cost, jamUntil: 0 };
       w.towers = [...state.towers, tower].sort((a, b) => a.pad - b.pad);
       w.glow = state.glow - cost;
-      if (state.hintsLeft > 0 && bestPad(state, member.id) === pad) w.hintsLeft = state.hintsLeft - 1;
+      if (action.hinted === true && state.hintsLeft > 0 && bestPad(state, member.id) === pad) w.hintsLeft = state.hintsLeft - 1;
       w.members = state.members.map((m) => (m.id === member.id ? { ...m, placed: true } : m));
       say(w, 'placed', { name: member.name, tower: towerName(w, member.kind), pad: pad + 1 });
       return w;
@@ -972,7 +981,8 @@ function reduce(state: TDState, action: TDAction): TDState {
     case 'sell': {
       const i = Number.isInteger(action.pad) ? towerAt(state, action.pad) : -1;
       const t = state.towers[i];
-      if (!t) return state;
+      // A jammed tower cannot be sold: that would undo the Static's only trick.
+      if (!t || state.tick < t.jamUntil) return state;
       const w: TDState = { ...state };
       const back = refund(t);
       w.towers = state.towers.filter((_, k) => k !== i);
@@ -990,7 +1000,7 @@ function reduce(state: TDState, action: TDAction): TDState {
       w.glow += bonus;
       w.glowEarned += bonus;
       w.earlyTicks += saved;
-      startWave(w);
+      startWave(w, 1);
       return w;
     }
 
