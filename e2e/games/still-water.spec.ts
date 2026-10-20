@@ -13,9 +13,7 @@ import { botPlayToOutcome, expectNoSeriousA11yViolations, expectResponsiveGame, 
 
 const ID = 'still-water';
 const TICK_MS = 50;
-/** Difficulty 1: breathe in 4 s, hold 2 s, breathe out 6 s; two seconds of get-ready first. */
-const IN_AND_HOLD_MS = 6000;
-const OUT_MS = 6000;
+/** Two seconds of get-ready come before the first breath in. */
 const LEAD_MS = 2000;
 
 /** Take over the page's clock: time only moves when the test runs it. */
@@ -31,11 +29,11 @@ async function begin(page: Page): Promise<void> {
 }
 
 /** One scripted perfect cycle with the keyboard: hold for the breath in and the rest, let go for the breath out. */
-async function perfectCycle(page: Page): Promise<void> {
+async function perfectCycle(page: Page, holdMs: number, outMs: number): Promise<void> {
   await page.keyboard.down('Space');
-  await page.clock.runFor(IN_AND_HOLD_MS);
+  await page.clock.runFor(holdMs);
   await page.keyboard.up('Space');
-  await page.clock.runFor(OUT_MS);
+  await page.clock.runFor(outMs);
 }
 
 const stage = (page: Page) => page.getByTestId('lab-stage');
@@ -82,18 +80,19 @@ test('plays a full game to an outcome', async ({ page }, testInfo) => {
 });
 
 // 3. Required: replaying the same seed gives the same outcome. The scripted player breathes one perfect
-// cycle and then steps away: a partial score and log that depend on every tick being the same.
+// cycle (difficulty 5: 3 s in, 1 s rest, 3.5 s out) and then steps away: a partial score and log that depend
+// on every tick being the same.
 test('replaying the same seed gives the same outcome', async ({ page }) => {
-  await openLab(page, ID, { seed: 42, reducedMotion: false, party: 'single', difficulty: 1 });
+  await openLab(page, ID, { seed: 42, reducedMotion: false, party: 'full', difficulty: 5 });
   await freezeClock(page);
   const outcome = await replaySameSeed(page, async () => {
     await begin(page);
-    await perfectCycle(page);
+    await perfectCycle(page, 4000, 3500);
     await stage(page).getByRole('button', { name: 'Step away' }).click();
   });
   expect(outcome.result).toBe('fled');
-  // One perfect cycle of five, ceiling 900 (the ripple has not passed yet, the calm is whole).
-  expect(outcome.score).toBe('180');
+  // One perfect cycle of eight, ceiling 900 (no ripple has passed yet, the calm is whole): 100 x 900 / 800, rounded.
+  expect(outcome.score).toBe('113');
   expect(outcome.log).toMatch(/Cycle 1: the breath matched 100 %/);
 });
 
@@ -131,13 +130,13 @@ test('a higher difficulty breathes faster, and a Move troop can choose the pace'
   await openLab(page, ID, { seed: 9, difficulty: 5, party: 'single' });
   expect((await rhythm.innerText()).replace(/\s/g, ' ')).toBe('In 3 s · hold 1 s · out 3.5 s');
   await expect(page.getByRole('button', { name: 'Slow' })).toHaveCount(0);
+  await expectResponsiveGame(page);
 });
 
 test('reduced motion keeps the text cue with a bar instead of the ring; small and landscape phones fit', async ({ page }, testInfo) => {
   await openLab(page, ID, { seed: 2, party: 'mixed', reducedMotion: true, difficulty: 3 });
   await expect(page.getByTestId('still-water-pond')).toHaveCount(0);
   await expect(page.getByRole('progressbar', { name: 'Breath' })).toBeVisible();
-  await expectResponsiveGame(page);
   await freezeClock(page);
   await begin(page);
   await expect(page.getByTestId('still-water-phase')).toHaveText('Breathe in');
