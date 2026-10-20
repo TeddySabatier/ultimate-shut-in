@@ -27,17 +27,17 @@ const RAW: Record<string, ScenarioText> = {
     options: [
       {
         style: 'constructive',
-        label: 'Préviens tes amis que tu auras vingt minutes de retard, et prends le bus suivant.',
+        label: 'Préviens tes amis que tu auras vingt minutes de retard, et prends le prochain bus qui passe.',
         cue: 'envoie un message',
         reflection:
-          "Bien joué : tu ne peux pas changer l'horaire du bus, mais tu as changé ce que savent tes amis. Un message court et une nouvelle heure transforment un bus raté en petit retard.",
+          "Bien joué : tu ne peux pas changer l'horaire du bus, mais tu as pu prévenir tes amis. Un message court et une nouvelle heure transforment un bus raté en petit retard.",
       },
       {
         style: 'reactive',
-        label: "Écris au groupe que les transports sont une catastrophe et qu'ils n'ont qu'à commencer sans toi.",
+        label: "Écris au groupe que les transports sont nuls et qu'ils n'ont qu'à commencer sans toi.",
         cue: 'râle tout de suite',
         reflection:
-          "Compréhensible : rater un bus de peu, ça agace. Râler soulage une minute, mais tes amis reçoivent une humeur plutôt qu'une information. Un petit message calme leur serait bien plus utile.",
+          "Compréhensible : rater un bus de peu, ça agace. Râler soulage une minute, mais tes amis reçoivent ta mauvaise humeur au lieu d'une info utile. Un petit message calme leur serait bien plus utile.",
       },
       {
         style: 'avoidant',
@@ -55,7 +55,7 @@ const RAW: Record<string, ScenarioText> = {
     options: [
       {
         style: 'reactive',
-        label: "Écris un long mail d'excuses où tu te critiques, avant même qu'on t'ait répondu.",
+        label: "Écris un très long mail d'excuses où tu énumères tous tes torts, avant même qu'on t'ait répondu.",
         cue: 'excuse-toi longuement',
         reflection:
           "On a vite fait de se montrer sévère envers soi-même. De longues excuses obligent l'autre à te rassurer au lieu de lire le compte rendu. Une ligne avec la correction suffit presque toujours.",
@@ -65,7 +65,7 @@ const RAW: Record<string, ScenarioText> = {
         label: 'Envoie un court message avec la page corrigée et une ligne pour dire ce qui a changé.',
         cue: 'envoie la correction',
         reflection:
-          "Une correction claire montre du soin, et on retient souvent plus le rectificatif que l'erreur. Tu as repéré la faute toi-même, et c'est le plus difficile. Il ne reste qu'un petit message.",
+          "Une correction claire montre que tu fais attention, et on retient souvent plus le rectificatif que l'erreur. Tu as repéré la faute toi-même, et c'est le plus difficile. Il ne reste qu'un petit message.",
       },
       {
         style: 'avoidant',
@@ -90,7 +90,7 @@ const RAW: Record<string, ScenarioText> = {
       },
       {
         style: 'curious',
-        label: 'Note ce que tu redoutes au juste dans cet appel, puis relis ta liste.',
+        label: 'Note ce que tu redoutes au juste dans cet appel, puis relis ta liste en prenant ton temps.',
         cue: 'nomme la crainte',
         reflection:
           "Voir une inquiétude sur le papier la rend souvent plus petite et plus précise. C'est un bon premier pas. Une fois la liste écrite, l'appel lui-même est généralement la partie facile.",
@@ -106,19 +106,19 @@ const RAW: Record<string, ScenarioText> = {
   },
   s04: {
     situation:
-      "Un ami annule le dîner dont vous parliez depuis des semaines, par un message court et sans nouvelle date. Tu avais libéré ta soirée et même choisi le restaurant. Tu relis son message en espérant qu'il sonne plus chaleureux.",
+      "Un ami annule le dîner dont vous parliez depuis des semaines, par un message court et sans nouvelle date. Tu avais libéré ta soirée et même choisi le restaurant. Tu relis son message en espérant y trouver un peu plus de chaleur.",
     reframe: "Si c'était toi qui annulais, qu'est-ce que tu aimerais que ton ami comprenne ?",
     options: [
       {
         style: 'boundary',
-        label: "Dis-lui que cette annulation te fait de la peine, et demande-lui de proposer une autre date dès qu'il le pourra.",
+        label: "Dis-lui que cette annulation te fait de la peine, et demande-lui une nouvelle date dès qu'il le pourra.",
         cue: 'dis ce que tu ressens',
         reflection:
           "Tu as dit ce que tu ressens et ce que tu attends, sans reproche. C'est une limite sous sa forme la plus douce. Ton ami peut y répondre, et tu n'as pas eu à tout avaler en silence.",
       },
       {
         style: 'constructive',
-        label: "Réponds que tu attends une autre date, et prévois un petit plaisir pour ce soir.",
+        label: "Réponds que tu attends qu'il te propose une autre date, et prévois un petit plaisir pour ce soir.",
         cue: 'prévois un plan B',
         reflection:
           "Tu as rempli ta soirée libre avec quelque chose qui te fait du bien. Rien n'est perdu entre vous : tu as simplement pris soin de toi en attendant la nouvelle date.",
@@ -132,10 +132,10 @@ const RAW: Record<string, ScenarioText> = {
       },
       {
         style: 'reactive',
-        label: "Réponds que c'est toujours pareil et que tu en as assez de faire des plans.",
+        label: "Réponds que ce n'est pas la première fois et que tu en as assez des plans.",
         cue: 'rends le coup',
         reflection:
-          "Ça pique, et la déception est légitime. Un message envoyé dans la première minute dit souvent « toujours » quand la vérité est « cette fois ». Tu peux garder ta déception et laisser la porte entrouverte.",
+          "Ça pique, et ce que tu ressens est légitime. Un message envoyé dans la première minute peut transformer « cette fois » en « chaque fois ». Tu peux garder ta déception et laisser la porte entrouverte.",
       },
     ],
   },
@@ -146,10 +146,10 @@ const RAW: Record<string, ScenarioText> = {
     options: [
       {
         style: 'constructive',
-        label: "Note la date et le montant, vérifie tes propres justificatifs, puis pose une seule question claire à ta banque.",
+        label: 'Note la date et le montant, vérifie tes justificatifs, puis pose une question claire à ta banque.',
         cue: 'vérifie, puis demande',
         reflection:
-          "Les faits d'abord, l'agacement ensuite : c'est souvent cet ordre qui obtient une vraie réponse. Une date, un montant et une question nette donnent à ton interlocuteur de quoi corriger.",
+          "Les faits d'abord, l'agacement ensuite : c'est souvent dans cet ordre qu'on obtient une vraie réponse. Une date, un montant et une question nette donnent à ton interlocuteur de quoi corriger.",
       },
       {
         style: 'avoidant',
@@ -160,7 +160,7 @@ const RAW: Record<string, ScenarioText> = {
       },
       {
         style: 'reactive',
-        label: "Appelle le numéro du relevé et commence par une réclamation, avant même qu'on te réponde.",
+        label: 'Appelle le numéro du relevé et commence par une réclamation, avant même que la personne ait le temps de parler.',
         cue: "attaque d'emblée",
         reflection:
           "S'agacer d'un prélèvement inattendu, c'est normal. Mais si tu démarres sur un ton vif, la personne au bout du fil se met à se défendre. Le même appel passe mieux quand tu commences par la date et le montant.",
@@ -174,10 +174,10 @@ const RAW: Record<string, ScenarioText> = {
     options: [
       {
         style: 'reactive',
-        label: 'Lance que tu dois toujours tout organiser dans cette maison.',
+        label: "Dis que c'est toi qui dois tout organiser dans cette maison, et que personne d'autre ne s'en occupe.",
         cue: 'réponds sèchement',
         reflection:
-          "La fatigue et la faim font tout paraître plus gros. Avec « toujours », on lance une dispute sur le passé plutôt qu'un dîner. Tu pourras dire plus tard tout ce que tu organises, une fois à table.",
+          "La fatigue et la faim font tout paraître plus gros. Dit comme ça, ça lance une dispute sur le passé plutôt qu'un dîner. Tu pourras dire plus tard tout ce que tu organises, une fois à table.",
       },
       {
         style: 'constructive',
@@ -188,14 +188,14 @@ const RAW: Record<string, ScenarioText> = {
       },
       {
         style: 'avoidant',
-        label: 'Prends un en-cas et va dans ta chambre, les autres se débrouilleront.',
+        label: 'Prends un en-cas et va dans ta chambre pour la soirée, en laissant les autres se débrouiller.',
         cue: "mets-toi à l'écart",
         reflection:
-          "Avoir envie de souffler après une longue journée, c'est légitime, et un en-cas aide. Une seule phrase comme « Je cuisine, qui en veut ? » pourrait t'éviter un long silence le ventre vide plus tard.",
+          "Avoir envie de souffler après une longue journée, c'est légitime, et un en-cas aide. Une seule phrase comme « Je cuisine, qui en veut ? » pourrait t'éviter une soirée le ventre vide plus tard.",
       },
       {
         style: 'constructive',
-        label: 'Prépare quelque chose de rapide pour toi, et dis aux autres qu\'ils peuvent se joindre à toi.',
+        label: "Prépare un petit quelque chose pour toi, et dis aux autres qu'ils peuvent s'y joindre.",
         cue: 'lance-toi aux fourneaux',
         reflection:
           "Tu as pris soin de ta faim et laissé la porte ouverte avec gentillesse. Souvent, il suffit qu'une personne commence pour que tout le monde suive. Personne n'a eu à se faire gronder.",
@@ -209,10 +209,10 @@ const RAW: Record<string, ScenarioText> = {
     options: [
       {
         style: 'reactive',
-        label: 'Lave la vaisselle en énumérant à voix haute tout ce que tu as fait depuis lundi.',
+        label: 'Lave la vaisselle en rappelant absolument tout ce que tu as fait depuis lundi.',
         cue: 'fais une scène',
         reflection:
-          "Quand on est à bout, on se met vite à compter les points. Ta liste est juste, et tu as besoin qu'on le voie. Mais l'énumérer à voix haute pousse les gens à se défendre au lieu d'entendre ta fatigue.",
+          "Quand on est à bout, on se met vite à compter les points. Ta liste est juste, et tu as besoin qu'on le voie. Mais dérouler toute la liste pousse les gens à se défendre au lieu d'entendre ta fatigue.",
       },
       {
         style: 'constructive',
@@ -223,10 +223,10 @@ const RAW: Record<string, ScenarioText> = {
       },
       {
         style: 'boundary',
-        label: "Laisse-la et dis que tu ne referas pas de tour tant qu'on n'aura pas décidé d'un roulement équitable.",
+        label: 'Laisse-la, et dis que tu ne la feras plus sans un roulement équitable.',
         cue: 'pose une limite',
         reflection:
-          "Tu as posé une limite sans insulter personne. Laisser la vaisselle en disant pourquoi, c'est clair et juste. Les autres savent ce dont tu as besoin, et peuvent décider avec toi comment y arriver.",
+          "Tu as posé une limite sans accuser personne. Laisser la vaisselle en disant pourquoi, c'est clair et juste. Les autres savent ce dont tu as besoin, et peuvent décider avec toi comment y arriver.",
       },
     ],
   },
@@ -237,21 +237,21 @@ const RAW: Record<string, ScenarioText> = {
     options: [
       {
         style: 'constructive',
-        label: "Réponds avec le brouillon, dis ce que tu attends encore, et donne une heure de fin.",
+        label: "Réponds avec le brouillon, dis ce que tu attends encore, et donne l'heure à laquelle tu auras fini.",
         cue: 'réponds sur le fond',
         reflection:
           "Tu as répondu à la vraie question : où en sont les choses et quand ce sera fini. Une heure précise donne à chacun un repère solide. Le ton pourra faire l'objet d'une autre discussion si cela se reproduit.",
       },
       {
         style: 'reactive',
-        label: 'Réponds sur le même ton et mets un responsable en copie pour que le message passe.',
+        label: 'Réponds sur le même ton et mets un responsable en copie.',
         cue: 'rends la pareille',
         reflection:
           "Répondre sur le même ton paraît juste sur le moment. Mettre un responsable en copie peut toutefois transformer un petit retard en conflit plus gros. Tu peux garder ton point de vue sans en faire une affaire publique.",
       },
       {
         style: 'boundary',
-        label: 'Envoie le brouillon et dis que tu apprécierais un bonjour et une échéance claire la prochaine fois.',
+        label: "Envoie le brouillon et demande un bonjour et une échéance claire à l'avenir.",
         cue: 'nomme le ton',
         reflection:
           "Tu as fait le travail et dit comment tu aimerais qu'on te parle. Le dire poliment, c'est une limite, pas une attaque. Souvent, les gens s'ajustent quand on le leur dit simplement.",
@@ -268,21 +268,21 @@ const RAW: Record<string, ScenarioText> = {
   s09: {
     situation:
       "Tu partages une anecdote drôle dans la discussion de groupe et personne ne réagit. Trois personnes étaient en train d'écrire, puis plus rien. Une minute plus tard, quelqu'un poste la photo de son déjeuner. Tu te sens rapetisser et tu hésites à supprimer ton message.",
-    reframe: "Quelles sont deux autres raisons pour qu'une discussion se taise, à part ton anecdote ?",
+    reframe: "À part ton anecdote, quelles deux raisons pourraient expliquer ce silence ?",
     options: [
       {
         style: 'reactive',
-        label: 'Poste une remarque pour que tout le monde sache que tu as remarqué le silence.',
+        label: "Poste une phrase sur ce silence pour montrer que tu l'as noté.",
         cue: 'pique en retour',
         reflection:
-          "Ça a fait mal, et vouloir une réaction est compréhensible. L'ironie rend plutôt un groupe plus prudent que plus chaleureux. Tu peux sentir la piqûre sans la renvoyer à toute la discussion.",
+          "Ça a fait mal, et vouloir une réaction est compréhensible. Une pique rend un groupe plus méfiant que chaleureux. Tu peux encaisser le coup sans le renvoyer à tout le groupe.",
       },
       {
         style: 'constructive',
         label: 'Réagis à la photo du déjeuner et envoie ton anecdote à un ami qui va l\'apprécier.',
         cue: 'change de public',
         reflection:
-          "Tu as rejoint la conversation sans courir après un rire, et tu as trouvé quelqu'un qui saura l'apprécier. Toutes les histoires ne conviennent pas à tous les groupes, ce qui en dit peu sur l'histoire, et rien sur toi.",
+          "Tu as rejoint la conversation sans chercher à tout prix à faire rire, et trouvé quelqu'un qui saura l'apprécier. Toutes les histoires ne vont pas à tous les groupes : ça en dit peu sur l'histoire, et rien sur toi.",
       },
       {
         style: 'curious',
@@ -293,7 +293,7 @@ const RAW: Record<string, ScenarioText> = {
       },
       {
         style: 'avoidant',
-        label: "Mets la discussion en sourdine pour un mois et décide de ne plus rien y partager.",
+        label: 'Mets la discussion en sourdine pour tout un mois et décide de ne plus rien y partager.',
         cue: 'fais silence',
         reflection:
           "Prendre du recul après une blague tombée à plat est sensé. En faire une règle définitive transforme pourtant une minute de silence en porte fermée. Une courte pause laisse la place d'y revenir quand ce sera plus léger.",
@@ -310,56 +310,56 @@ const RAW: Record<string, ScenarioText> = {
         label: "Avant d'ouvrir quoi que ce soit, devine ce que tu vas trouver, puis ouvre un message et compare.",
         cue: 'teste ta supposition',
         reflection:
-          "L'appréhension imagine souvent pire que la réalité. Comparer un message à ta supposition est une façon douce d'entrer, et le suivant fait moins peur. Tu pourras continuer si tu en as envie.",
+          "L'appréhension imagine souvent pire que la réalité. Comparer un message à ta supposition est une façon douce de t'y mettre, et le suivant fait moins peur. Tu pourras continuer si tu en as envie.",
       },
       {
         style: 'avoidant',
         label: 'Coupe les notifications et promets-toi une vraie séance de tri dimanche.',
         cue: 'remets à plus tard',
         reflection:
-          "Couper les notifications peut vraiment soulager. Dimanche est une belle promesse, mais les piles ont tendance à grossir. Si tu réponds aussi à un seul message aujourd'hui, la promesse devient bien plus facile à tenir.",
+          "Couper les notifications peut vraiment soulager. Dimanche est une belle promesse, mais les piles ont tendance à grossir. Si tu réponds quand même à un message aujourd'hui, la promesse devient bien plus facile à tenir.",
       },
       {
         style: 'constructive',
-        label: 'Choisis les deux messages importants, réponds-y en dix minutes, puis ferme la boîte.',
+        label: 'Choisis deux messages importants, réponds-y, puis ferme la boîte.',
         cue: 'deux, puis stop',
         reflection:
-          "Deux réponses, c'est un vrai pas, et s'arrêter exprès fait partie du savoir-faire. Les autres messages attendront, et les deux personnes à qui tu as répondu seront contentes de te lire.",
+          "Deux réponses, c'est un vrai pas, et s'arrêter exprès fait partie du savoir-faire. Les autres messages attendront, et les deux personnes à qui tu as répondu auront enfin des nouvelles.",
       },
       {
         style: 'reactive',
         label: 'Ouvre tout d\'un coup et réponds vite, en quelques mots, pour faire tomber le chiffre.',
         cue: 'expédie tout',
         reflection:
-          "Vouloir voir le chiffre baisser, c'est naturel. Des réponses rapides et sèches créent souvent de nouvelles questions. Tu n'as pas à tout vider, seulement les messages qui comptent.",
+          "Vouloir voir le chiffre baisser, c'est naturel. Des réponses rapides et courtes créent souvent de nouvelles questions. Tu n'as pas à tout vider, seulement les messages qui comptent.",
       },
     ],
   },
   s11: {
     situation:
-      "Des photos d'un déjeuner d'équipe apparaissent en ligne. Personne ne t'a proposé de venir, alors que tu travailles avec presque tous ceux qu'on y voit. Personne n'en a parlé. L'après-midi paraît plus bruyant que d'habitude, et ton bureau semble loin de tout le monde.",
+      "Des photos d'un déjeuner d'équipe apparaissent en ligne. Personne ne t'a proposé de venir, alors que tu travailles avec presque tous ceux qu'on y voit. Et pas un mot là-dessus. L'après-midi paraît plus bruyant que d'habitude, et ton bureau semble loin de tout le monde.",
     reframe: 'Quelle autre raison pourrait expliquer ce déjeuner, et comment la vérifier ?',
     options: [
       {
         style: 'constructive',
-        label: 'Propose un café à deux collègues cette semaine, un jour où tu peux vraiment venir.',
+        label: 'Propose un café à deux collègues cette semaine, un jour où tu es libre.',
         cue: 'fais un plan',
         reflection:
           "Au lieu de fixer les photos, tu t'es fait une place à une prochaine table. Tu ne peux pas être de tous les déjeuners, mais tu peux toujours demander à venir au suivant.",
       },
       {
         style: 'reactive',
-        label: "Commente les photos par une blague sur le fait d'être oublié, pour qu'ils sachent que tu as vu.",
+        label: "Commente les photos par une blague sur les collègues qu'on oublie d'inviter, pour qu'ils sachent que tu as vu.",
         cue: 'mets-les mal à l\'aise',
         reflection:
-          "Se sentir mis à l'écart fait mal, et la blague essaie de le dire. Elle risquerait pourtant de gêner les gens plutôt que de vous rapprocher. Tu peux vouloir faire partie du groupe sans faire de ces photos un piège.",
+          "Se retrouver à l'écart fait mal, et la blague essaie de le dire. Elle risquerait pourtant de gêner les gens plutôt que de vous rapprocher. Tu peux vouloir faire partie du groupe sans faire de ces photos un piège.",
       },
       {
         style: 'curious',
-        label: 'Demande-toi s\'il peut y avoir une autre raison, comme une réservation de dernière minute, avant de conclure quoi que ce soit.',
+        label: "Demande-toi s'il peut y avoir une autre raison, comme une réservation de dernière minute.",
         cue: "cherche d'autres raisons",
         reflection:
-          "Chercher d'autres explications t'évite d'écrire une histoire plus sombre. Ce genre de déjeuner se monte souvent à la dernière minute. C'est un bon début, et une question amicale peut transformer une hypothèse en fait.",
+          "Chercher d'autres explications t'évite de te raconter une histoire plus sombre. Ce genre de déjeuner se monte souvent à la dernière minute. C'est un bon début, et une question amicale peut transformer une hypothèse en fait.",
       },
     ],
   },
@@ -370,31 +370,31 @@ const RAW: Record<string, ScenarioText> = {
     options: [
       {
         style: 'reactive',
-        label: 'Lance que tu paies toujours les desserts des autres, jusqu\'à ce que la table se taise.',
+        label: "Plaisante sur les desserts des autres, puis laisse le silence s'installer.",
         cue: 'fais une blague piquante',
         reflection:
           "La blague disait vrai, mais de biais. L'humour peut ouvrir une porte comme la fermer, et un trait acéré laisse souvent tout le monde mal à l'aise. Tu peux toujours demander un partage plus juste.",
       },
       {
         style: 'avoidant',
-        label: 'Paie ta part égale, souris, et décide de ne pas venir au prochain dîner.',
+        label: 'Paie la même part, souris, et renonce au prochain dîner.',
         cue: 'ne dis rien',
         reflection:
-          "Payer sans rien dire semble plus simple qu'un débat. Mais si ça continue de te gêner, le coût dépasse l'argent. Tu peux revenir la prochaine fois et demander des additions séparées dès le départ.",
+          "Payer sans rien dire semble plus simple qu'un débat. Mais si ça continue de te gêner, ça te coûte plus que de l'argent. Tu peux revenir la prochaine fois et demander des additions séparées dès le départ.",
       },
       {
         style: 'constructive',
-        label: "Propose que chacun règle son dû avec l'appli de paiement : c'est rapide et équitable.",
+        label: "Propose que chacun règle son dû avec l'appli de paiement : c'est rapide et équitable pour tous.",
         cue: 'propose un partage juste',
         reflection:
-          "Tu as proposé une façon pratique qui convient à tout le monde, pas seulement à toi. Comme c'est simple et neutre, personne n'a à se sentir accusé. Être juste n'a pas à être gênant.",
+          "Tu as proposé une solution pratique qui convient à tout le monde, pas seulement à toi. Comme c'est simple et neutre, personne n'a à se justifier. Être juste, ça n'a rien de gênant.",
       },
       {
         style: 'boundary',
-        label: "Dis que tu participes volontiers au pourboire, mais que tu préfères payer seulement ce que tu as pris.",
+        label: 'Dis que tu partages le pourboire, mais que tu ne paies que ce que tu as commandé.',
         cue: 'dis ce que tu paies',
         reflection:
-          "Tu as dit oui à une partie du partage et non au reste, avec des mots simples. Entre amis, on sait entendre un chiffre clair, et la table a maintenant une option juste à accepter.",
+          "Tu as dit oui à une partie du partage et non au reste, avec des mots simples. Entre amis, on sait entendre un chiffre clair, et la table a maintenant une solution juste que chacun peut accepter.",
       },
     ],
   },
@@ -405,10 +405,10 @@ const RAW: Record<string, ScenarioText> = {
     options: [
       {
         style: 'constructive',
-        label: 'Excuse-toi une fois, propose ton aide et paie le verre.',
+        label: 'Excuse-toi une fois et paie le verre.',
         cue: 'assume simplement',
         reflection:
-          "Une excuse sincère et une proposition d'aide, c'est ce qu'on attend le plus souvent. Les têtes tournées sont déjà presque toutes revenues à leur café. Tu as choisi de rester, et ça en fait un petit incident.",
+          "Une excuse sincère et une proposition d'aide, c'est ce qu'on attend le plus souvent. Les têtes tournées sont déjà presque toutes revenues à leur café. Tu as choisi de rester, et l'incident reste minuscule.",
       },
       {
         style: 'avoidant',
@@ -419,14 +419,14 @@ const RAW: Record<string, ScenarioText> = {
       },
       {
         style: 'reactive',
-        label: 'Répète tes excuses encore et encore en riant de ta maladresse.',
+        label: 'Répète tes excuses et plaisante sur ta maladresse.',
         cue: 'tourne-le en blague',
         reflection:
           "La plaisanterie aide parfois à gérer la gêne. Un long numéro demande pourtant à la salle de te rassurer. Une excuse claire suffit, et le personnel peut retourner à son service.",
       },
       {
         style: 'constructive',
-        label: 'Demande ce que tu peux faire pour aider, puis reste finir ton café.',
+        label: 'Demande ce que tu peux faire pour aider, puis reste pour finir ton café avant de partir.',
         cue: 'reste et aide',
         reflection:
           "Finir ton café tranquillement, c'est te prouver que le moment est passé. Les cafés ont l'habitude de la casse. Politesse, coup de main, café jusqu'au bout : c'était exactement ce qu'il fallait.",
@@ -435,8 +435,8 @@ const RAW: Record<string, ScenarioText> = {
   },
   s14: {
     situation:
-      "Deux proches te réclament le même samedi après-midi : l'un a besoin d'aide pour déplacer une armoire, l'autre attend une visite promise depuis longtemps. Tu as répondu « peut-être » aux deux. Ils attendent chacun une réponse et ton samedi ressemble à un casse-tête.",
-    reframe: "Si tu ne pouvais tenir qu'une promesse aujourd'hui, laquelle te ressemblerait encore ?",
+      "Deux proches te réclament le même samedi après-midi : l'un a besoin d'aide pour déplacer une armoire, l'autre attend une visite promise depuis longtemps. Tu as répondu « peut-être » aux deux. Ils attendent chacun une réponse et tu ne sais plus comment caser ton samedi.",
+    reframe: "Si tu ne pouvais tenir qu'une promesse aujourd'hui, laquelle compte le plus pour toi cette semaine ?",
     options: [
       {
         style: 'boundary',
@@ -447,21 +447,21 @@ const RAW: Record<string, ScenarioText> = {
       },
       {
         style: 'constructive',
-        label: 'Regarde combien de temps prend chaque chose, vois si les deux tiennent, puis annonce le plan aux deux.',
+        label: 'Regarde combien de temps prend chaque chose, puis annonce le même plan aux deux.',
         cue: 'planifie les heures',
         reflection:
           "Compter les heures réelles fait moins mal que ruminer la culpabilité. Si tout peut tenir, tu as trouvé la solution ; sinon, tu pourras le dire tôt. Dans les deux cas, chacun entend le même plan simple.",
       },
       {
         style: 'reactive',
-        label: 'Écris aux deux que personne ne voit à quel point ton emploi du temps déborde et que tu ne peux pas contenter tout le monde.',
+        label: 'Écris aux deux que ton emploi du temps déborde et que tu ne peux pas contenter tout le monde.',
         cue: 'montre ton stress',
         reflection:
           "Quand deux demandes te tirent chacune de leur côté, ça fatigue, et vouloir que ça se voie est naturel. Mais un reproche peut faire sentir aux deux qu'ils te pèsent. Tu peux dire les choses franchement, sans colère.",
       },
       {
         style: 'avoidant',
-        label: "Laisse les deux messages sans réponse jusqu'à ce que samedi soit passé, puis excuse-toi.",
+        label: "Laisse les deux messages sans réponse jusqu'à ce que samedi soit passé.",
         cue: 'laisse passer',
         reflection:
           "Attendre semble faire disparaître le problème. Les deux proches risquent pourtant de se sentir lâchés, et une excuse après coup pèse plus qu'une réponse honnête aujourd'hui. Tu as le droit de choisir.",
@@ -475,77 +475,77 @@ const RAW: Record<string, ScenarioText> = {
     options: [
       {
         style: 'curious',
-        label: "Demande à un agent combien de temps durent d'habitude les perturbations sur cette ligne.",
+        label: "Demande à un agent combien de temps durent d'habitude les perturbations sur cette ligne, et pourquoi.",
         cue: 'demande une info',
         reflection:
           "Demander te donne des faits plutôt que des suppositions, et c'est un bon réflexe. La suite t'appartient : avec sa réponse, tu pourras choisir entre attendre et changer d'itinéraire, au lieu de simplement t'inquiéter.",
       },
       {
         style: 'reactive',
-        label: "Râle auprès du premier agent venu sur la façon dont l'entreprise est gérée.",
+        label: "Dis à un agent ce que tu penses de la gestion de l'entreprise.",
         cue: 'défoule-toi',
         reflection:
-          "Un train supprimé, c'est agaçant, et le personnel entend ça toute la journée. Hausser le ton accélère rarement quoi que ce soit. Une question calme te donne souvent plus vite l'information dont tu as besoin.",
+          "Un train supprimé, c'est agaçant, et le personnel entend ça toute la journée. Se défouler sur le personnel accélère rarement quoi que ce soit. Une question calme te donne souvent plus vite l'information dont tu as besoin.",
       },
       {
         style: 'avoidant',
-        label: 'Décide que le déjeuner est perdu et rentre chez toi sans prévenir personne.',
+        label: 'Renonce au déjeuner et rentre sans prévenir personne.',
         cue: 'renonce',
         reflection:
           "La déception peut faire paraître un projet sans intérêt. Un train supprimé est un vrai obstacle, mais un petit message préviendrait ta famille. Même une seule ligne lui évite de deviner où tu es.",
       },
       {
         style: 'constructive',
-        label: "Regarde les autres trajets, donne ta nouvelle heure d'arrivée à ta famille et prends la meilleure option.",
+        label: "Cherche un autre trajet, préviens ta famille de ton heure d'arrivée et prends-le.",
         cue: "change d'itinéraire",
         reflection:
-          "Un autre itinéraire et un message d'avance transforment une suppression en simple retard. Tu ne peux pas réparer le train, mais tu as réglé ce qui dépendait de toi. Ta famille peut s'organiser sur une heure.",
+          "Un autre itinéraire et un message d'avance transforment une suppression en simple retard. Tu ne peux pas réparer le train, mais tu as réglé ce qui dépendait de toi. Ta famille sait à quelle heure t'attendre.",
       },
     ],
   },
   s16: {
     situation:
-      "La réunion avant la tienne déborde, et des gens discutent encore dans la salle que tu as réservée. Tes notes sont dans ta main et ta réunion devrait déjà avoir commencé. Personne n'a levé les yeux, et les minutes filent.",
+      "La réunion avant la tienne déborde, et des gens discutent encore dans la salle que tu as réservée. Tu as tes notes en main et ta réunion devrait déjà avoir commencé. Personne n'a levé les yeux, et les minutes filent.",
     reframe: "Quelle est la plus petite interruption qui protégerait la prochaine demi-heure pour tout le monde ?",
     options: [
       {
         style: 'reactive',
-        label: 'Entre, pose ton dossier sur la table et fais comprendre qu\'on t\'a fait attendre.',
+        label: "Entre, pose ton dossier sur la table et fais bien comprendre qu'on t'a fait attendre.",
         cue: 'montre ton impatience',
         reflection:
-          "Le dépassement est agaçant, et ce retard ne vient pas de toi. Un gros soupir transforme pourtant un souci d'horaire en tension entre personnes. Tu peux entrer avec la même fermeté et un visage plus calme.",
+          "Le dépassement est agaçant, et ce retard ne vient pas de toi. Faire sentir son agacement transforme pourtant un souci d'horaire en tension entre personnes. Tu peux entrer avec la même fermeté et un visage plus calme.",
       },
       {
         style: 'constructive',
-        label: "Frappe, dis à quelle heure il te faut la salle, et propose une autre salle libre si tu en connais une.",
+        label: 'Frappe, dis à quelle heure il te faut la salle, et propose une autre salle libre si tu en connais une.',
         cue: 'propose une solution',
         reflection:
           "Proposer une solution permet aux gens de partir sans se sentir chassés. Tu as protégé ta réunion tout en restant aimable avec l'équipe d'avant, ce qui facilitera aussi la prochaine fois.",
       },
       {
         style: 'avoidant',
-        label: "Attends dans le couloir qu'ils aient fini, même s'il ne te reste que dix minutes.",
+        label: 'Attends dans le couloir, quel que soit le temps qui reste.',
         cue: 'attends poliment',
         reflection:
           "La politesse est une belle qualité, et attendre paraît prudent. Si ça avale l'essentiel de ta réunion, tu perds pourtant ce pour quoi tu avais réservé la salle. Tu peux garder ta politesse et frapper à la porte.",
       },
       {
         style: 'boundary',
-        label: 'Frappe, dis que ta réunion commence maintenant et demande-leur de conclure sous deux minutes.',
+        label: 'Frappe, dis que ta réunion commence et demande-leur de conclure vite.',
         cue: 'réclame ton créneau',
         reflection:
-          "Ton créneau est réel. Deux minutes, c'est une fenêtre polie, et le dire clairement respecte les deux groupes. Les gens peuvent ranger pendant que tu t'installes, et la plupart ne s'en offusqueront pas.",
+          "Ton créneau est réel. Demander de conclure, c'est une demande courtoise, et le dire clairement respecte les deux groupes. Les gens peuvent ranger pendant que tu t'installes, et la plupart ne s'en offusqueront pas.",
       },
     ],
   },
   s17: {
     situation:
-      "Tu as préparé un gâteau pour une petite réunion entre amis, et il sort du moule en deux morceaux. Il sent délicieusement bon. Tu l'imaginais en belle part nette dans une assiette. Les invités arrivent dans quarante minutes et ta bonne humeur est retombée.",
+      "Tu as préparé un gâteau pour une petite soirée entre amis, et il sort du moule en deux morceaux. Il sent divinement bon. Tu l'imaginais en belles parts bien nettes dans les assiettes. Les invités arrivent dans quarante minutes et ta bonne humeur est retombée.",
     reframe: 'Qu\'est-ce qui ferait encore de ce gâteau un cadeau, même en deux morceaux ?',
     options: [
       {
         style: 'constructive',
-        label: 'Répartis les morceaux dans des bols avec de la crème et des fruits, et appelle ça un dessert.',
+        label: 'Sers les morceaux dans des bols avec de la crème.',
         cue: 'sers-le autrement',
         reflection:
           "Une autre façon de servir sauve le gâteau et la soirée. Les invités retiennent l'accueil plus que la forme. Tu as gardé le cadeau et lâché l'image parfaite.",
@@ -566,10 +566,10 @@ const RAW: Record<string, ScenarioText> = {
       },
       {
         style: 'reactive',
-        label: "Déclare la soirée fichue et jette le gâteau sur-le-champ.",
+        label: 'Déclare la soirée fichue et jette le gâteau sans même y goûter.',
         cue: 'jette tout de suite',
         reflection:
-          "La déception après des heures d'effort, ça fait mal. Jeter sur-le-champ ce qui a sans doute bon goût, c'est cacher l'effort que tes invités apprécieraient. La soirée n'est pas fichue : le gâteau que tu as fait compte déjà.",
+          "La déception après des heures d'effort, ça fait mal. Se débarrasser sur-le-champ d'un gâteau sans doute bon, c'est perdre l'effort que tes invités auraient apprécié. La soirée n'est pas fichue : ce gâteau compte déjà.",
       },
     ],
   },
@@ -580,28 +580,28 @@ const RAW: Record<string, ScenarioText> = {
     options: [
       {
         style: 'avoidant',
-        label: 'Réponds « peut-être, je regarde » puis évite-la dans l\'escalier pendant quelques jours.',
+        label: "Réponds « peut-être, je regarde » puis évite-la dans l'escalier et dans le hall pendant quelques jours.",
         cue: 'esquive la question',
         reflection:
           "Gagner du temps paraît gentil sur le moment. L'éviter rendra pourtant la prochaine rencontre plus gênante, pour vous deux. Une réponse claire, même un petit non, se reçoit mieux qu'un silence.",
       },
       {
         style: 'reactive',
-        label: 'Lance que les gens profitent toujours de ta gentillesse.',
+        label: 'Dis que les gens profitent de ta gentillesse, et tourne les talons.',
         cue: 'lance une pique',
         reflection:
           "Le ressentiment monte quand on dit oui trop souvent, et tu l'as senti. Le dire comme une accusation risque pourtant de blesser une voisine qui n'avait aucune mauvaise intention. Un simple « pas cette fois » garde de bonnes relations.",
       },
       {
         style: 'constructive',
-        label: 'Dis que tu peux prendre les colis, et suggère-lui une plateforme de garde ou un autre voisin pour le chat.',
+        label: 'Dis que tu peux prendre les colis, et suggère-lui une plateforme de garde pour le chat.',
         cue: 'propose autre chose',
         reflection:
-          "Tu as su aider sans te surcharger, en lui donnant de vraies pistes. Aider quelqu'un à trouver une solution, c'est aussi de l'aide. Personne n'est dans une impasse.",
+          "Tu as su aider sans te surcharger, en lui donnant de vraies pistes. Aider quelqu'un à trouver une solution, c'est aussi de l'aide. Personne ne reste sans solution.",
       },
       {
         style: 'boundary',
-        label: 'Dis que tu veux bien prendre les colis, mais que pour le chat, ce ne sera pas possible cette fois.',
+        label: 'Dis que tu prends les colis, mais pas la garde du chat.',
         cue: 'dis oui à une partie',
         reflection:
           "Tu as offert ce que tu pouvais et refusé le reste, gentiment. Un non net sur une partie rend ton oui sur l'autre plus sincère. Les bons voisins respectent ça, en général.",

@@ -417,7 +417,7 @@ describe('learned note', () => {
     const o = engine.outcome(walk(start(5), (style) => style === 'constructive'))!;
     expect(o.learned).toBeDefined();
     expect(o.learned!.topic.en).toMatch(/^Most used this run: /);
-    expect(o.learned!.topic.fr).toMatch(/^Le plus utilisé cette partie\u00a0: /);
+    expect(o.learned!.topic.fr).toMatch(/^Le plus utilisé pendant cette partie\u00a0: /);
     const tips = Object.values(strings.en.tips);
     expect(tips).toContain(o.learned!.note.en);
     expect(Object.values(strings.fr.tips)).toContain(o.learned!.note.fr);
@@ -515,7 +515,7 @@ describe('the log has the right plural', () => {
     expect(plan(3, 'fr', [true, false, false, false, false])).toMatch(/dans 1 salle sur 5\./);
     expect(plan(3, 'fr', [true, true, false, false, false])).toMatch(/dans 2 salles sur 5\./);
     expect(plan(3, 'fr', [true, true, true, false, false])).toMatch(/dans 3 salles sur 5\./);
-    expect(plan(3, 'en', [false, false, false, false, false])).toMatch(/^No constructive or boundary door this time, in 5 rooms\./);
+    expect(plan(3, 'en', [false, false, false, false, false])).toMatch(/^No constructive or boundary door this time, out of 5 rooms\./);
     expect(plan(3, 'en', [true, false, false, false, false])).toMatch(/in 1 of 5 rooms/);
     expect(plan(3, 'fr', [true, true, true, true, true])).toMatch(/le cœur léger/);
   });

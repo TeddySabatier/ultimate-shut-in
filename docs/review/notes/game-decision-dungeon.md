@@ -110,9 +110,9 @@ My own spec is green on both CI projects. Observation: `expectResponsiveGame` ch
 ```
 npm run lint                                  clean
 npm run typecheck                             clean
-npm test                                      79 files, 1180 tests pass with the merged base (Decision Dungeon: 96 = 22 content + 49 engine + 15 Screen + 10 contract kit)
+npm test                                      81 files, 1198 tests pass with the merged base (Decision Dungeon: 114 = 21 content + 6 gender + 7 labels + 50 engine + 20 Screen + 10 contract kit)
 npm run build                                 ok
-node scripts/games-budget.mjs                 decision-dungeon code 80.6 KB / 150 KB, assets 0 / 200 KB (the engine and strings that ship with the registry are about 16 KB of it; the scene texts load with the Screen)
+node scripts/games-budget.mjs                 decision-dungeon code 82.0 KB / 150 KB, assets 0 / 200 KB (the engine and strings that ship with the registry are about 16 KB of it; the scene texts load with the Screen)
 node scripts/check-main-chunk.mjs             ok (no game in the main chunk)
 npm run screenshots:check                     ok
 npx playwright test e2e/games/decision-dungeon.spec.ts --workers=2
@@ -130,7 +130,7 @@ An independent reviewer found 0 critical, 3 major and 13 minor. Everything below
 - **M3, calques.** All 16 passages rewritten as the reviewer proposed, or in the plainest natural phrasing (`tableau de scores`, `silence gênant et affamé`, `rentrer sous terre`, `compter les heures réelles`, `La nuit porte conseil : porte {n}`, `rend service à tout le monde`, `ta banque`, `ta réunion`, `cet après-midi`, `ne plus rien y partager`). The `lighter bag` ending is now `in good spirits` / `le cœur léger`.
 - **Focus at the end.** When the run ends the result line takes the focus (after See the result and after Step away); when the last hint or sleep removes its own button the first door takes it. Screen tests added.
 - **English.** s06 (`guessing game`, `I'm cooking`), s13 (`wish the floor would swallow you`, the coffee line), s14 (`counting the real hours`, a clearer reframe), s05 (`ask the bank`, `this afternoon`), s07 (`this evening`), s02 (`Being hard on yourself first` instead of `punish yourself`; French `se montrer sévère envers soi-même`).
-- **Subtlety by difficulty.** Chosen option: remove the tone words from all labels (14 English and 11 French labels, all on non-good doors, plus `calmly`, `politely`, `kindly` on good ones so the tone does not give the answer from the other side) and keep tone in the reflections. A test bans the tone words in labels. Length and position still do not give the answer away: the constructive label is the single longest in 3 of 18 English and 6 of 18 French scenes; the mean reflection length differs by under 2 words between good and other doors; the first constructive door sits in positions 1 to 4 in 6/7/4/1 scenes and display order is shuffled.
+- **Subtlety by difficulty.** Chosen option: remove the tone words from all labels (14 English and 11 French labels, all on non-good doors, plus `calmly`, `politely`, `kindly` on good ones so the tone does not give the answer from the other side) and keep tone in the reflections. A test bans the tone words in labels. (Correction after the second review: this length claim was wrong for French, see section 9 for the measured result.) First claim, kept for the record: the constructive label is the single longest in 3 of 18 English and 6 of 18 French scenes; the mean reflection length differs by under 2 words between good and other doors; the first constructive door sits in positions 1 to 4 in 6/7/4/1 scenes and display order is shuffled.
 - **Minor 3.** s17's reactive door is now impulsive (`Declare the evening ruined and bin the cake on the spot`), no longer a second concealment door.
 - **Minor 4.** The result screen adds `Checking first: n (part of your toolbox, not counted towards the win)` when a curious door was taken.
 - **Minor 8, 9, 12.** Docs and notes contradictions fixed, a test title that overclaimed renamed, guard words added (`sick`, `hospital`, `nurse`, `fired`, `breakup`, `malade`, `hôpital`, `urgences`, `licenci`, `rupture`), the key hint says `preview` while sleeping on it.
@@ -152,3 +152,47 @@ Skipped, with a reason:
 6. s17 `Déclare la soirée fichue et jette le gâteau sur-le-champ`, `accueillir tes invités avec le sourire`; s18 `Personne n'est dans une impasse`.
 7. `strings.ts`: `La nuit porte conseil : porte {n}`, `le cœur léger`, `rend service à tout le monde`, `Vérifier d'abord`, the new log lines.
 
+## 9. Third pass: the second independent review (2a3b71d)
+
+0 critical, 3 major, 6 minor. Everything is fixed except what is listed under "rejected".
+
+- **A1.** Both s11 forms rewritten (`une blague sur les collègues qu'on oublie d'inviter`, `Se retrouver à l'écart fait mal`). I re-read every French line a second time, with the new guard and by hand.
+- **A2, length as a signal.** Measured as the reviewer did, then wider. Win rate of a player who only taps a door by its length, starter party, plain run, 300 seeds, through the real engine; difficulty 1 / 2 / 3 / 4 / 5.
+
+  | | random | longest | shortest | 2nd longest | 2nd shortest |
+  | --- | --- | --- | --- | --- | --- |
+  | before, French, characters | 31 31 20 20 12 | 79 79 68 68 58 | | | |
+  | now, English and French, characters | 31 31 20 20 12 | 14 14 7 7 3 | 36 36 26 26 12 | 34 34 29 29 19 | 18 18 8 8 2 |
+  | now, English, words | 31 31 20 20 12 | 14 14 13 13 7 | 40 40 21 21 8 | 30 30 14 14 4 | 16 16 14 14 7 |
+  | now, French, words | 31 31 20 20 12 | 21 21 17 17 11 | 28 28 17 17 7 | 43 43 16 16 5 | 27 27 11 11 6 |
+
+  The worst excess over random is +12 points (French, second longest by words, difficulty 1 and 2); the test allows 15. How: the length rank of the good doors was planned scene by scene (about 70 labels rewritten in both languages). In the 12 scenes drawn at difficulty 1 and 2 the good doors fall 5, 5, 5 and 4 times on the longest, shortest, second longest and second shortest label; in the 6 subtle scenes 3, 3, 3 and 2. The word count follows the character count (no inversion), so the answer is in neither measure. Test: `labels.test.ts` (7 tests).
+- **Departure from the review.** It asked for at most 3 of 18 scenes with the good door as the single longest or shortest. That makes every other rank a tell (an "avoid the extremes" player would then win, which the simulation shows), so the test caps it at 9 of 18 (the real figures are 7 and 8) and asserts the four strategies above instead.
+- **A3, the guard.** Rebuilt in `gender.test.ts` (6 tests): unicode word boundaries (the `u` flag and lookarounds, so `agacé` is caught), feminine and plural forms, `-eux/-if/-er` and irregular adjectives, an unknown `-é/-ée/-és/-ées` participle after a trigger, the triggers `tu es / étais / restes / te sens / as été`, `tu t'es senti`, the infinitives `être / rester / devenir / se sentir / se retrouver / se montrer`, `ça t'a touché`, `tu rentres le dernier / la dernière`, and an adjective of feeling anywhere in a sentence that speaks to the player. The allow-list is three exact third-person phrases and cannot hide `tu es le seul`. 54 must-flag and 45 must-pass phrases, including every false positive the reviewer listed (`bien sûr`, `le mois dernier`, `un prêt`, `tirer parti`, `Si tu es ici`). It also scans `strings.fr`. It found two more third-person hits that I rewrote (`seront contentes de te lire`, `se sentir accusé`).
+- **Focus after a keyboard preview.** The effect now depends on the hint count, the sleeps left, the previewed door and the hidden doors, so the first door takes the focus when the Sleep toggle unmounts. Screen test added.
+- **Tone words.** `Râle`, `Lance que` (three doors), `always` / `toujours` (four doors), `out loud` / `à voix haute`, `en riant`, `volontiers`, `happy to` are gone from the labels; the ban list is longer (about 60 entries, unicode-safe). The reflections of s04, s06, s07, s09, s10, s15, s16 and s17 that commented on a tone the label no longer shows were rewritten.
+- **Docs.** The three claims are now true (gender guard, measured length, no more "elimination by adverb is not possible").
+- **Polish taken.** French: s01, s02, s04, s05, s06, s09 (reframe and two sentences), s10, s11, s12, s13, s14 (reframe, no second `casse-tête`), s15, s16, s17, s18 and `strings.ts` (`Aperçu : porte {n}`, `Le plus utilisé pendant cette partie`, `l'aperçu d'une porte`). English: s02, s12, s14, s17 and `out of 5 rooms`.
+
+Rejected or adapted, with a reason:
+
+- s08 `donne une heure de fin` -> `dis à quelle heure ce sera fini`: taken in spirit (`donne l'heure à laquelle tu auras fini`), kept longer to hold the length rank.
+- s09 label `Poste une petite phrase sur ce silence...`: shortened to `Poste une phrase sur ce silence pour montrer que tu l'as noté` to hold the length rank.
+- s16 `un délai courtois`: the door no longer says "deux minutes", so the reflection says `une demande courtoise`.
+- s12 `Paie la même part que les autres`: shortened to `Paie la même part` for the length rank.
+- s17 constructive `fais-en un dessert à la cuillère`: too long for its rank (the good door is the shortest of that scene); the label is `Sers les morceaux dans des bols avec de la crème`.
+
+### Please have a native French reader check these passages (refreshed)
+
+1. s11: `une blague sur les collègues qu'on oublie d'inviter`, `Se retrouver à l'écart fait mal`, `Et pas un mot là-dessus.`, `t'évite de te raconter une histoire plus sombre`.
+2. s06: `Dis que c'est toi qui dois tout organiser dans cette maison, et que personne d'autre ne s'en occupe`, `le dîner tourne déjà au casse-tête`, `une soirée le ventre vide`, `Personne n'a eu à se faire gronder`.
+3. s07: `Quand on est à bout, on se met vite à compter les points`, `Lave la vaisselle en rappelant absolument tout ce que tu as fait depuis lundi`, `Laisse-la, et dis que tu ne la feras plus sans un roulement équitable`.
+4. s09: `Une pique rend un groupe plus méfiant que chaleureux`, `Tu peux encaisser le coup sans le renvoyer à tout le groupe`, `sans chercher à tout prix à faire rire`, the reframe `quelles deux raisons`, the cue `garde l'esprit ouvert`.
+5. s12: `Plaisante sur les desserts des autres, puis laisse le silence s'installer`, `La blague disait vrai, mais de biais`, `Paie la même part, souris, et renonce au prochain dîner`.
+6. s13: `rentrer sous terre`, `Finir ton café tranquillement, c'est te prouver que le moment est passé`, `Politesse, coup de main, café jusqu'au bout`.
+7. s14: `tu ne sais plus comment caser ton samedi`, `Compter les heures réelles fait moins mal que ruminer la culpabilité`, `laquelle compte le plus pour toi cette semaine`.
+8. s15: `Dis à un agent ce que tu penses de la gestion de l'entreprise`, `Ta famille sait à quelle heure t'attendre`, `Cherche un autre trajet, préviens ta famille de ton heure d'arrivée et prends-le`.
+9. s16: `Demander de conclure, c'est une demande courtoise`, `Attends dans le couloir, quel que soit le temps qui reste`, `ta réunion`.
+10. s17: `Sers les morceaux dans des bols avec de la crème`, `Déclare la soirée fichue et jette le gâteau sans même y goûter`, `Se débarrasser sur-le-champ d'un gâteau sans doute bon`.
+11. s18: `Personne ne reste sans solution`, `évite-la dans l'escalier et dans le hall`.
+12. `strings.ts`: `Aperçu : porte {n}`, `La nuit porte conseil (il t'en reste : {n})`, `le cœur léger`, `Vérifier d'abord`, `rend service à tout le monde`.

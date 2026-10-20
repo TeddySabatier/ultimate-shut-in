@@ -210,6 +210,18 @@ describe('Decision Dungeon screen', () => {
     expect(document.activeElement).toBe(doors()[0]);
   });
 
+  it('keeps the focus on the page after a keyboard preview: the toggle unmounts, the first door takes the focus', () => {
+    const sleep = { members: [makeMember({ id: 'sleep', name: 'Nyx', habit: 'sleep', level: 12, loyalty: 80 })] };
+    render(<DecisionDungeonScreen {...props({ party: sleep })} />);
+    const toggle = screen.getByRole('button', { name: /Sleep on it/ });
+    toggle.focus();
+    fireEvent.click(toggle);
+    fireEvent.keyDown(window, { key: '2' });
+    expect(screen.getByTestId('decision-dungeon-peek')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Sleep on it/ })).toBeNull();
+    expect(document.activeElement).toBe(doors()[0]);
+  });
+
   it('says that the keys preview a door while sleeping on it', () => {
     const sleep = { members: [makeMember({ id: 'sleep', name: 'Nyx', habit: 'sleep', level: 1, loyalty: 50 })] };
     render(<DecisionDungeonScreen {...props({ party: sleep })} />);

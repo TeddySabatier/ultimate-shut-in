@@ -56,15 +56,16 @@ export default function DecisionDungeonScreen(props: GameScreenProps) {
     if (over) bannerRef.current?.focus();
   }, [over]);
 
-  // The last hint or the last sleep removed its own button: hand the focus to the first door instead of the page.
-  const toolsLeft = state.hintsLeft + state.sleepsLeft + (state.peekedDisplay >= 0 ? 1 : 0);
+  // A tool button (a hint, Sleep on it) unmounts when it is used up or after a preview: if that was the focused
+  // control, hand the focus to the first door instead of letting it fall to the page.
+  const hiddenDoors = room ? room.optionOrder.length - state.revealed.length : 0;
   useEffect(() => {
     if (!mountedTools.current) {
       mountedTools.current = true;
       return;
     }
     if (choosing && (document.activeElement === document.body || document.activeElement === null)) doorsRef.current?.querySelector('button')?.focus();
-  }, [toolsLeft, choosing]);
+  }, [state.hintsLeft, state.sleepsLeft, state.peekedDisplay, hiddenDoors, sleeping, choosing]);
 
   // Number keys choose a door (or preview it while sleeping on it). Ignored while a field has focus.
   useEffect(() => {
@@ -90,7 +91,6 @@ export default function DecisionDungeonScreen(props: GameScreenProps) {
     } else dispatch({ type: 'choose', index: display });
   };
 
-  const hiddenDoors = room ? room.optionOrder.length - state.revealed.length : 0;
   const isLast = state.roomIndex >= total - 1;
   const strongest = typeof outcome?.stats?.strongest === 'string' ? (outcome.stats.strongest as keyof typeof s.styles) : null;
 

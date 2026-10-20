@@ -13,14 +13,14 @@ export const EN: Record<string, ScenarioText> = {
     options: [
       {
         style: 'constructive',
-        label: 'Tell your friends you will be about twenty minutes late, and take the next bus.',
+        label: 'Tell your friends you will be about twenty minutes late, and catch the next bus that still works.',
         cue: 'send an update',
         reflection:
           'Well done. You cannot change the timetable, but you changed what your friends know. A short message and a new arrival time turn a missed bus into a small delay.',
       },
       {
         style: 'reactive',
-        label: 'Message the group that public transport is hopeless and they should start without you.',
+        label: 'Message the group that transport is hopeless and they should start without you.',
         cue: 'vent at once',
         reflection:
           'Understandable: missing a bus by seconds is annoying. Venting helps for a minute, but your friends get a mood instead of a plan. A calm, short update would give them something useful.',
@@ -44,7 +44,7 @@ export const EN: Record<string, ScenarioText> = {
         label: 'Write a long apology full of self-criticism, and send it before anyone has even replied.',
         cue: 'apologise at length',
         reflection:
-          'Being hard on yourself first is very natural. A long apology can leave the reader reassuring you instead of reading the report. One short line with the fix is usually plenty.',
+          'Being hard on yourself is a very natural first reaction. A long apology can leave the reader reassuring you instead of reading the report. One short line with the fix is usually plenty.',
       },
       {
         style: 'constructive',
@@ -97,7 +97,7 @@ export const EN: Record<string, ScenarioText> = {
     options: [
       {
         style: 'boundary',
-        label: 'Say you are disappointed, and ask them to suggest a new date when they can.',
+        label: 'Say you are disappointed, and ask them to suggest a new date when they are able.',
         cue: 'say how you feel',
         reflection:
           'You named your feeling and asked for what you need, without blame. That is a boundary in its gentlest form. Your friend can answer it, and you did not have to swallow it in silence.',
@@ -118,10 +118,10 @@ export const EN: Record<string, ScenarioText> = {
       },
       {
         style: 'reactive',
-        label: 'Reply that they always do this and that you are tired of making plans.',
+        label: 'Reply that this is not the first time and that you are done making plans.',
         cue: 'hit back',
         reflection:
-          'That stings, and being disappointed is fair. A message sent in the first minutes often says "always" when the truth is "this time". You can keep the feeling and still leave the door open.',
+          'That stings, and being disappointed is fair. A message sent in the first minutes can turn "this time" into "every time". You can keep the feeling and still leave the door open.',
       },
     ],
   },
@@ -146,7 +146,7 @@ export const EN: Record<string, ScenarioText> = {
       },
       {
         style: 'reactive',
-        label: 'Call the number on the statement and open with a complaint before they can speak.',
+        label: 'Call the number on the statement and open with a complaint before the person has had time to speak.',
         cue: 'start angry',
         reflection:
           'Irritation at an unexpected charge makes sense. Starting heated often means the person helping you ends up defending themselves. The same call goes better when you begin with the date and the amount.',
@@ -160,10 +160,10 @@ export const EN: Record<string, ScenarioText> = {
     options: [
       {
         style: 'reactive',
-        label: 'Say that you always have to organise everything in this house.',
+        label: 'Say that you are the one who has to organise absolutely everything in this house.',
         cue: 'snap',
         reflection:
-          'Tiredness and hunger make everything sound bigger. "Always" is likely to start an argument about the past instead of dinner. You can mention how much you plan once you have eaten.',
+          'Tiredness and hunger make everything sound bigger. Putting it that way is likely to start an argument about the past instead of dinner. You can mention how much you plan once you have eaten.',
       },
       {
         style: 'constructive',
@@ -174,7 +174,7 @@ export const EN: Record<string, ScenarioText> = {
       },
       {
         style: 'avoidant',
-        label: 'Grab a snack and go to your room, leaving the others to sort it out.',
+        label: 'Grab a snack and go to your room for the evening, leaving the others to sort it out.',
         cue: 'step away',
         reflection:
           'Wanting a break after a long day is fair, and a snack helps. One sentence such as "I\'m cooking, who wants some?" could spare you an awkward, hungry silence later.',
@@ -195,10 +195,10 @@ export const EN: Record<string, ScenarioText> = {
     options: [
       {
         style: 'reactive',
-        label: 'Wash up, listing out loud everything you have done since Monday.',
+        label: 'Wash up and run through everything you have done in this house since Monday.',
         cue: 'make a scene',
         reflection:
-          'Frustration often arrives with a scoreboard. The list is true, and being seen matters. Reading it out loud tends to make people defend themselves, though, instead of hearing how tired you are.',
+          'Frustration often arrives with a scoreboard. The list is true, and being seen matters. Going through the whole list tends to make people defend themselves, though, instead of hearing how tired you are.',
       },
       {
         style: 'constructive',
@@ -209,10 +209,10 @@ export const EN: Record<string, ScenarioText> = {
       },
       {
         style: 'boundary',
-        label: 'Leave it, and tell them you will not take another turn until you agree a fair rota.',
+        label: 'Leave it, and say you will not wash up again without a rota.',
         cue: 'set a limit',
         reflection:
-          'You set a limit without insulting anyone. Stepping back from the sink and saying why is clear and fair. They now know what you need, and can help decide how to get there.',
+          'You set a limit without blaming anyone. Stepping back from the sink and saying why is clear and fair. They now know what you need, and can help decide how to get there.',
       },
     ],
   },
@@ -223,7 +223,7 @@ export const EN: Record<string, ScenarioText> = {
     options: [
       {
         style: 'constructive',
-        label: 'Reply with the draft, say what you are still waiting for, and give a finish time.',
+        label: 'Reply with the draft, say what you are still waiting for, and give a time when you will finish.',
         cue: 'answer the work',
         reflection:
           'You answered the real question: where things stand and when they will be done. A time gives both of you something solid. The tone can be a separate chat if it keeps happening.',
@@ -237,14 +237,14 @@ export const EN: Record<string, ScenarioText> = {
       },
       {
         style: 'boundary',
-        label: 'Send the draft, and say you would appreciate a greeting and a clear deadline next time.',
+        label: 'Send the draft, and ask for a greeting and a deadline next time.',
         cue: 'name the tone',
         reflection:
           'You did the work and told them how you would like to be spoken to. Saying so politely is a limit, not an attack. People often adjust when they hear it plainly.',
       },
       {
         style: 'avoidant',
-        label: 'Leave the message unread until you feel calmer, maybe tomorrow.',
+        label: 'Leave the message unread until you feel calmer, maybe even until tomorrow morning.',
         cue: 'avoid it',
         reflection:
           'Needing time to cool down is sensible. But the message will still be there, and the delay may grow. A one-line holding reply now could protect your calm and keep things moving.',
@@ -258,14 +258,14 @@ export const EN: Record<string, ScenarioText> = {
     options: [
       {
         style: 'reactive',
-        label: 'Post a remark so everyone knows you noticed the silence.',
+        label: 'Post a short line about the silence so everyone knows you noticed it.',
         cue: 'poke back',
         reflection:
-          'It hurt, and wanting a reaction is understandable. Sarcasm tends to make a group more careful, not warmer. You can feel the sting without handing it to the whole chat.',
+          'It hurt, and wanting a reaction is understandable. A pointed line tends to make a group more guarded, not warmer. You can feel the sting without handing it to the whole chat.',
       },
       {
         style: 'constructive',
-        label: 'Like the lunch photo, and send your story to a friend who will enjoy it.',
+        label: 'Like the lunch photo, and send your story to a friend who will really enjoy it.',
         cue: 'find a better audience',
         reflection:
           'You joined in without chasing a laugh, and you found someone who will enjoy the story. Not every group suits every story, and that says little about the story and nothing about you.',
@@ -279,7 +279,7 @@ export const EN: Record<string, ScenarioText> = {
       },
       {
         style: 'avoidant',
-        label: 'Mute the chat for a month and decide never to share anything there again.',
+        label: 'Mute the chat for a whole month and decide that you will never share anything there again.',
         cue: 'go silent',
         reflection:
           'Taking a break from a chat that stung is sensible. Making it a permanent rule, though, turns one quiet minute into a closed door. A short mute leaves room to come back when it feels lighter.',
@@ -307,7 +307,7 @@ export const EN: Record<string, ScenarioText> = {
       },
       {
         style: 'constructive',
-        label: 'Pick the two important messages, answer them in ten minutes, and close the inbox.',
+        label: 'Pick the two important messages, answer them, and close the inbox.',
         cue: 'two, then stop',
         reflection:
           'Two answers is a real step, and stopping on purpose is part of the skill. The other messages can wait, and the two people you answered will be glad to hear from you.',
@@ -317,7 +317,7 @@ export const EN: Record<string, ScenarioText> = {
         label: 'Open everything at once and fire off short answers to clear the number.',
         cue: 'rush through',
         reflection:
-          'Wanting the number to go down is natural. Fast, sharp replies often create new questions to answer. You do not have to clear everything, only the messages that matter.',
+          'Wanting the number to go down is natural. Fast, short replies often create new questions to answer. You do not have to clear everything, only the messages that matter.',
       },
     ],
   },
@@ -328,14 +328,14 @@ export const EN: Record<string, ScenarioText> = {
     options: [
       {
         style: 'constructive',
-        label: 'Suggest a coffee to two colleagues this week, on a day you can really make it.',
+        label: 'Suggest a coffee to two colleagues this week, on a day that suits you.',
         cue: 'make a plan',
         reflection:
           'Instead of staring at the photos, you made a place for yourself at a future table. You cannot be at every lunch, but you can always ask for the next one.',
       },
       {
         style: 'reactive',
-        label: 'Comment under the photos with a joke about being forgotten, so they know you saw.',
+        label: 'Comment under the photos with a joke about being left out, so they know you saw.',
         cue: 'make them squirm',
         reflection:
           'Feeling left out is painful, and the joke is trying to say so. It would probably make people uncomfortable rather than closer. You can want to be included without turning the photos into a trap.',
@@ -356,14 +356,14 @@ export const EN: Record<string, ScenarioText> = {
     options: [
       {
         style: 'reactive',
-        label: 'Joke that you always pay for other people\'s desserts, until the table goes quiet.',
+        label: "Joke that you pay for everybody's desserts, and let the silence land.",
         cue: 'make a pointed joke',
         reflection:
           'The joke told the truth sideways. Humour can open a door or close it, though, and a sharp one often leaves everyone uneasy. You can still ask for a fairer split.',
       },
       {
         style: 'avoidant',
-        label: 'Pay the even share, smile, and decide not to come to the next dinner.',
+        label: 'Pay the even share, smile, and skip the next dinner.',
         cue: 'say nothing',
         reflection:
           'Paying quietly can feel easier than a debate. If it keeps bothering you, the cost is bigger than the money. You can come next time and ask for separate bills at the start.',
@@ -377,7 +377,7 @@ export const EN: Record<string, ScenarioText> = {
       },
       {
         style: 'boundary',
-        label: 'Say you are happy to share the tip, but you would like to pay only for what you ordered.',
+        label: 'Say you will share the tip, but that you would like to pay only for what you ordered.',
         cue: 'say what you will pay',
         reflection:
           'You said yes to some sharing and no to the rest, in plain words. Friends can handle a clear number, and the table now has a fair option to agree to.',
@@ -391,7 +391,7 @@ export const EN: Record<string, ScenarioText> = {
     options: [
       {
         style: 'constructive',
-        label: 'Say sorry once, offer to help, and pay for the glass.',
+        label: 'Say sorry once and pay for the glass.',
         cue: 'own it simply',
         reflection:
           'One honest apology and an offer to help is what most people hope for. The heads that turned have mostly turned back already. You stayed, and that makes it a small thing.',
@@ -405,14 +405,14 @@ export const EN: Record<string, ScenarioText> = {
       },
       {
         style: 'reactive',
-        label: 'Keep apologising and laughing at your own clumsiness.',
+        label: 'Keep apologising and joke about your own clumsiness.',
         cue: 'make light of it',
         reflection:
           'Joking can be how we cope with embarrassment. A long show asks the room to reassure you, though. One clear sorry is enough, and the staff can get back to their day.',
       },
       {
         style: 'constructive',
-        label: 'Ask what you can do to help, then stay and finish your coffee.',
+        label: 'Ask what you can do to help, then stay and finish your coffee before you leave.',
         cue: 'stay and help',
         reflection:
           'Finishing your coffee tells you, and the room, that the moment has passed. Cafés are used to breakages; you were polite and helpful, and you simply stayed.',
@@ -421,7 +421,7 @@ export const EN: Record<string, ScenarioText> = {
   },
   s14: {
     situation:
-      'Two relatives ask for the same Saturday afternoon: one needs help moving a cupboard, the other wants a long-promised visit. You said "maybe" to both. They are each waiting for an answer, and your calendar feels like a knot.',
+      'Two relatives ask for the same Saturday afternoon: one needs help moving a cupboard, the other wants a long-promised visit. You said "maybe" to both. They are each waiting for an answer, and your Saturday has turned into a puzzle.',
     reframe: 'If you could keep only one promise, which one matters most to you this week?',
     options: [
       {
@@ -440,14 +440,14 @@ export const EN: Record<string, ScenarioText> = {
       },
       {
         style: 'reactive',
-        label: 'Message both that nobody understands how busy you are and you cannot please everyone.',
+        label: 'Message both that nobody understands how busy you are, and that you cannot please everyone.',
         cue: 'show your stress',
         reflection:
           'Being pulled in two directions is tiring, and wanting people to see that is natural. Sending it as a complaint, though, can leave both feeling like a burden. You can be honest without the heat.',
       },
       {
         style: 'avoidant',
-        label: 'Leave both messages unanswered until Saturday has passed, then apologise.',
+        label: 'Leave both messages unanswered until Saturday has passed.',
         cue: 'let it pass',
         reflection:
           'Waiting can seem to make the problem vanish. Both relatives will probably feel dropped, though, and an apology afterwards weighs more than an honest answer today. You are allowed to choose.',
@@ -461,28 +461,28 @@ export const EN: Record<string, ScenarioText> = {
     options: [
       {
         style: 'curious',
-        label: 'Ask a member of staff how long disruptions on this line usually last.',
+        label: 'Ask a member of staff how long disruptions on this line usually last, and what the alternatives are.',
         cue: 'ask for information',
         reflection:
           'Asking gives you facts instead of guesses, which is a good instinct. The next move is yours: with their answer you can choose between waiting and re-routing, instead of just worrying.',
       },
       {
         style: 'reactive',
-        label: 'Complain to the nearest member of staff about how the company is run.',
+        label: 'Tell the nearest member of staff what you think of how the company is run.',
         cue: 'let off steam',
         reflection:
-          'A cancelled train is frustrating, and staff hear this all day. Raising your voice rarely speeds anything up. A calm question often gets you the information you need more quickly.',
+          'A cancelled train is frustrating, and staff hear this all day. Venting at staff rarely speeds anything up. A calm question often gets you the information you need more quickly.',
       },
       {
         style: 'avoidant',
-        label: 'Decide the lunch is a lost cause and go home without telling anyone.',
+        label: 'Decide the lunch is lost and go home without telling anyone.',
         cue: 'give up',
         reflection:
           'Disappointment can make a plan feel pointless. A cancelled train is a real obstacle, but a short message would let your family know. Even one line spares them from guessing where you are.',
       },
       {
         style: 'constructive',
-        label: 'Check other routes, tell your family your new arrival time, and take the best option.',
+        label: 'Check other routes, tell your family your new arrival time, and take the best one.',
         cue: 'plan a new route',
         reflection:
           'A new route and a message ahead turn a cancellation into a delay. You cannot fix the train, but you sorted what was yours to sort. Your family can plan around a time.',
@@ -499,28 +499,28 @@ export const EN: Record<string, ScenarioText> = {
         label: 'Walk in, drop your folder on the table and make it clear you have been kept waiting.',
         cue: 'show impatience',
         reflection:
-          'The overrun is annoying, and it was not your doing. A loud sigh turns a scheduling slip into a social one, though. You can walk in with the same firmness and a calmer face.',
+          'The overrun is annoying, and it was not your doing. Making the wait felt turns a scheduling slip into a social one, though. You can walk in with the same firmness and a calmer face.',
       },
       {
         style: 'constructive',
-        label: 'Knock, say when you need the room, and suggest another free room if you know one.',
+        label: 'Knock, say when you need the room, and offer to help them find another free room if you know one.',
         cue: 'offer a solution',
         reflection:
           'Offering a solution lets people move on without feeling thrown out. You protected your session and stayed friendly with the earlier group, which makes the next time easier too.',
       },
       {
         style: 'avoidant',
-        label: 'Wait in the corridor until they finish, even if that leaves you only ten minutes for your own session.',
+        label: 'Wait in the corridor until they finish, whatever time is left.',
         cue: 'wait politely',
         reflection:
           'Politeness is a good quality, and waiting feels safe. If it eats most of your session, though, you lose what you came for. You can stay courteous and still knock.',
       },
       {
         style: 'boundary',
-        label: 'Knock, say your session starts now, and ask them to wrap up within two minutes.',
+        label: 'Knock, say your session starts now, and ask them to wrap up quickly.',
         cue: 'claim your slot',
         reflection:
-          'Your time slot is real. Two minutes is a polite window, and saying so clearly respects both groups. People can pack up while you set up, and most will not mind.',
+          'Your time slot is real. Asking them to wrap up is a polite request, and saying so clearly respects both groups. People can pack up while you set up, and most will not mind.',
       },
     ],
   },
@@ -531,7 +531,7 @@ export const EN: Record<string, ScenarioText> = {
     options: [
       {
         style: 'constructive',
-        label: 'Spoon the pieces into bowls with cream and fruit, and call it a pudding.',
+        label: 'Serve the pieces in bowls with cream and fruit.',
         cue: 'serve it differently',
         reflection:
           'A new way of serving it saves the cake and the evening. Guests remember the welcome more than the shape. You kept the gift and let go of the perfect picture.',
@@ -555,7 +555,7 @@ export const EN: Record<string, ScenarioText> = {
         label: 'Declare the evening ruined and bin the cake on the spot.',
         cue: 'bin it at once',
         reflection:
-          'Disappointment after hours of effort hurts. Binning something that probably tastes good, on the spot, throws away the effort your guests would appreciate. The evening is not ruined: the cake you made already counts.',
+          'Disappointment after hours of effort hurts. Binning a cake that probably tastes good throws away the effort your guests would appreciate. The evening is not ruined: the cake you made already counts.',
       },
     ],
   },
@@ -566,28 +566,28 @@ export const EN: Record<string, ScenarioText> = {
     options: [
       {
         style: 'avoidant',
-        label: 'Say "maybe, let me check" and then avoid them in the hallway for a few days.',
+        label: 'Say "maybe, let me check" and then keep avoiding them in the hallway and the lift for the next few days.',
         cue: 'dodge the question',
         reflection:
           'Buying time feels kind in the moment. Dodging them tends to make your next meeting more awkward, for both of you. A clear answer, even a small no, is easier to hear than silence.',
       },
       {
         style: 'reactive',
-        label: 'Say that people always take advantage of how nice you are.',
+        label: 'Say that people take advantage of how nice you are, and walk off.',
         cue: 'snap at them',
         reflection:
           'Resentment builds when we say yes too often, and you noticed it. Saying it as an accusation will probably hurt a neighbour who meant no harm. A plain "not this time" keeps things friendly.',
       },
       {
         style: 'constructive',
-        label: 'Say you can take the parcels, and suggest a pet-sitting service or another neighbour for the cat.',
+        label: 'Say you can take the parcels, and suggest a pet-sitting service for the cat.',
         cue: 'offer another way',
         reflection:
           'You stayed helpful without overextending, and you gave them real ideas. Helping someone find a solution is a kind of help too. Neither of you has to feel stuck.',
       },
       {
         style: 'boundary',
-        label: 'Say you are happy to take the parcels, but that you cannot look after the cat this time.',
+        label: 'Say you can take the parcels, but not look after the cat.',
         cue: 'say yes to one part',
         reflection:
           'You offered what you could and declined the rest, kindly. A clear no to one part makes your yes to the other more honest. Good neighbours usually respect that.',

@@ -42,7 +42,7 @@ Every scenario has three or four doors, **one or two constructive**, never only 
 
 `run.difficulty` 1 to 5 changes four things:
 
-- **Plain cues.** At 1 and 2 every door shows a short plain description of the move ("In short: send an update"). From 3 the cue is gone, so the wording is all you have. Door labels themselves never carry a tone word ("loudly", "sarcastic", "calmly", "politely" and their French equivalents are banned by a test): the tone lives in the reflection, so elimination by adverb is not possible at any difficulty.
+- **Plain cues.** At 1 and 2 every door shows a short plain description of the move ("In short: send an update"). From 3 the cue is gone, so the wording is all you have. Door labels never carry a word of manner or tone ("loudly", "sarcastic", "calmly", "always", "à voix haute", "sèchement" and about 60 more, in both languages, banned by a test): the tone lives in the reflection and in the easy-difficulty cues. Nor does the length of a label tell: the doors of a scene are written so that the good door sits at every length rank in turn, and a test plays full games by always tapping the longest, the shortest, the second longest or the second shortest door (by characters and by words, in both languages, at all five difficulties) and requires that none beats a random player by more than 15 points.
 - **Subtler rooms.** At 1 and 2 only the gentler scenes are drawn (ease 1 and 2). From 3 at least two of the subtlest scenes (ease 3) join the run, three at difficulty 5.
 - **Length.** 5, 5, 6, 6, 7 rooms.
 - **The bot** slips more often (below).
@@ -100,7 +100,7 @@ The room draw uses `mulberry32(fnv1a('decision-dungeon:<seed>'))`, door order `t
 ## Content rules (how to add or change a scene)
 
 - The shape of a scenario (id, mood, topic, ease, and the style of each option in order) lives in `src/games/decision-dungeon/content.ts`. The words live in `texts-en.ts` and `texts-fr.ts`, in the same option order; only the Screen reads them, so the engine stays small.
-- Situation 25 to 50 words; reflection 20 to 40 words; 3 or 4 options; one or two constructive; warm, concrete, original; never a shaming word, a topic from the list above, a digit or a link. French is written for French (tutoiement, no masculine or feminine form addressing the player, guarded by a test with a small allow-list for idioms), not translated. Door labels carry no tone word.
+- Situation 25 to 50 words; reflection 20 to 40 words; 3 or 4 options; one or two constructive; warm, concrete, original; never a shaming word, a topic from the list above, a digit or a link. French is written for French (tutoiement; no masculine or feminine form addressing the player, guarded by a test of the forms after "tu es", after "être / rester / se sentir", "ça t'a" and the adjectives of feeling, with a table of 54 must-flag and 45 must-pass phrases and an allow-list of three exact third-person phrases), not translated. Door labels carry no tone word.
 - `content.test.ts` enforces all of it.
 
 ## Screenshots

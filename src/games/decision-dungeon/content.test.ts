@@ -196,67 +196,7 @@ describe('Decision Dungeon content: topics and tone', () => {
   });
 });
 
-/** Forms that address the player in the masculine (or feminine). Third parties ("un collègue", "un ami", "une voisine") and idioms are not in this list. */
-const GENDERED_FR: RegExp[] = [
-  /(?<!\p{L})(déçu|venu|poli|courtois|franc|curieux|inclus|froissé|hôte|tiraillé|serviable|fatigué|énervé|gêné|vexé|stressé|content|désolé|reconnaissant|prêt|seul|sûr|resté|arrivé|parti|occupé|excusé|blessé|dernier|coincé|bloqué|perdu|gâté|surpris|choqué|rassuré|soulagé)(?!\p{L})/iu,
-  /(?<!\p{L})(tu|t')\s?(es|étais|seras|serais|as été|t'es|t'étais) [\p{L}-]+(é|ée|i|ie|u|ue|és|ées)(?!\p{L})/iu,
-];
-/** Phrases that are fine: a thing or an idiom, not the player. They are removed before the check. */
-const ALLOWED_FR = ['presque prêt', 'premier agent venu', 'Les invités', 'un seul', 'le seul', 'est perdu'];
-const genderedForm = (text: string): string | null => {
-  let t = text;
-  for (const ok of ALLOWED_FR) t = t.split(ok).join(' ');
-  for (const rule of GENDERED_FR) {
-    const m = rule.exec(t);
-    if (m) return m[0];
-  }
-  return null;
-};
-
-describe('Decision Dungeon content: the French never gives the player a gender', () => {
-  it('uses no masculine or feminine form that addresses the player, in any scene', () => {
-    for (const s of SCENARIOS) {
-      const t = TEXTS.fr[s.id]!;
-      const texts = [t.situation, t.reframe, ...t.options.flatMap((o) => [o.label, o.cue, o.reflection])];
-      for (const text of texts) expect(genderedForm(text), `fr ${s.id}: "${text}"`).toBeNull();
-    }
-  });
-
-  it('catches a gendered form (the guard itself), and lets neutral French through', () => {
-    for (const bad of ['Tu es venu trop tard', 'tu rentres le dernier', 'Tu as été poli', 'Tu peux être franc', 'rester un excellent hôte', 'Tu es resté calme', 'être déçu'])
-      expect(genderedForm(bad), bad).not.toBeNull();
-    for (const ok of ['Tu as pris soin de toi', 'Garde ta politesse', 'Le serveur arrive avec un balai', 'ton brouillon est presque prêt', 'le premier agent venu', 'Les invités arrivent'])
-      expect(genderedForm(ok), ok).toBeNull();
-  });
-});
-
-describe('Decision Dungeon content: the labels carry no tone word', () => {
-  const TONE: Record<Locale, RegExp> = {
-    en: /\b(loudly|sharply|sarcastic|curt|slam\w*|sigh\w*|irritated|angrily|angry|calmly|politely|kindly|gently|firmly|warmly|rudely|bitterly)\b/i,
-    fr: /\b(sèchement|sec|ironique|claque\w*|soupire\w*|fort|fermement|poliment|gentiment|calmement|doucement|agacé\w*|violemment|brusquement)\b/i,
-  };
-
-  it('keeps the tone in the reflection: no adverb of manner in a door label, on any door, in both languages', () => {
-    eachScenario((locale, id, t) => {
-      for (const o of t.options) expect(o.label, `${locale} ${id}`).not.toMatch(TONE[locale]);
-    });
-  });
-});
-
 describe('Decision Dungeon content: the good door is not a giveaway', () => {
-  it('does not make the constructive label the longest one in most scenarios', () => {
-    for (const locale of LOCALES) {
-      let longest = 0;
-      for (const s of SCENARIOS) {
-        const options = TEXTS[locale][s.id]!.options;
-        const max = Math.max(...options.map((o) => wordCount(o.label)));
-        const winners = options.filter((o) => wordCount(o.label) === max);
-        if (winners.length === 1 && winners[0]!.style === 'constructive') longest += 1;
-      }
-      expect(longest, `${locale}: constructive is the single longest label in ${longest} of 18`).toBeLessThanOrEqual(6);
-    }
-  });
-
   it('keeps the reflections of good and other doors the same length on average', () => {
     for (const locale of LOCALES) {
       const avg = (pick: (style: string) => boolean): number => {
