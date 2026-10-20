@@ -59,18 +59,18 @@ test('plays a full game to an outcome', async ({ page }, testInfo) => {
   await begin(page);
   const cue = page.getByTestId('still-water-phase');
   const hold = page.getByTestId('still-water-hold');
-  await expect(cue).toHaveText('Breathe in');
+  await expect(cue).toContainText('Breathe in');
   await hold.hover();
   await page.mouse.down();
   await expect(hold).toHaveAttribute('aria-pressed', 'true');
   await page.clock.runFor(2500);
   await shootGame(page, testInfo, ID, 'play');
   await page.clock.runFor(2500);
-  await expect(cue).toHaveText('Hold');
+  await expect(cue).toContainText('Hold');
   await page.mouse.up();
   await expect(hold).toHaveAttribute('aria-pressed', 'false');
   await page.clock.runFor(1500);
-  await expect(cue).toHaveText('Breathe out');
+  await expect(cue).toContainText('Breathe out');
   await page.getByRole('button', { name: 'Pause' }).click();
   await expect(cue).toHaveText(/Paused/);
   await page.getByRole('button', { name: 'Resume' }).click();
@@ -93,7 +93,7 @@ test('replaying the same seed gives the same outcome', async ({ page }) => {
   expect(outcome.result).toBe('fled');
   // One perfect cycle of eight, ceiling 900 (no ripple has passed yet, the calm is whole): 100 x 900 / 800, rounded.
   expect(outcome.score).toBe('113');
-  expect(outcome.log).toMatch(/Cycle 1: the breath matched 100 %/);
+  expect(outcome.log).toMatch(/Cycle 1: the breath matched 100\s%/);
 });
 
 // This game's own checks.
@@ -103,7 +103,7 @@ test('plays with the keyboard, in French, and steps away with a partial score', 
   await expect(stage(page).getByRole('heading', { name: 'Eau calme' })).toBeVisible();
   await expect(page.getByTestId('still-water-disclaimer')).toContainText('ni une thérapie');
   await begin(page);
-  await expect(page.getByTestId('still-water-phase')).toHaveText('Inspire');
+  await expect(page.getByTestId('still-water-phase')).toContainText('Inspire');
   // Focus goes to the big button, so Space is enough; Enter holds too.
   await expect(page.getByTestId('still-water-hold')).toBeFocused();
   await page.keyboard.down('Space');
@@ -113,7 +113,7 @@ test('plays with the keyboard, in French, and steps away with a partial score', 
   await expect(page.getByTestId('still-water-hold')).toHaveAttribute('aria-pressed', 'true');
   await page.keyboard.up('Enter');
   await page.clock.runFor(5000);
-  await expect(page.getByTestId('still-water-phase')).toHaveText('Retiens');
+  await expect(page.getByTestId('still-water-phase')).toContainText('Retiens');
   await stage(page).getByRole('button', { name: "S'éloigner" }).click();
   expect((await readOutcome(page)).result).toBe('fled');
   await expect(page.getByTestId('still-water-banner')).toContainText('Tu as quitté la berge');
@@ -123,15 +123,19 @@ test('plays with the keyboard, in French, and steps away with a partial score', 
   await expectValidOutcome(page);
 });
 
-test('a higher difficulty breathes faster, and a Move troop can choose the pace', async ({ page }) => {
+test('a Move troop can choose the pace before it begins', async ({ page }) => {
   await openLab(page, ID, { seed: 9, difficulty: 1, party: 'starter' });
   const rhythm = page.getByTestId('still-water-rhythm');
-  const easy = (await rhythm.innerText()).replace(/\s/g, ' ');
-  expect(easy).toBe('In 4 s · hold 2 s · out 6 s');
+  expect((await rhythm.innerText()).replace(/\s/g, ' ')).toBe('In 4 s · hold 2 s · out 6 s');
   await page.getByRole('button', { name: 'Slow' }).click();
   expect((await rhythm.innerText()).replace(/\s/g, ' ')).toBe('In 5 s · hold 2.5 s · out 7.5 s');
+  await page.getByRole('button', { name: 'Begin' }).click();
+  await expect(page.getByRole('button', { name: 'Slow' })).toHaveCount(0);
+});
+
+test('a higher difficulty breathes faster, and without a Move troop there is no pace to choose', async ({ page }) => {
   await openLab(page, ID, { seed: 9, difficulty: 5, party: 'single' });
-  expect((await rhythm.innerText()).replace(/\s/g, ' ')).toBe('In 3 s · hold 1 s · out 3.5 s');
+  expect((await page.getByTestId('still-water-rhythm').innerText()).replace(/\s/g, ' ')).toBe('In 3 s · hold 1 s · out 3.5 s');
   await expect(page.getByRole('button', { name: 'Slow' })).toHaveCount(0);
   await expectResponsiveGame(page);
 });
@@ -142,7 +146,7 @@ test('reduced motion keeps the text cue with a bar instead of the ring; small an
   await expect(page.getByRole('progressbar', { name: 'Breath' })).toBeVisible();
   await freezeClock(page);
   await begin(page);
-  await expect(page.getByTestId('still-water-phase')).toHaveText('Breathe in');
+  await expect(page.getByTestId('still-water-phase')).toContainText('Breathe in');
   await expect(page.getByRole('progressbar', { name: 'Breath' })).toHaveAttribute('aria-valuetext', 'Breathe in');
   await page.keyboard.down('Space');
   await page.clock.runFor(2000);

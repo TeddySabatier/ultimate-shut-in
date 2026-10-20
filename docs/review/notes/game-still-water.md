@@ -37,7 +37,7 @@ Legend: done (was right in the seed), fixed (wrong or weak in the seed, now righ
 | Item | Status |
 | --- | --- |
 | Rhythm 4-2-6 at difficulty 1, 5-3-7 and faster by difficulty, 5 to 8 cycles | done (kept the seed's table: 4-2-6, 5-3-7, 4-2-5, 3-2-4, 3-1-3.5; cycles 5, 6, 6, 7, 8); tested; exact table in the docs |
-| Accuracy is the overlap of hold and ideal, per cycle, smooth water score, no failure state | fixed (hits minus false holds over the ideal; water fills smoothly over the first cycle) |
+| Accuracy is the overlap of hold and ideal, per cycle, smooth water score, no failure state | fixed (hit share of the hold ticks minus false-hold share of the release ticks; water fills smoothly over the first cycle) |
 | Decoys only after the first two cycles; one on the water at a time | fixed (slotted placement, tested for 5 difficulties x 30 seeds); the seed could stack them |
 | Tapping a decoy costs a little calm; ignoring adds to steadiness | done, fixed counting (steadiness derived from decoys that left untouched; forfeit no longer counts ripples that never appeared) |
 | Never a loud sound; no sound by default | done: no sound at all, no setting (the brief allows it) |
@@ -54,7 +54,7 @@ Legend: done (was right in the seed), fixed (wrong or weak in the seed, now righ
 | `onFrame(alpha)` for smooth drawing, 50 ms tick, `useFixedStep` | fixed (added): the ring is painted from `onFrame` straight into the DOM |
 | Engine pure: no `Math.random`, `Date`, `navigator` in `.ts` files | done (lint passes); integer arithmetic for scoring |
 | All text via `strings.ts`, en and fr, natural French with "tu" | fixed log and button copy; a unit test forbids "vous" |
-| At least 25 unit tests | 56 engine tests (the seed had 28), 21 Screen tests (the seed had 5), the 10 contract kit tests |
+| At least 25 unit tests | 64 engine tests (the seed had 28), 28 Screen tests (the seed had 5), the 10 contract kit tests |
 | Accessible: labelled controls, `aria-live`, focus, 44 px, contrast | fixed: tokens only (no hard-coded colours), non-colour signal for holding (filled ring, thick edge, aria-pressed), groups with names |
 | Responsive at 320x568, 390x844 at 150 percent, 844x390 | fixed: looked at screenshots at the three sizes; two columns in landscape, pond bounded by `dvh`, reserved ripple row; `expectResponsiveGame` in the e2e |
 | Leaving early scores through the engine's forfeit | done, kept (`forfeit` action, then a separate Leave); unplayed cycles count as 0 |
@@ -70,7 +70,7 @@ Legend: done (was right in the seed), fixed (wrong or weak in the seed, now righ
 ## Decisions
 
 - **Scoring formula.** `score = round(mean cycle accuracy x ceiling / 100)`, `ceiling = 850 + 100 x (ripples let go / ripples) + 50 x calm / 100`. Ignoring ripples can only raise a good breath, never rescue a bad one (a player who never holds and ignores everything scores 0, which the seed's flat bonuses did not guarantee).
-- **Accuracy is hits minus false holds over the ideal,** not Jaccard: always-held scores 0 to 21 percent depending on the rhythm, never held scores 0.
+- **Accuracy is the hit share of the hold ticks minus the false-hold share of the release ticks,** not Jaccard and not a single shared denominator: always held and never held both score 0 whatever the grace (see review round 1).
 - **Pace not score.** Move's pace changes the length of the breath only. No multiplier, so nobody is rewarded for choosing one.
 - **Hint is information only,** no points. The `hint` buff count means cycles of hint, Eat means all cycles.
 - **Bot table is deliberately sloppy** (it presses up to 2 s late at difficulty 1) so that its win rate falls from 94 to 44 percent with the difficulty and sits at 58 to 66 percent on normal; the numbers are in `docs/games/still-water.md`.
@@ -85,6 +85,31 @@ Nothing needed. Observations only, for the maintainers:
 
 - `src/components/SystemWindow.tsx` hard-codes its tone colours (`#6b6b8a`, `#ffb84d`, ...) instead of tokens; not touched.
 - The Lab's `Bot play` after `Replay same seed` (the earlier workaround in this file): `replay()` sets `previous` to the current result and clears it, so a bot run after a replay compares against `null` only when no result existed. The e2e no longer depends on that (the replay spec plays the same scripted breath twice).
+
+## Review round 1 (independent review of `6ba11ad`: 0 critical, 3 major, 12 minor)
+
+Fixed:
+
+- **M1, always-hold could win with a wide grace.** Accuracy is now `hits / H - false holds / R` (hold and release ticks each on their own scale), so holding all the time is 0 at every grace. A sweep test (difficulty 1 to 5, the three paces, four parties, five buff sets with `time` 90 s three times, Sleep and Move at power 100, `revive` 10) plays always-held and never-held 600 times and asserts a loss under 300 points every time. While sweeping, `revive` turned out to be the same exploit (a big count made no play a win): it now forgives at most a third of the cycles. The bot was re-measured (docs table): 91, 55, 46, 35, 22 percent with the starter party and 94, 63, 57, 53, 42 with the full party; the table did not need to change.
+- **M2, tap mode lost an early tap.** A press in the last 10 ticks (half a second) before a phase change now belongs to the new phase (`tapTarget`); it never toggles. Engine tests for early, on-time and late taps and a tap player at 8, 3, 0 and -3 ticks early (all at least 90 percent), Screen test for a tap before the breath out.
+- **M3, "Breathe in" after the end.** The cue is now `done` ("Done", "Terminé") once the game is over, the ring rests, nothing comes next; Screen and e2e tests.
+- Minor 1 (stuck hold when tap mode is switched off): release on mode change, tested.
+- Minor 2 (focus lost at the end): the result banner takes the focus when the game ends (Screen and e2e tests).
+- Minor 3 (holding by colour only): the hold button shows "● Holding" or "○ Let go", in words and a shape.
+- Minor 5 (French typography): non-breaking spaces before ":" and "%", in the counters ("0 sur 2") and "n of total"; seconds with a decimal comma in French; "Laisse-les." became "Ne les touche pas."
+- Minor 6 (Pause moved the button): the paused cue is now the short "Paused" / "En pause", never longer than a phase cue.
+- Minor 7 (ripple under the hold button): twice the gap above the ripple row (the row stays under the button, so the layout stays still).
+- Minor 8 (test title), minor 9 (the won title is now "Still water. Well breathed." / "Eau calme. Belle respiration."), minor 10 (unused `waterLabel` and `pace` keys removed).
+- Minor 11 (hidden tab): the game pauses and says "Paused" on return.
+- Minor 12 (Eat and `hint` visual only): with a hint the live cue also says how long the phase lasts ("Breathe in, 4 seconds"), once per phase.
+- The e2e "difficulty" test, which opened the Lab twice (the known navigation flake of `docs/review/qa-report.md` hit it once in nine repeats), is two tests with one open each.
+
+Skipped, with the reason:
+
+- **Minor 4 (skipping the rest phase still wins).** Forgiving by design: the rest is a quarter to 40 percent of the hold, and a player who holds only the breath in earns that much less. Documented in the docs page; no weighting added.
+- **Minor 7, moving the ripple row above the stage.** Kept the row under the hold button (a reserved row, no layout shift) and widened the gap instead; moving it would put it in the thumb's path to the Pause row or above the pond, away from where the eyes are.
+
+CI note: after merging `origin/integration/arena` (PR #28) the shared specs no longer depend on the registered games.
 
 ## CI on this branch
 
