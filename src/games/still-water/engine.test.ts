@@ -1,329 +1,646 @@
 /**
- * Still Water's rules. The contract kit covers generic properties; this
- * file covers scoring, decoys, party, buffs, the bot and the copy.
+ * Still Water's rules. The contract kit covers the generic properties; this
+ * file covers the rhythm tables, scoring of perfect / late / early / never /
+ * always-held input, ripples, party and buffs, the bot's seeded error and
+ * balance, and the copy.
  */
 import { describe, expect, it } from 'vitest';
-import { emptyRun, type Party, type RunContext } from '../contract';
+import { emptyRun, makeMember, type Locale, type Party, type RunBuff, type RunContext } from '../contract';
 import { parties, playToEnd, runs } from '../testing/contract';
 import {
+  BOT,
+  BASE_CEILING,
   CALM_START,
-  HINT_BONUS,
-  RHYTHM,
+  DECOY_AFTER_CYCLES,
+  LEAD_TICKS,
   REVIVE_ACCURACY,
+  RHYTHM,
   TAP_CALM_COST,
   WIN_SCORE,
-  botDesiredHold,
-  breathProgress,
+  accuracyOf,
+  botCycleError,
+  breathAt,
   buildRhythm,
-  currentAccuracy,
+  calmOf,
+  canChoosePace,
+  cycleIndex,
   displayCycle,
   engine,
   graceTicks,
-  habitPower,
+  hintActive,
   idealHold,
+  idealTicksPerCycle,
   isOver,
-  outcomeLog,
+  nextPhase,
+  phaseAt,
   phaseOf,
+  phaseTicksLeft,
   rawScore,
+  steadiness,
+  tapCount,
   tickKind,
   visibleDecoys,
   waterLevel,
+  type Difficulty,
+  type Pace,
   type StillWaterAction,
   type StillWaterState,
 } from './engine';
 import game from './manifest';
 import { strings } from './strings';
 
-const start = (seed = 1, party: Party = parties.full, run: RunContext = emptyRun(1), locale: 'en' | 'fr' = 'en') =>
-  engine.initial(seed, party, run, locale);
+const DIFFICULTIES: Difficulty[] = [1, 2, 3, 4, 5];
 
-const apply = (s: StillWaterState, ...actions: StillWaterAction[]) => actions.reduce((acc, a) => engine.reduce(acc, a), s);
+const start = (seed = 1, party: Party = parties.single, run: RunContext = emptyRun(1), locale: Locale = 'en') => engine.initial(seed, party, run, locale);
+const runWith = (difficulty: Difficulty, ...buffs: RunBuff[]): RunContext => ({ buffs, roomIndex: 0, difficulty });
+const buff = (kind: RunBuff['kind'], amount: number): RunBuff => ({ id: `t-${kind}`, kind, amount });
+const act = (s: StillWaterState, ...actions: StillWaterAction[]) => actions.reduce((acc, a) => engine.reduce(acc, a), s);
+const tick = (s: StillWaterState, n = 1) => act(s, ...Array.from({ length: n }, (): StillWaterAction => ({ type: 'tick' })));
+/** A party of one vassal of a habit with a given level (loyalty 50). */
+const only = (habit: 'move' | 'sleep' | 'eat', level: number): Party => ({ members: [makeMember({ id: habit, name: habit, habit, level, loyalty: 50 })] });
+/** The same, without the Move vassal that `parties.single`-like fixtures may carry. */
+const noMove: Party = { members: [makeMember({ id: 'study', name: 'Study', habit: 'study', level: 1, loyalty: 50 })] };
 
-const tick = (s: StillWaterState, n = 1) => {
-  let next = s;
-  for (let i = 0; i < n; i++) next = engine.reduce(next, { type: 'tick' });
-  return next;
-};
-
-const hold = (s: StillWaterState, down: boolean) => engine.reduce(s, { type: 'hold', down });
-
-/** Play to the end with a hold predicate evaluated before each tick. */
+/** Play to the end; `want` says whether the player holds at each game tick (never during the get-ready lead). */
 function playWith(s: StillWaterState, want: (state: StillWaterState) => boolean): StillWaterState {
   let next = s;
-  let guard = 0;
-  while (!isOver(next) && guard < 20_000) {
-    const down = want(next);
-    if (down !== next.holding) next = hold(next, down);
+  for (let guard = 0; !isOver(next) && guard < 20_000; guard++) {
+    const down = next.leadLeft > 0 ? false : want(next);
+    if (down !== next.holding) next = engine.reduce(next, { type: 'hold', down });
     next = engine.reduce(next, { type: 'tick' });
-    guard += 1;
   }
   return next;
 }
 
+const inCycle = (st: StillWaterState) => st.tick % st.cycleTicks;
 const perfect = (s: StillWaterState) => playWith(s, (st) => idealHold(st, st.tick));
 const neverHeld = (s: StillWaterState) => playWith(s, () => false);
 const alwaysHeld = (s: StillWaterState) => playWith(s, () => true);
+/** Press `press` ticks after the cycle starts, release `release` ticks after the ideal release point. */
+const offBy = (s: StillWaterState, press: number, release: number) =>
+  playWith(s, (st) => inCycle(st) >= press && inCycle(st) < st.inhaleTicks + st.holdTicks + release);
 
-describe('still water engine', () => {
-  it('uses the 4-2-6 table on difficulty 1 and 5-3-7 on difficulty 2', () => {
+const outcomeOf = (s: StillWaterState) => engine.outcome(s)!;
+
+describe('rhythm tables', () => {
+  it('difficulty 1 is 4-2-6 and difficulty 2 is 5-3-7, in 50 ms ticks', () => {
     const easy = start(1, parties.single, emptyRun(1));
-    expect(easy.inhaleTicks).toBe(80);
-    expect(easy.holdTicks).toBe(40);
-    expect(easy.exhaleTicks).toBe(120);
-    expect(easy.cycleCount).toBe(5);
+    expect([easy.inhaleTicks, easy.holdTicks, easy.exhaleTicks, easy.cycleCount]).toEqual([80, 40, 120, 5]);
     const mid = start(1, parties.single, emptyRun(2));
-    expect(mid.inhaleTicks).toBe(100);
-    expect(mid.holdTicks).toBe(60);
-    expect(mid.exhaleTicks).toBe(140);
-    expect(mid.cycleCount).toBe(6);
+    expect([mid.inhaleTicks, mid.holdTicks, mid.exhaleTicks, mid.cycleCount]).toEqual([100, 60, 140, 6]);
   });
 
-  it('uses faster patterns and more cycles on higher difficulties', () => {
-    const hard = start(1, parties.single, emptyRun(5));
-    expect(hard.inhaleTicks).toBe(60);
-    expect(hard.holdTicks).toBe(20);
-    expect(hard.exhaleTicks).toBe(70);
-    expect(hard.cycleCount).toBe(8);
-    expect(hard.totalTicks).toBeLessThan(start(1, parties.single, emptyRun(2)).totalTicks);
-    expect(hard.cycleTicks).toBeLessThan(start(1, parties.single, emptyRun(1)).cycleTicks);
+  it('difficulties 3 to 5 are faster: 4-2-5, 3-2-4 and 3-1-3.5', () => {
+    expect(RHYTHM[3]).toMatchObject({ inhaleMs: 4000, holdMs: 2000, exhaleMs: 5000, cycles: 6 });
+    expect(RHYTHM[4]).toMatchObject({ inhaleMs: 3000, holdMs: 2000, exhaleMs: 4000, cycles: 7 });
+    expect(RHYTHM[5]).toMatchObject({ inhaleMs: 3000, holdMs: 1000, exhaleMs: 3500, cycles: 8 });
   });
 
-  it('Move power stretches every phase by floor(power / 10) ticks', () => {
-    const alone = start(1, parties.single, emptyRun(1));
-    const full = start(1, parties.full, emptyRun(1));
-    const stretch = Math.floor(habitPower(parties.full, 'move') / 10);
-    expect(stretch).toBeGreaterThan(0);
-    expect(full.inhaleTicks).toBe(alone.inhaleTicks + stretch);
-    expect(full.holdTicks).toBe(alone.holdTicks + stretch);
-    expect(full.exhaleTicks).toBe(alone.exhaleTicks + stretch);
+  it('every game has 5 to 8 cycles and fits in two minutes, even at the slow pace', () => {
+    for (const d of DIFFICULTIES) {
+      const slow = buildRhythm(d, 1);
+      expect(RHYTHM[d].cycles).toBeGreaterThanOrEqual(5);
+      expect(RHYTHM[d].cycles).toBeLessThanOrEqual(8);
+      expect(((slow.totalTicks + LEAD_TICKS) * 50) / 1000).toBeLessThanOrEqual(120);
+    }
   });
 
-  it('Sleep power and the time buff widen grace; attack does not', () => {
-    const starter = start(1, parties.starter, emptyRun(1));
-    const full = start(1, parties.full, emptyRun(1));
-    expect(full.tolerance).toBeGreaterThan(starter.tolerance);
-    const timed = start(1, parties.full, { ...emptyRun(1), buffs: [{ id: 't', kind: 'time', amount: 20 }] });
-    expect(timed.tolerance).toBeGreaterThan(full.tolerance);
-    const attacked = start(1, parties.full, { ...emptyRun(1), buffs: [{ id: 'a', kind: 'attack', amount: 15 }] });
-    expect(attacked.tolerance).toBe(full.tolerance);
-    expect(graceTicks(1, 0, 0, 80, 40, 120)).toBe(RHYTHM[1].baseTol);
+  it('difficulty shortens the cycle after the second level and narrows the grace', () => {
+    const cycle = DIFFICULTIES.map((d) => buildRhythm(d).cycleTicks);
+    expect(cycle[2]!).toBeLessThan(cycle[1]!);
+    expect(cycle[3]!).toBeLessThan(cycle[2]!);
+    expect(cycle[4]!).toBeLessThan(cycle[3]!);
+    const grace = DIFFICULTIES.map((d) => RHYTHM[d].baseGrace);
+    expect([...grace].sort((a, b) => b - a)).toEqual(grace);
   });
 
-  it('Eat or a hint buff turns the guide on; defense is ignored', () => {
-    expect(start(1, parties.starter, emptyRun(1)).showHint).toBe(false);
-    expect(start(1, parties.full, emptyRun(1)).showHint).toBe(true);
-    const hinted = start(1, parties.starter, { ...emptyRun(1), buffs: [{ id: 'h', kind: 'hint', amount: 2 }] });
-    expect(hinted.showHint).toBe(true);
-    const defended = start(1, parties.starter, { ...emptyRun(1), buffs: [{ id: 'd', kind: 'defense', amount: 15 }] });
-    expect(defended.showHint).toBe(false);
+  it('phases follow inhale, hold, exhale and the cycle repeats', () => {
+    const s = start();
+    expect(phaseAt(s, 0)).toBe('inhale');
+    expect(phaseAt(s, s.inhaleTicks - 1)).toBe('inhale');
+    expect(phaseAt(s, s.inhaleTicks)).toBe('hold');
+    expect(phaseAt(s, s.inhaleTicks + s.holdTicks)).toBe('exhale');
+    expect(phaseAt(s, s.cycleTicks)).toBe('inhale');
   });
 
-  it('phases walk inhale, hold, then exhale, then the next cycle', () => {
-    const s = start(1, parties.single, emptyRun(1));
+  it('starts with a two second get-ready lead that scores nothing', () => {
+    let s = start();
+    expect(phaseOf(s)).toBe('ready');
+    expect(s.leadLeft).toBe(LEAD_TICKS);
+    s = act(tick(s, LEAD_TICKS - 1), { type: 'hold', down: true });
+    expect(phaseOf(s)).toBe('ready');
+    s = tick(s);
     expect(phaseOf(s)).toBe('inhale');
-    expect(phaseOf(tick(s, s.inhaleTicks))).toBe('hold');
-    expect(phaseOf(tick(s, s.inhaleTicks + s.holdTicks))).toBe('exhale');
-    expect(displayCycle(tick(s, s.cycleTicks))).toBe(2);
-  });
-
-  it('breath progress grows, stays, then shrinks', () => {
-    const s = start(1, parties.single, emptyRun(1));
-    expect(breathProgress(s)).toBe(0);
-    expect(breathProgress(tick(s, s.inhaleTicks))).toBe(100);
-    expect(breathProgress(tick(s, s.inhaleTicks + s.holdTicks))).toBe(100);
-    expect(breathProgress(tick(s, s.cycleTicks - 1))).toBeLessThan(10);
-  });
-
-  it('perfect hold scores at or near 1000 and wins', () => {
-    const o = engine.outcome(perfect(start(1, parties.single, emptyRun(1))));
-    expect(o?.result).toBe('won');
-    expect(o?.score).toBeGreaterThanOrEqual(900);
-    expect(o?.stats?.cycles).toBe(5);
-  });
-
-  it('never-held scores poorly and loses', () => {
-    const s = neverHeld(start(1, parties.single, emptyRun(1)));
-    const o = engine.outcome(s);
-    expect(s.cycleScores.every((c) => c.accuracy === 0)).toBe(true);
-    expect(o?.result).toBe('lost');
-    expect(o?.score).toBeLessThan(WIN_SCORE);
-    expect(o?.log.at(-1)).toMatch(/still here/);
-  });
-
-  it('always-held is near half and loses on a clean party', () => {
-    const s = alwaysHeld(start(1, parties.single, emptyRun(1)));
-    const o = engine.outcome(s);
-    expect(s.cycleScores.every((c) => c.accuracy > 30 && c.accuracy < 70)).toBe(true);
-    expect(o?.result).toBe('lost');
-  });
-
-  it('a late hold scores below a perfect one and above never-held', () => {
-    const s0 = start(1, parties.single, emptyRun(1));
-    const late = playWith(s0, (st) => idealHold(st, Math.max(0, st.tick - 20)));
-    const good = perfect(start(1, parties.single, emptyRun(1)));
-    const none = neverHeld(start(1, parties.single, emptyRun(1)));
-    expect(averageish(late)).toBeLessThan(averageish(good));
-    expect(averageish(late)).toBeGreaterThan(averageish(none));
-  });
-
-  it('an early hold scores below a perfect one', () => {
-    const s0 = start(1, parties.single, emptyRun(1));
-    const early = playWith(s0, (st) => idealHold(st, st.tick + 20));
-    expect(averageish(early)).toBeLessThan(averageish(perfect(start(1, parties.single, emptyRun(1)))));
-    expect(averageish(early)).toBeGreaterThan(0);
-  });
-
-  it('grace ticks forgive a small late start that would otherwise miss', () => {
-    const tight = start(1, parties.single, emptyRun(1));
-    expect(tickKind(tight, 0)).toBe('grace');
-    expect(tickKind(tight, tight.tolerance)).toBe('hold');
-    const wide = start(1, parties.full, { ...emptyRun(1), buffs: [{ id: 't', kind: 'time', amount: 20 }] });
-    expect(wide.tolerance).toBeGreaterThan(tight.tolerance);
-    expect(tickKind(wide, tight.tolerance)).toBe('grace');
-  });
-
-  it('tapping a visible decoy costs calm; ignoring it adds steadiness', () => {
-    const s0 = start(7, parties.full, emptyRun(5));
-    expect(s0.decoys.length).toBeGreaterThan(0);
-    const d = s0.decoys[0]!;
-    const at = tick(s0, d.appearTick);
-    expect(visibleDecoys(at).some((x) => x.id === d.id)).toBe(true);
-    const tapped = engine.reduce(at, { type: 'tap', decoyId: d.id });
-    expect(tapped.calm).toBe(CALM_START - TAP_CALM_COST);
-    expect(tapped.decoys.find((x) => x.id === d.id)?.tapped).toBe(true);
-    expect(engine.reduce(at, { type: 'tap', decoyId: 'nope' })).toBe(at);
-    const ignored = tick(at, d.leaveTick - at.tick);
-    expect(ignored.steadiness).toBeGreaterThan(at.steadiness);
-  });
-
-  it('decoys never appear during the first two cycles', () => {
-    const s = start(3, parties.full, emptyRun(5));
-    expect(s.decoys.every((d) => d.appearTick >= s.cycleTicks * 2)).toBe(true);
-  });
-
-  it('luck removes one decoy; a luck-less hard run has more', () => {
-    const plain = start(4, parties.full, emptyRun(5));
-    const lucky = start(4, parties.full, { ...emptyRun(5), buffs: [{ id: 'l', kind: 'luck', amount: 15 }] });
-    expect(lucky.decoys.length).toBe(plain.decoys.length - 1);
-  });
-
-  it('a revive forgives one missed cycle', () => {
-    const run: RunContext = { ...emptyRun(1), buffs: [{ id: 'r', kind: 'revive', amount: 1 }] };
-    const s = neverHeld(start(1, parties.single, run));
-    expect(s.cycleScores[0]?.revived).toBe(true);
-    expect(s.cycleScores[0]?.accuracy).toBe(REVIVE_ACCURACY);
-    expect(s.cycleScores.filter((c) => c.revived)).toHaveLength(1);
-    expect(s.revivesLeft).toBe(0);
-  });
-
-  it('hint bonus raises the score; water tracks the running average', () => {
-    const hinted = start(1, parties.full, emptyRun(1));
-    const bare = start(1, parties.single, emptyRun(1));
-    expect(hinted.showHint).toBe(true);
-    const h = perfect(hinted);
-    const b = perfect(bare);
-    expect(rawScore(h) - rawScore(b)).toBeGreaterThanOrEqual(HINT_BONUS - 2);
-    const mid = tick(hold(bare, true), 40);
-    expect(waterLevel(mid)).toBeGreaterThan(0);
-    expect(waterLevel(mid)).toBeLessThanOrEqual(100);
-  });
-
-  it('same seed, party and run are deterministic; different seeds differ', () => {
-    const a = start(11, parties.full, runs.plain);
-    const b = start(11, parties.full, runs.plain);
-    expect(a).toEqual(b);
-    const p1 = playToEnd(game, 11, parties.full, runs.plain);
-    const p2 = playToEnd(game, 11, parties.full, runs.plain);
-    expect(p1.actions).toEqual(p2.actions);
-    expect(p1.outcome).toEqual(p2.outcome);
-    const other = playToEnd(game, 99, parties.full, runs.plain);
-    expect(other.outcome?.stats?.gusts !== p1.outcome?.stats?.gusts || other.outcome?.log.join() !== p1.outcome?.log.join()).toBe(true);
-  });
-
-  it('the locale changes only the log language', () => {
-    const en = playToEnd(game, 9, parties.starter, runs.plain);
-    const fr = playToEnd(game, 9, parties.starter, runs.plain, 20_000, { locale: 'fr' });
-    expect(en.outcome?.log).toEqual(outcomeLog(en.state, strings.en));
-    expect(fr.outcome?.log[0]).toMatch(/étang/i);
-    expect(fr.actions).toEqual(en.actions);
-    expect({ ...fr.outcome, log: [] }).toEqual({ ...en.outcome, log: [] });
-  });
-
-  it('forfeit ends as fled and keeps the score so far; later actions do nothing', () => {
-    const s = apply(tick(start(2, parties.single, emptyRun(1)), 10), { type: 'forfeit' });
-    const o = engine.outcome(s);
-    expect(o?.result).toBe('fled');
-    expect(o?.log.at(-1)).toMatch(/left the bank/i);
-    expect(engine.reduce(s, { type: 'tick' })).toBe(s);
-    expect(engine.forfeit?.(s)).toEqual({ type: 'forfeit' });
-  });
-
-  it('invalid hold and tap do not throw and leave the state unchanged when they do nothing', () => {
-    const s = start(1, parties.single, emptyRun(1));
-    expect(hold(s, false)).toBe(s);
-    expect(engine.reduce(s, { type: 'tap', decoyId: 'd0' })).toBe(s);
-    expect(engine.reduce(s, { type: 'hold', down: true }).holding).toBe(true);
-  });
-
-  it('the bot holds late, sits out gusts, never taps, and is null when over', () => {
-    const s = start(1, parties.full, runs.plain);
-    expect(engine.botPlay(s, () => 0)?.type).toBe('tick');
-    const later = tick(s, RHYTHM[s.difficulty].late);
-    const act = engine.botPlay(later, () => 0);
-    expect(act).toEqual({ type: 'hold', down: botDesiredHold(later) });
-    const done = playToEnd(game, 1, parties.full, runs.plain);
-    expect(engine.botPlay(done.state, () => 0)).toBeNull();
-    expect(done.actions.some((a) => a.type === 'tap')).toBe(false);
-    expect(done.actions.some((a) => a.type === 'forfeit')).toBe(false);
-  });
-
-  it('the bot wins more often on difficulty 1 than on 5, and lands in a sensible band on 2', () => {
-    const seeds = [1, 7, 42, 1337, 90210, 3, 8, 21, 55, 89];
-    const rate = (run: RunContext) => {
-      const wins = seeds.filter((seed) => playToEnd(game, seed, parties.full, run).outcome?.result === 'won').length;
-      return wins / seeds.length;
-    };
-    const easy = rate(emptyRun(1));
-    const normal = rate(runs.plain);
-    const hard = rate(emptyRun(5));
-    expect(easy).toBeGreaterThanOrEqual(0.6);
-    expect(normal).toBeGreaterThanOrEqual(0.3);
-    expect(normal).toBeLessThanOrEqual(0.9);
-    expect(hard).toBeLessThan(easy);
-  });
-
-  it('every string key exists in French and English, including the learned note', () => {
-    expect(Object.keys(strings.en)).toEqual(Object.keys(strings.fr));
-    expect(strings.en.learned.note.length).toBeGreaterThan(20);
-    expect(strings.fr.learned.note.length).toBeGreaterThan(20);
-    expect(strings.en.disclaimer).toMatch(/not therapy/i);
-    expect(strings.fr.disclaimer).toMatch(/pas une thérapie/i);
-  });
-
-  it('outcome lists every troop and the learned practice tip', () => {
-    const o = engine.outcome(perfect(start(1, parties.mixed, emptyRun(1))));
-    expect(o?.troopsUsed).toEqual(parties.mixed.members.map((m) => m.id));
-    expect(o?.learned?.topic.en).toBe(strings.en.learned.topic);
-    expect(o?.learned?.note.fr).toBe(strings.fr.learned.note);
-  });
-
-  it('a finished game ignores hold, tap and tick', () => {
-    const s = perfect(start(1, parties.single, emptyRun(1)));
-    expect(isOver(s)).toBe(true);
-    expect(engine.reduce(s, { type: 'hold', down: true })).toBe(s);
-    expect(engine.reduce(s, { type: 'tick' })).toBe(s);
-    expect(engine.outcome(s)).toEqual(engine.outcome(engine.reduce(s, { type: 'forfeit' })));
-  });
-
-  it('currentAccuracy is 100 on an empty cycle and water stays in 0..100', () => {
-    const s = start(1, parties.single, emptyRun(1));
-    expect(currentAccuracy(s)).toBe(100);
-    expect(waterLevel(s)).toBeGreaterThanOrEqual(0);
-    expect(buildRhythm(3, 0).cycleCount).toBe(6);
+    expect(s.tick).toBe(0);
+    expect(s.idealSeen).toBe(0);
+    expect(s.cycleHits).toBe(0);
   });
 });
 
-function averageish(s: StillWaterState): number {
-  if (s.cycleScores.length === 0) return 0;
-  return s.cycleScores.reduce((n, c) => n + c.accuracy, 0) / s.cycleScores.length;
-}
+describe('scoring one cycle', () => {
+  it('grace ticks surround the boundaries and the scored core is idealTicksPerCycle', () => {
+    for (const d of DIFFICULTIES) {
+      const s = start(1, noMove, emptyRun(d));
+      const kinds = Array.from({ length: s.cycleTicks }, (_, t) => tickKind(s, t));
+      expect(kinds[0]).toBe('grace');
+      expect(kinds[s.cycleTicks - 1]).toBe('grace');
+      expect(kinds[s.inhaleTicks + s.holdTicks]).toBe('grace');
+      expect(kinds.filter((k) => k === 'hold')).toHaveLength(idealTicksPerCycle(s));
+      expect(kinds.filter((k) => k === 'grace')).toHaveLength(4 * s.tolerance);
+    }
+  });
+
+  it('a perfect hold scores 100 in every cycle and wins with a full score', () => {
+    for (const d of DIFFICULTIES) {
+      const end = perfect(start(3, noMove, emptyRun(d)));
+      expect(end.cycleScores.map((c) => c.accuracy)).toEqual(Array(end.cycleCount).fill(100));
+      expect(waterLevel(end)).toBe(100);
+      const o = outcomeOf(end);
+      expect(o.result).toBe('won');
+      expect(o.score).toBe(1000);
+    }
+  });
+
+  it('pressing late or releasing late inside the grace costs nothing', () => {
+    const s = start(1, noMove, emptyRun(1));
+    const end = offBy(s, s.tolerance, s.tolerance);
+    expect(end.cycleScores.every((c) => c.accuracy === 100)).toBe(true);
+  });
+
+  it('late input loses the ticks past the grace twice: the ticks not held and the ticks held too long', () => {
+    const s = start(1, noMove, emptyRun(1));
+    const late = s.tolerance + 20;
+    const end = offBy(s, late, late);
+    const ideal = idealTicksPerCycle(s);
+    const expected = accuracyOf(ideal - 20, 20, ideal);
+    expect(end.cycleScores.map((c) => c.accuracy)).toEqual(Array(5).fill(expected));
+    expect(expected).toBeLessThan(100);
+    expect(expected).toBeGreaterThan(0);
+  });
+
+  it('early release loses the ticks held short; early press inside the grace is free', () => {
+    const s = start(1, noMove, emptyRun(1));
+    const end = playWith(s, (st) => inCycle(st) < st.inhaleTicks + st.holdTicks - 30 || inCycle(st) >= st.cycleTicks - 5);
+    const ideal = idealTicksPerCycle(s);
+    expect(end.cycleScores[1]!.accuracy).toBe(accuracyOf(ideal - 30 + s.tolerance, 0, ideal));
+    const early = playWith(s, (st) => inCycle(st) >= st.cycleTicks - s.tolerance || idealHold(st, st.tick));
+    expect(early.cycleScores.every((c) => c.accuracy === 100)).toBe(true);
+  });
+
+  it('never holding scores 0 and loses with the warm line', () => {
+    for (const d of DIFFICULTIES) {
+      const end = neverHeld(start(2, noMove, emptyRun(d)));
+      expect(end.cycleScores.every((c) => c.accuracy === 0)).toBe(true);
+      const o = outcomeOf(end);
+      expect(o.score).toBe(0);
+      expect(o.result).toBe('lost');
+      expect(o.log[o.log.length - 1]).toBe('The pond is still here. Try again whenever you like.');
+    }
+  });
+
+  it('always holding stays far from the win line on every difficulty', () => {
+    for (const d of DIFFICULTIES) {
+      const end = alwaysHeld(start(2, noMove, emptyRun(d)));
+      const o = outcomeOf(end);
+      expect(o.result).toBe('lost');
+      expect(o.score).toBeLessThan(300);
+      expect(Math.max(...end.cycleScores.map((c) => c.accuracy))).toBeLessThan(30);
+    }
+  });
+
+  it('accuracyOf clips below zero and handles an empty ideal', () => {
+    expect(accuracyOf(10, 40, 100)).toBe(0);
+    expect(accuracyOf(100, 0, 100)).toBe(100);
+    expect(accuracyOf(51, 0, 100)).toBe(51);
+    expect(accuracyOf(5, 0, 0)).toBe(0);
+  });
+
+  it('the water level is a smooth running score: empty at the start, only ever a level', () => {
+    let s = start(1, noMove, emptyRun(1));
+    expect(waterLevel(s)).toBe(0);
+    const seen: number[] = [];
+    for (let i = 0; i < s.totalTicks + LEAD_TICKS; i++) {
+      const down = s.leadLeft === 0 && idealHold(s, s.tick);
+      if (down !== s.holding) s = act(s, { type: 'hold', down });
+      s = tick(s);
+      seen.push(waterLevel(s));
+      if (isOver(s)) break;
+    }
+    expect(seen.every((w) => w >= 0 && w <= 100)).toBe(true);
+    expect(seen[seen.length - 1]).toBe(100);
+    let biggestJump = 0;
+    for (let i = 1; i < seen.length; i++) biggestJump = Math.max(biggestJump, Math.abs(seen[i]! - seen[i - 1]!));
+    expect(biggestJump).toBeLessThanOrEqual(5);
+  });
+});
+
+describe('the score and the result', () => {
+  /** A finished game with these cycle accuracies, no ripples tapped or missed. */
+  function finished(accuracies: number[], difficulty: Difficulty = 1): StillWaterState {
+    const s = start(1, noMove, emptyRun(difficulty));
+    const cycleScores = accuracies.map((accuracy, index) => ({ index, accuracy, revived: false }));
+    return { ...s, cycleScores, tick: s.totalTicks, decoys: s.decoys.map((d) => ({ ...d, leaveTick: Math.min(d.leaveTick, s.totalTicks) })) };
+  }
+
+  it('wins at 600 and not a point below', () => {
+    expect(WIN_SCORE).toBe(600);
+    expect(outcomeOf(finished([60, 60, 60, 60, 60])).score).toBe(600);
+    expect(outcomeOf(finished([60, 60, 60, 60, 60])).result).toBe('won');
+    expect(outcomeOf(finished([60, 60, 60, 60, 59])).result).toBe('lost');
+  });
+
+  it('the score is the mean accuracy over all cycles, as a share of the ceiling', () => {
+    const s = finished([100, 80, 60, 40, 20]);
+    expect(rawScore(s)).toBeCloseTo(0.6 * 1000, 5);
+    expect(outcomeOf(s).score).toBe(600);
+  });
+
+  it('steadiness and calm lift the ceiling from 850 to 1000', () => {
+    const s = finished([100, 100, 100, 100, 100]);
+    expect(outcomeOf(s).score).toBe(1000);
+    const tapped = { ...s, decoys: s.decoys.map((d) => ({ ...d, tapped: true })) };
+    const expectedCeiling = BASE_CEILING + 0 + Math.floor((50 * (CALM_START - TAP_CALM_COST * tapped.decoys.length)) / 100);
+    expect(outcomeOf(tapped).score).toBe(expectedCeiling);
+    expect(outcomeOf(tapped).score).toBeLessThan(900);
+  });
+
+  it('leaving early is fled with a partial score: cycles not played count as zero', () => {
+    let s = start(1, noMove, emptyRun(1));
+    for (let i = 0; i < LEAD_TICKS + 2 * s.cycleTicks; i++) {
+      const down = s.leadLeft === 0 && idealHold(s, s.tick);
+      if (down !== s.holding) s = act(s, { type: 'hold', down });
+      s = tick(s);
+    }
+    expect(s.cycleScores.map((c) => c.accuracy)).toEqual([100, 100]);
+    const o = outcomeOf(act(s, engine.forfeit!(s)));
+    expect(o.result).toBe('fled');
+    // Two perfect cycles of five at a ceiling of 900 (the ripple has not left, the calm is whole): 200 * 900 / 500.
+    expect(o.score).toBe(360);
+    expect(o.log[o.log.length - 1]).toMatch(/left the bank/);
+    expect(o.stats).toMatchObject({ cycles: 2, accuracy: 40 });
+  });
+
+  it('leaving at once scores 0 and a finished game ignores every action', () => {
+    const left = act(start(), { type: 'forfeit' });
+    expect(outcomeOf(left).result).toBe('fled');
+    expect(outcomeOf(left).score).toBe(0);
+    for (const a of [{ type: 'tick' }, { type: 'hold', down: true }, { type: 'tap', decoyId: 'd0' }, { type: 'pace', pace: 1 }] as StillWaterAction[]) {
+      expect(engine.reduce(left, a)).toBe(left);
+    }
+  });
+
+  it('the outcome is null until the end and the same object shape after it', () => {
+    const s = start();
+    expect(engine.outcome(s)).toBeNull();
+    const end = perfect(s);
+    expect(engine.outcome(end)).toEqual(engine.outcome(end));
+    expect(engine.botPlay(end, () => 0)).toBeNull();
+  });
+});
+
+describe('ripples (decoys)', () => {
+  it('none appears during the first two cycles, for every difficulty and seed', () => {
+    for (const d of DIFFICULTIES) {
+      for (let seed = 1; seed <= 30; seed++) {
+        const s = start(seed, noMove, emptyRun(d));
+        for (const decoy of s.decoys) expect(decoy.appearTick).toBeGreaterThanOrEqual(DECOY_AFTER_CYCLES * s.cycleTicks);
+      }
+    }
+  });
+
+  it('there are 1, 1, 2, 2 and 3 of them, and luck removes one', () => {
+    expect(DIFFICULTIES.map((d) => start(1, noMove, emptyRun(d)).decoys.length)).toEqual([1, 1, 2, 2, 3]);
+    expect(DIFFICULTIES.map((d) => start(1, noMove, runWith(d, buff('luck', 15))).decoys.length)).toEqual([0, 0, 1, 1, 2]);
+    expect(start(1, noMove, runWith(1, buff('luck', 15), buff('luck', 15))).decoys).toHaveLength(0);
+  });
+
+  it('at most one is on the water at a time and each ends before the game does', () => {
+    for (const d of DIFFICULTIES) {
+      for (let seed = 1; seed <= 20; seed++) {
+        const s = start(seed, noMove, emptyRun(d));
+        for (let i = 0; i < s.decoys.length; i++) {
+          const a = s.decoys[i]!;
+          expect(a.leaveTick).toBeGreaterThan(a.appearTick);
+          expect(a.leaveTick).toBeLessThanOrEqual(s.totalTicks);
+          const b = s.decoys[i + 1];
+          if (b) expect(b.appearTick).toBeGreaterThanOrEqual(a.leaveTick);
+        }
+      }
+    }
+  });
+
+  /** The state at the moment a ripple is on the water. */
+  function atRipple(seed = 1, difficulty: Difficulty = 1) {
+    let s = start(seed, noMove, emptyRun(difficulty));
+    s = tick(s, LEAD_TICKS);
+    const d = s.decoys[0]!;
+    s = tick(s, d.appearTick + 1);
+    return { s, d };
+  }
+
+  it('tapping a ripple on the water costs calm and cannot be done twice', () => {
+    const { s, d } = atRipple();
+    expect(visibleDecoys(s).map((x) => x.id)).toEqual([d.id]);
+    expect(calmOf(s)).toBe(CALM_START);
+    const tapped = act(s, { type: 'tap', decoyId: d.id });
+    expect(calmOf(tapped)).toBe(CALM_START - TAP_CALM_COST);
+    expect(tapCount(tapped)).toBe(1);
+    expect(visibleDecoys(tapped)).toHaveLength(0);
+    expect(engine.reduce(tapped, { type: 'tap', decoyId: d.id })).toBe(tapped);
+  });
+
+  it('a tap on something that is not on the water changes nothing', () => {
+    const s = start();
+    expect(engine.reduce(s, { type: 'tap', decoyId: 'd0' })).toBe(s);
+    expect(engine.reduce(s, { type: 'tap', decoyId: 'nope' })).toBe(s);
+    const { s: later } = atRipple();
+    expect(engine.reduce(later, { type: 'tap', decoyId: 'nope' })).toBe(later);
+  });
+
+  it('ignoring a ripple adds one to steadiness when it leaves; tapping it does not', () => {
+    const { s, d } = atRipple();
+    expect(steadiness(s)).toBe(0);
+    const gone = tick(s, d.leaveTick - s.tick);
+    expect(steadiness(gone)).toBe(1);
+    const tapped = tick(act(s, { type: 'tap', decoyId: d.id }), d.leaveTick - s.tick);
+    expect(steadiness(tapped)).toBe(0);
+  });
+
+  it('calm never drops below 0', () => {
+    const s = start(1, noMove, emptyRun(5));
+    const hammered = { ...s, decoys: [...s.decoys, ...s.decoys, ...s.decoys, ...s.decoys].map((d, i) => ({ ...d, id: `x${i}`, tapped: true })) };
+    expect(calmOf(hammered)).toBe(0);
+  });
+
+  it('the log says what happened to each ripple', () => {
+    const ignored = outcomeOf(perfect(start(1, noMove, emptyRun(1)))).log.join('\n');
+    expect(ignored).toMatch(/You let it (go|swim on|fade)/);
+    const { s, d } = atRipple();
+    const tapped = playWith(act(s, { type: 'tap', decoyId: d.id }), (st) => idealHold(st, st.tick));
+    expect(outcomeOf(tapped).log.join('\n')).toMatch(/rippled/);
+  });
+});
+
+describe('party and buffs', () => {
+  it('Sleep widens the timing grace by one tick per 8 power', () => {
+    const plain = start(1, noMove, emptyRun(2));
+    const rested = start(1, only('sleep', 12), emptyRun(2));
+    expect(rested.sleepPower).toBeGreaterThan(0);
+    expect(rested.tolerance).toBe(plain.tolerance + Math.floor(rested.sleepPower / 8));
+    expect(start(1, parties.full, emptyRun(2)).tolerance).toBeGreaterThan(start(1, parties.starter, emptyRun(2)).tolerance);
+  });
+
+  it('the time buff adds one grace tick per 2 seconds, and the grace is capped to keep a scored core', () => {
+    const base = start(1, noMove, emptyRun(2)).tolerance;
+    expect(start(1, noMove, runWith(2, buff('time', 4))).tolerance).toBe(base + 2);
+    const huge = start(1, only('sleep', 30), runWith(5, buff('time', 200)));
+    expect(huge.tolerance).toBe(Math.min(huge.inhaleTicks, huge.holdTicks, huge.exhaleTicks) - 2);
+    expect(idealTicksPerCycle(huge)).toBeGreaterThan(0);
+    expect(graceTicks(5, 0, 0, 60, 20, 70)).toBe(2);
+  });
+
+  it('wider grace turns a late press into a perfect cycle', () => {
+    const plain = start(1, noMove, emptyRun(2));
+    const late = plain.tolerance + 6;
+    const poor = offBy(plain, late, late).cycleScores[0]!.accuracy;
+    const rested = start(1, only('sleep', 30), emptyRun(2));
+    expect(rested.tolerance).toBeGreaterThanOrEqual(late);
+    expect(offBy(rested, late, late).cycleScores[0]!.accuracy).toBe(100);
+    expect(poor).toBeLessThan(100);
+  });
+
+  it('Eat shows the next-phase line all game, the hint buff for that many cycles', () => {
+    const eat = start(1, only('eat', 1), emptyRun(2));
+    expect(eat.hintCycles).toBe(eat.cycleCount);
+    const buffed = start(1, noMove, runWith(2, buff('hint', 2)));
+    expect(buffed.hintCycles).toBe(2);
+    expect(hintActive(tick(buffed, LEAD_TICKS))).toBe(true);
+    expect(hintActive(tick(buffed, LEAD_TICKS + 2 * buffed.cycleTicks))).toBe(false);
+    expect(hintActive(start(1, noMove, emptyRun(2)))).toBe(false);
+    expect(start(1, noMove, runWith(1, buff('hint', 99))).hintCycles).toBe(5);
+  });
+
+  it('the hint line knows what comes next and when', () => {
+    let s = tick(start(1, noMove, emptyRun(1)), LEAD_TICKS);
+    expect(nextPhase(s)).toBe('hold');
+    expect(phaseTicksLeft(s)).toBe(s.inhaleTicks);
+    s = tick(s, s.inhaleTicks + s.holdTicks);
+    expect(phaseOf(s)).toBe('exhale');
+    expect(nextPhase(s)).toBe('inhale');
+    const last = { ...s, tick: s.totalTicks - 10 };
+    expect(nextPhase(last)).toBeNull();
+    expect(phaseTicksLeft(last)).toBe(10);
+  });
+
+  it('Move lets you choose the pace before the first tick, and only then', () => {
+    const s = start(1, only('move', 1), emptyRun(1));
+    expect(canChoosePace(s)).toBe(true);
+    const brisk = act(s, { type: 'pace', pace: -1 });
+    expect([brisk.inhaleTicks, brisk.holdTicks, brisk.exhaleTicks]).toEqual([64, 32, 96]);
+    const slow = act(s, { type: 'pace', pace: 1 });
+    expect([slow.inhaleTicks, slow.holdTicks, slow.exhaleTicks]).toEqual([100, 50, 150]);
+    expect(slow.totalTicks).toBe(slow.cycleTicks * 5);
+    expect(act(slow, { type: 'pace', pace: 0 })).toEqual(s);
+    const running = tick(s);
+    expect(canChoosePace(running)).toBe(false);
+    expect(engine.reduce(running, { type: 'pace', pace: 1 })).toBe(running);
+    expect(engine.reduce(s, { type: 'pace', pace: 7 as unknown as Pace })).toBe(s);
+  });
+
+  it('without a Move troop the pace stays steady', () => {
+    const s = start(1, noMove, emptyRun(1));
+    expect(canChoosePace(s)).toBe(false);
+    expect(engine.reduce(s, { type: 'pace', pace: 1 })).toBe(s);
+  });
+
+  it('a new pace keeps ripples after the first two cycles and stays deterministic', () => {
+    for (const pace of [-1, 1] as Pace[]) {
+      const a = act(start(9, only('move', 1), emptyRun(3)), { type: 'pace', pace });
+      const b = act(start(9, only('move', 1), emptyRun(3)), { type: 'pace', pace });
+      expect(a).toEqual(b);
+      for (const d of a.decoys) expect(d.appearTick).toBeGreaterThanOrEqual(DECOY_AFTER_CYCLES * a.cycleTicks);
+    }
+  });
+
+  it('revive forgives a missed cycle, once per unit of the buff', () => {
+    const run = runWith(1, buff('revive', 2));
+    const s = start(4, noMove, run);
+    expect(s.revivesLeft).toBe(2);
+    const end = neverHeld(s);
+    expect(end.cycleScores.slice(0, 2).map((c) => [c.accuracy, c.revived])).toEqual([
+      [REVIVE_ACCURACY, true],
+      [REVIVE_ACCURACY, true],
+    ]);
+    expect(end.cycleScores.slice(2).every((c) => c.accuracy === 0 && !c.revived)).toBe(true);
+    expect(end.revivesLeft).toBe(0);
+    expect(neverHeld(start(4, noMove, emptyRun(1))).cycleScores.some((c) => c.revived)).toBe(false);
+  });
+
+  it('revive leaves a good cycle alone', () => {
+    const end = perfect(start(4, noMove, runWith(1, buff('revive', 3))));
+    expect(end.revivesLeft).toBe(3);
+    expect(end.cycleScores.some((c) => c.revived)).toBe(false);
+  });
+
+  it('luck cuts a ripple; attack and defense change nothing', () => {
+    const base = start(5, noMove, emptyRun(3));
+    const combat = start(5, noMove, runWith(3, buff('attack', 40), buff('defense', 40)));
+    expect(combat).toEqual(base);
+    expect(start(5, noMove, runWith(3, buff('luck', 10))).decoys.length).toBe(base.decoys.length - 1);
+  });
+
+  it('is playable with the starter party, the mixed party (a citizen) and one vassal', () => {
+    for (const party of [parties.starter, parties.mixed, parties.single, parties.full]) {
+      const r = playToEnd(game, 3, party, emptyRun(2));
+      expect(r.outcome).not.toBeNull();
+      expect(r.outcome!.troopsUsed).toEqual(party.members.map((m) => m.id));
+    }
+  });
+});
+
+describe('determinism and the bot', () => {
+  it('the same seed, party and run give the same game; another seed moves the ripples', () => {
+    const a = playToEnd(game, 11, parties.full, runs.plain);
+    const b = playToEnd(game, 11, parties.full, runs.plain);
+    expect(b.actions).toEqual(a.actions);
+    expect(b.outcome).toEqual(a.outcome);
+    const placements = new Set<string>();
+    for (let seed = 1; seed <= 12; seed++) placements.add(JSON.stringify(start(seed, noMove, emptyRun(4)).decoys));
+    expect(placements.size).toBeGreaterThan(8);
+  });
+
+  it('the language changes the words, never the score', () => {
+    const en = playToEnd(game, 21, parties.full, runs.plain, 20000, { locale: 'en' }).outcome!;
+    const fr = playToEnd(game, 21, parties.full, runs.plain, 20000, { locale: 'fr' }).outcome!;
+    expect(fr.score).toBe(en.score);
+    expect(fr.result).toBe(en.result);
+    expect(fr.log).not.toEqual(en.log);
+    expect(fr.log[0]).toBe(strings.fr.log.start);
+  });
+
+  it('the bot error is seeded, bounded by its difficulty and different from cycle to cycle', () => {
+    for (const d of DIFFICULTIES) {
+      const seen = new Set<string>();
+      for (let cycle = 0; cycle < 40; cycle++) {
+        const e = botCycleError({ seed: 7, difficulty: d }, cycle);
+        expect(e).toEqual(botCycleError({ seed: 7, difficulty: d }, cycle));
+        expect(e.press).toBeGreaterThanOrEqual(0);
+        expect(e.press).toBeLessThanOrEqual(BOT[d].spread * 3);
+        expect(Math.abs(e.release)).toBeLessThanOrEqual(BOT[d].spread * 3);
+        seen.add(`${e.press}:${e.release}`);
+      }
+      expect(seen.size).toBeGreaterThan(10);
+      expect(botCycleError({ seed: 7, difficulty: d }, 3)).not.toEqual(botCycleError({ seed: 8, difficulty: d }, 3));
+    }
+  });
+
+  it('the bot never leaves, never presses during the lead, and ends the game', () => {
+    const r = playToEnd(game, 2, parties.starter, runs.plain);
+    expect(r.outcome).not.toBeNull();
+    expect(r.actions.some((a) => (a as StillWaterAction).type === 'forfeit')).toBe(false);
+    expect((r.actions[0] as StillWaterAction).type).toBe('tick');
+    expect(r.outcome!.result).not.toBe('fled');
+  });
+
+  /** Win rate and median score of the bot over many seeds. */
+  function botStats(party: Party, difficulty: Difficulty, seeds = 120) {
+    let won = 0;
+    const scores: number[] = [];
+    for (let seed = 1; seed <= seeds; seed++) {
+      const o = playToEnd(game, seed, party, emptyRun(difficulty)).outcome!;
+      if (o.result === 'won') won++;
+      scores.push(o.score);
+    }
+    scores.sort((a, b) => a - b);
+    return { winRate: won / seeds, median: scores[Math.floor(seeds / 2)]!, low: scores[0]!, high: scores[seeds - 1]! };
+  }
+
+  it('on normal difficulty the bot wins 40 to 70 percent with a starter party and with the full party', () => {
+    for (const party of [parties.starter, parties.full]) {
+      const { winRate } = botStats(party, 2, 200);
+      expect(winRate).toBeGreaterThanOrEqual(0.4);
+      expect(winRate).toBeLessThanOrEqual(0.75);
+    }
+  });
+
+  it('the bot wins easily on difficulty 1 and less on the hardest', () => {
+    const easy = botStats(parties.full, 1);
+    const hard = botStats(parties.full, 5);
+    expect(easy.winRate).toBeGreaterThan(0.8);
+    expect(hard.winRate).toBeLessThan(0.6);
+    expect(easy.median).toBeGreaterThan(hard.median);
+  });
+
+  it('the bot scores spread out: not all the same, within 0 to 1000', () => {
+    for (const d of DIFFICULTIES) {
+      const s = botStats(parties.starter, d, 60);
+      expect(s.high).toBeGreaterThan(s.low);
+      expect(s.low).toBeGreaterThanOrEqual(0);
+      expect(s.high).toBeLessThanOrEqual(1000);
+    }
+  });
+
+  it('a Sleep troop helps the bot: more grace, a higher median', () => {
+    const rested = botStats(parties.full, 3);
+    const none = botStats({ members: parties.full.members.filter((m) => m.habit !== 'sleep') }, 3);
+    expect(rested.median).toBeGreaterThan(none.median);
+  });
+});
+
+describe('breath, copy and plain data', () => {
+  it('the breath rises linearly while breathing in, rests at the top and falls while breathing out', () => {
+    const s = tick(start(1, noMove, emptyRun(1)), LEAD_TICKS);
+    expect(breathAt(s)).toBe(0);
+    expect(breathAt(tick(s, s.inhaleTicks / 2))).toBeCloseTo(0.5, 5);
+    expect(breathAt(tick(s, s.inhaleTicks + 5))).toBe(1);
+    const mid = tick(s, s.inhaleTicks + s.holdTicks + s.exhaleTicks / 2);
+    expect(breathAt(mid)).toBeCloseTo(0.5, 5);
+    expect(breathAt(tick(s, s.inhaleTicks / 2), 0.5)).toBeGreaterThan(0.5);
+    expect(breathAt(start())).toBe(0);
+  });
+
+  it('displayCycle runs from 1 to the number of cycles and stops there', () => {
+    const s = start(1, noMove, emptyRun(1));
+    expect(displayCycle(s)).toBe(1);
+    expect(displayCycle({ ...s, tick: s.cycleTicks })).toBe(2);
+    expect(displayCycle({ ...s, tick: s.totalTicks })).toBe(s.cycleCount);
+    expect(cycleIndex({ ...s, tick: s.totalTicks - 1 })).toBe(s.cycleCount - 1);
+  });
+
+  it('both languages carry the learned note about slow exhales and the warm loss line', () => {
+    const o = outcomeOf(neverHeld(start(1, noMove, emptyRun(1))));
+    expect(o.learned!.topic.en).toMatch(/exhale/i);
+    expect(o.learned!.topic.fr).toMatch(/expiration/i);
+    expect(o.learned!.note.en).toMatch(/not advice/i);
+    expect(o.learned!.note.fr).toMatch(/pas un conseil/i);
+    expect(strings.en.end.lost).toBe('The pond is still here. Try again whenever you like.');
+    expect(strings.fr.end.lost).toMatch(/Reviens quand tu veux/);
+  });
+
+  it('the French speaks to you as "tu" and never shames a loss', () => {
+    const text = JSON.stringify(strings.fr);
+    expect(text).not.toMatch(/\bvous\b|\bvotre\b|\bvos\b/i);
+    for (const lost of [strings.en.end.lost, strings.fr.end.lost, strings.en.log.endLost, strings.fr.log.endLost]) {
+      expect(lost).not.toMatch(/fail|wrong|bad|échec|raté|nul/i);
+    }
+  });
+
+  it('the log starts calm, lists every cycle and ends with the result line', () => {
+    const o = outcomeOf(perfect(start(1, noMove, emptyRun(1))));
+    expect(o.log[0]).toBe(strings.en.log.start);
+    expect(o.log.filter((l) => /^Cycle \d/.test(l))).toHaveLength(5);
+    expect(o.log[o.log.length - 1]).toBe(strings.en.log.endWon);
+    expect(o.log.every((l) => l.length > 0)).toBe(true);
+  });
+
+  it('stats are plain finite numbers', () => {
+    const o = outcomeOf(perfect(start(1, noMove, emptyRun(1))));
+    for (const v of Object.values(o.stats!)) expect(Number.isFinite(v)).toBe(true);
+    expect(o.stats).toMatchObject({ cycles: 5, accuracy: 100, water: 100, taps: 0 });
+  });
+
+  it('state is plain JSON data and survives a round trip', () => {
+    const s = tick(start(5, parties.full, runs.buffed), 300);
+    expect(JSON.parse(JSON.stringify(s))).toEqual(s);
+  });
+});
