@@ -575,12 +575,12 @@ const RAW: Record<string, ScenarioText> = {
   },
   s18: {
     situation:
-      "Un voisin te demande de récupérer ses colis encore une fois et de nourrir son chat le week-end prochain. Tu l'as déjà dépanné deux fois ce mois-ci, et tu voulais un week-end tranquille. Il a l'air plein d'espoir, et tu t'entends presque dire oui.",
+      "Une voisine te demande de récupérer ses colis encore une fois et de nourrir son chat le week-end prochain. Tu l'as déjà dépannée deux fois ce mois-ci, et tu voulais un week-end tranquille. Elle a l'air pleine d'espoir, et tu t'entends presque dire oui.",
     reframe: "Que peux-tu offrir sans te forcer, et que dois-tu garder pour toi ?",
     options: [
       {
         style: 'avoidant',
-        label: 'Réponds « peut-être, je regarde » puis évite-le dans l\'escalier pendant quelques jours.',
+        label: 'Réponds « peut-être, je regarde » puis évite-la dans l\'escalier pendant quelques jours.',
         cue: 'esquive la question',
         reflection:
           "Gagner du temps paraît gentil sur le moment. L'éviter rendra pourtant la prochaine rencontre plus gênante, pour vous deux. Une réponse claire, même un petit non, se reçoit mieux qu'un silence.",
@@ -590,7 +590,7 @@ const RAW: Record<string, ScenarioText> = {
         label: 'Soupire et lance que les gens profitent toujours de ta gentillesse.',
         cue: 'lance une pique',
         reflection:
-          "Le ressentiment monte quand on dit oui trop souvent, et tu l'as senti. Le dire comme une accusation risque pourtant de blesser un voisin qui n'avait aucune mauvaise intention. Un simple « pas cette fois » garde de bonnes relations.",
+          "Le ressentiment monte quand on dit oui trop souvent, et tu l'as senti. Le dire comme une accusation risque pourtant de blesser une voisine qui n'avait aucune mauvaise intention. Un simple « pas cette fois » garde de bonnes relations.",
       },
       {
         style: 'constructive',

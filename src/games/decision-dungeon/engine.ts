@@ -20,7 +20,7 @@ import {
   type PartyMember,
   type RunContext,
 } from '../contract';
-import { SCENARIOS, STYLES, getShape, isGoodStyle, type ScenarioShape, type StyleTag } from './content';
+import { SCENARIOS, getShape, isGoodStyle, type ScenarioShape, type StyleTag } from './content';
 import { strings, type DungeonStrings } from './strings';
 
 /** A run is won at 60 percent good choices or better: good * WIN_DEN >= rooms * WIN_NUM. */
@@ -466,5 +466,4 @@ function forfeit(): DungeonAction {
   return { type: 'forfeit' };
 }
 
-export { STYLES };
 export const engine: GameEngine<DungeonState, DungeonAction> = { initial, reduce, outcome, botPlay, forfeit };

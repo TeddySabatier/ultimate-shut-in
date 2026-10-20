@@ -48,9 +48,9 @@ describe('Decision Dungeon screen', () => {
     playFirstDoors();
     expect(screen.getByTestId('decision-dungeon-reflection')).toBeTruthy();
     const result = screen.getByTestId('decision-dungeon-result');
-    expect(result).toHaveTextContent(/Good doors: \d of 5/);
+    expect(result).toHaveTextContent(/Doors that counted towards the win: \d of 5/);
     expect(result).toHaveTextContent(/Most used: /);
-    expect(result).toHaveTextContent(/A tip to try: /);
+    expect(result).toHaveTextContent(/A tip to try. /);
     expect(screen.queryByTestId('decision-dungeon-options')).toBeNull();
     expect(screen.getByRole('button', { name: 'Leave' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Step away' })).toBeNull();

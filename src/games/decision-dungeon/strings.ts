@@ -32,8 +32,8 @@ export const strings = defineStrings({
     youChose: 'You chose door {n}: {label}',
     resultTitle: 'This run',
     resultStrongest: 'Most used: {style}',
-    resultTip: 'A tip to try: {tip}',
-    resultScore: 'Good doors: {good} of {total}',
+    resultTip: 'A tip to try. {tip}',
+    resultScore: 'Doors that counted towards the win: {good} of {total}',
     end: {
       won: 'The troops come home with a lighter bag.',
       lost: 'The troops come home. Another run is waiting.',
@@ -95,8 +95,8 @@ export const strings = defineStrings({
     youChose: 'Tu as pris la porte {n} : {label}',
     resultTitle: 'Cette partie',
     resultStrongest: 'Le plus utilisé : {style}',
-    resultTip: 'Une piste à essayer : {tip}',
-    resultScore: 'Portes constructives : {good} sur {total}',
+    resultTip: 'Une piste à essayer. {tip}',
+    resultScore: 'Portes qui comptaient pour la victoire : {good} sur {total}',
     end: {
       won: 'Les troupes rentrent avec un sac plus léger.',
       lost: 'Les troupes rentrent. Une autre partie t\'attend.',
@@ -105,9 +105,9 @@ export const strings = defineStrings({
     styles: {
       reactive: 'une réaction à chaud',
       avoidant: 'un pas de côté',
-      constructive: 'un petit pas suivant',
+      constructive: 'un petit pas concret',
       boundary: 'une limite bienveillante',
-      curious: 'vérifier avant',
+      curious: "vérifier d'abord",
     },
     styleHelp: {
       reactive: "Réagir tout de suite, tant que l'émotion est vive.",
@@ -118,7 +118,7 @@ export const strings = defineStrings({
     },
     learnedTopic: 'Le plus utilisé cette partie : {style}',
     tips: {
-      reactive: "Quand la colère vient en premier, nomme-la pour toi, attends une respiration, puis choisis un petit pas suivant. Une première réaction est une information, pas un verdict.",
+      reactive: "Quand l'émotion vient en premier, nomme-la pour toi, attends une respiration, puis choisis un petit pas concret. Une première réaction est une information, pas un verdict.",
       avoidant: "Une pause peut être un vrai repos. Donne-lui une heure de retour, comme « je regarde ça à dix-sept heures », pour que le report ne s'étire pas sur plusieurs jours.",
       constructive: "Les petits pas s'additionnent. Un minuteur, un court message ou une faute corrigée, c'est déjà un bon geste.",
       boundary: "Une phrase gentille qui dit ce que tu peux et ne peux pas faire aide les deux côtés. Tu peux dire oui à une partie d'une demande et non au reste.",
