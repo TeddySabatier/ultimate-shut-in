@@ -406,7 +406,8 @@
       },
       "armory": {
         "heading": "Armory",
-        "intro": "What you buy here stays. Gear and training add a little power; habits add the most.",
+        "closed": "The Armory opens when the first games are ready, so nothing is spent on gear that has nowhere to be used. Your coins are safe until then.",
+      "intro": "What you buy here stays. Gear and training add a little power; habits add the most.",
         "power": "Power {power}",
         "trained": "Training {bumps}/{max}",
         "noGear": "No gear",

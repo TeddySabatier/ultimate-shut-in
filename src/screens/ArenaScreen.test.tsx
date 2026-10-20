@@ -55,6 +55,24 @@ describe('ArenaScreen: the hub', () => {
     expect(screen.getByTestId('arena-entry-reason')).toHaveTextContent(u.entry.noGames);
   });
 
+  it('keeps the Armory shut while no game is listed, so no coin goes into gear that cannot be used', () => {
+    fake.games = [];
+    seed(900);
+    renderWithRouter(<ArenaScreen />);
+    expect(screen.getByTestId('arena-armory-closed')).toHaveTextContent(u.armory.closed);
+    expect(screen.queryByTestId('arena-troop-move')).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Buy / })).toBeNull();
+    // Asking for a game stays open: that is how the first games get asked for.
+    expect(screen.getByRole('heading', { name: u.request.heading })).toBeInTheDocument();
+  });
+
+  it('opens the Armory once a game is listed', () => {
+    seed(900);
+    renderWithRouter(<ArenaScreen />);
+    expect(screen.queryByTestId('arena-armory-closed')).toBeNull();
+    expect(screen.getByTestId('arena-troop-move')).toBeInTheDocument();
+  });
+
   it('lists every game with its category, ring, party, minutes and what it teaches', () => {
     seed();
     renderWithRouter(<ArenaScreen />);

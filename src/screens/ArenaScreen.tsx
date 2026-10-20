@@ -14,6 +14,7 @@ import { strings, type ArenaRunRecord } from '../game';
 import { ArenaHost } from '../components/arena/host/ArenaHost';
 import { gameCandidates, gameLocale, getGame, listedGames } from '../components/arena/host/catalog';
 import { Armory } from '../components/arena/Armory';
+import { SystemWindow } from '../components/SystemWindow';
 import { DecidePanel } from '../components/arena/DecidePanel';
 import { EntryPanel } from '../components/arena/EntryPanel';
 import { GameList } from '../components/arena/GameList';
@@ -108,7 +109,13 @@ export default function ArenaScreen() {
           <RunLog log={save.arena.log} locale={locale} gameName={gameName} />
         </div>
         <div className={styles.col}>
-          <Armory save={save} />
+          {games.length > 0 ? (
+            <Armory save={save} />
+          ) : (
+            <SystemWindow title={u.armory.heading} data-testid="arena-armory-closed">
+              <p>{u.armory.closed}</p>
+            </SystemWindow>
+          )}
           <RequestForm save={save} />
         </div>
       </div>
