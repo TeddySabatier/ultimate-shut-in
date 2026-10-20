@@ -223,9 +223,9 @@ Bonuses are small and capped: XP bonuses total at most +20%, coins +15%, wave DP
 
 ## The Arena
 
-The Arena is where your settlement coins go to work. Open it from the card at the bottom of the Haven screen. Nothing in the Arena ever touches your Domain Points, your streaks, your loyalty or your utilities, and there is no real money anywhere. Losing a run is never a punishment: the troops simply come home.
+The Arena is where your settlement coins go to work. Open it from the card at the bottom of the Haven screen. The Arena never pays Domain Points, never touches your streaks, your loyalty or your utilities, and there is no real money anywhere (banked wave defense can only help the week's wave, see Banking). The Armory stays shut until the first games are ready, so no coin is spent on gear that has nowhere to be used. Losing a run is never a punishment: the troops simply come home.
 
-**Entering a run.** A run costs an entry fee in coins. The fee grows with your ring but is never more than about one day of what a steady habit day earns (20 coins at the first ring, up to 56 at the City, less on Gentle). The Arena picks a game for you (never the same one twice in a row when there is a choice), seeded so a reload shows the same game. Each game uses your troops: higher level, loyalty, gear and training make them stronger.
+**Entering a run.** A run costs an entry fee in coins. The fee grows with your ring but is never more than about one day of what a steady habit day earns (20 coins at the first ring, up to 56 at the City; a Gentle player never pays more than about 37). The Arena picks a game for you (never the same one twice in a row when there is a choice), seeded so a reload shows the same game. Each game uses your troops: higher level, loyalty, gear and training make them stronger.
 
 **After a win** the Lottery opens: three run buffs are drawn and you keep one (more attack, defense, time, hints, a second wind, luck). Buffs last for the run only. You can then play the next game (the difficulty rises every other room, up to 10 rooms) or **bank**.
 
