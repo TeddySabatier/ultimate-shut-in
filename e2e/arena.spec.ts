@@ -7,6 +7,11 @@
  * The save is seeded the way map.spec.ts does it (an init script writes the persist
  * envelope, one reload), with strong troops (level 24, below the power cap so gear still helps) so a win is the likely outcome and a few
  * thousand coins. A run is retried when a duel is lost; each test stays under 20 s.
+ *
+ * Whatever else is registered, these tests play Coin Duel: `seed` sets the debug-only
+ * `localStorage['haven.debug.games'] = 'sample'`, which narrows the Arena's catalog to
+ * that game (src/components/arena/host/debugGames.ts). One test passes `games: null` to
+ * prove the opposite: with no restriction the Arena lists every registered game.
  */
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
@@ -26,8 +31,12 @@ interface ArenaSave {
 
 const arenaSave = async (page: Page) => (await getSave(page)) as unknown as ArenaSave;
 
-/** Onboard, then reload with coins, ring 2 and level-24 troops (power 82, short of the cap so gear still adds power). */
-async function seed(page: Page, patch: { coins?: number; ring?: number } = {}): Promise<void> {
+/**
+ * Onboard, then reload with coins, ring 2 and level-24 troops (power 82, short of the cap so gear still adds power).
+ * `games` is the debug-only catalog restriction (`haven.debug.games`): `sample` by default, so a test plays Coin Duel
+ * through the host however many other games are registered; `null` leaves the catalog unrestricted.
+ */
+async function seed(page: Page, patch: { coins?: number; ring?: number; games?: string | null } = {}): Promise<void> {
   await freshApp(page);
   await onboard(page, { name: 'Tester' });
   const raw = await page.evaluate((p) => {
@@ -44,16 +53,22 @@ async function seed(page: Page, patch: { coins?: number; ring?: number } = {}): 
     // The persisted envelope (STORAGE_VERSION 3 in gameStore).
     return JSON.stringify({ state: { save: next, onboarded: true }, version: 3 });
   }, patch);
-  await page.addInitScript((value) => {
-    try {
-      if (!localStorage.getItem('haven.arena-seeded')) {
-        localStorage.setItem('haven.save', value);
-        localStorage.setItem('haven.arena-seeded', '1');
+  const games = patch.games === undefined ? 'sample' : patch.games;
+  await page.addInitScript(
+    ({ value, restrict }) => {
+      try {
+        if (restrict === null) localStorage.removeItem('haven.debug.games');
+        else localStorage.setItem('haven.debug.games', restrict);
+        if (!localStorage.getItem('haven.arena-seeded')) {
+          localStorage.setItem('haven.save', value);
+          localStorage.setItem('haven.arena-seeded', '1');
+        }
+      } catch {
+        /* private mode */
       }
-    } catch {
-      /* private mode */
-    }
-  }, raw);
+    },
+    { value: raw, restrict: games },
+  );
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.getByTestId('ring-header')).toBeVisible();
 }
@@ -103,6 +118,26 @@ test('the Haven card opens the Arena hub with the entry, the games, the Armory a
   await expect(page.getByText('Coin Duel')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Armory' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Ask for a game' })).toBeVisible();
+});
+
+test('with no restriction the Arena lists every registered game by name, as the Games Lab does', async ({ page }) => {
+  await seed(page, { games: null });
+  // The registry, read through the Games Lab (same page, so the seeded save stays; the Lab never touches it).
+  await page.goto('/#/lab', { waitUntil: 'domcontentloaded' });
+  await expect(page.getByRole('heading', { level: 1, name: 'Games Lab' })).toBeVisible();
+  const cards = page.getByRole('article');
+  await expect(cards.first()).toBeVisible();
+  const names = (await cards.getByRole('heading', { level: 2 }).allTextContents()).map((n) => n.trim());
+  expect(names.length).toBeGreaterThanOrEqual(1);
+  expect(new Set(names).size).toBe(names.length);
+
+  await page.goto('/#/', { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('ring-header')).toBeVisible();
+  await openArena(page);
+  const list = page.getByTestId('arena-games');
+  await expect(list).toBeVisible();
+  await expect(list.getByRole('listitem')).toHaveCount(names.length);
+  await expect(list.getByRole('heading', { level: 3 })).toHaveText(names);
 });
 
 test('the Armory: buy gear, train, and the coins and the party change', async ({ page }) => {
