@@ -1,5 +1,5 @@
 /**
- * "Ask for a game" (docs/design/ARENA.md 7): the player describes a game they
+ * "Ask for a game" (docs/design/ARENA.md 9): the player describes a game they
  * would like, by typing or by voice, and the request is kept in the save. The
  * app sends it nowhere; the engineers read the exports.
  */

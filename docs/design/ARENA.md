@@ -23,23 +23,22 @@ Tone rules, all enforced by the engine:
 
 | Word | Meaning |
 | --- | --- |
-| **Troop** | A member of the party the Arena sends. Today the active vassals (enabled and present); later also citizens (4.1). A `PartyMember` from the contract. |
-| **Armory** | The permanent shop: gear, training, Haven decor. What is bought there stays forever. |
-| **Gear** | One item per slot (`weapon`, `armor`, `charm`) per vassal. Tiers 1 to 3 are sold; tier 4 items are rare and only won. |
+| **Troop** | A contract `PartyMember`: an active vassal today, a citizen later (4.1). |
+| **Armory** | The permanent shop: gear, training, Haven decor. |
+| **Gear** | One item per slot (`weapon`, `armor`, `charm`) per vassal. Tiers 1 to 3 are sold; tier 4 is rare and only won. |
 | **Stash** | Rare items won but not worn yet. |
-| **Training** | Small permanent power bumps per vassal, with steep diminishing returns and a weekly cap. |
-| **Run** | One outing: an entry fee, then a chain of games until a loss, leaving, or banking. |
-| **Room** | One game of a run. Rooms are numbered from 0; at most 10 per run. |
-| **Spoils** | `run.pending`: the coins and wins gathered so far. At risk until banked. |
-| **Lottery** | After every win (except the tenth), three run buffs are drawn and the player keeps one. |
-| **Buff** | A `RunBuff` of the contract (`attack`, `defense`, `time`, `hint`, `revive`, `luck`). Lives in `run.buffs`, lasts for the run only. |
-| **Bank** | End the run on purpose and turn the spoils into one reward: coins, wave defense or a rare item. |
-| **Carry home** | What a loss still pays: 25% of the pending coins, rounded down. |
-| **Request** | An "Ask for a game" note, stored in the save. |
+| **Training** | Small permanent power bumps per vassal, weekly capped. |
+| **Run** | An entry fee, then a chain of games until a loss, leaving, or banking. |
+| **Room** | One game of a run, numbered from 0; at most 10. |
+| **Spoils** | `run.pending`: coins and wins at risk until banked. |
+| **Lottery** | After a win, three buffs drawn, one kept. |
+| **Buff** | A contract `RunBuff`, kept in `run.buffs` for the run only. |
+| **Bank** | End the run on purpose: coins, wave defense or a rare item. |
+| **Carry home** | What a loss pays: 25% of the spoils' coins, rounded down. |
 
 ## 3. The economy
 
-All prices derive from `src/game/economy.ts` (`DIFFICULTY`, `questRewards`) and `arena.json` through `src/game/arena/economics.ts`. The typical day is the GDD board: `questsPerDay × adherence × expected coins per quest`, where the expected quest is the tier-weighted base coins times the difficulty multiplier (GDD 6.2, 6.4).
+Prices derive from `economy.ts` (`DIFFICULTY`, `questRewards`) and `arena.json` through `arena/economics.ts`. The typical day is `questsPerDay × adherence × expected coins per quest`, the expected quest being tier-weighted base coins times the difficulty multiplier (GDD 6.2, 6.4).
 
 | Difficulty | Expected coins per quest | Full day (100%) | Typical day (90%) | Typical week (90%) |
 | --- | --- | --- | --- | --- |
@@ -49,16 +48,14 @@ All prices derive from `src/game/economy.ts` (`DIFFICULTY`, `questRewards`) and 
 
 ### 3.1 The entry fee
 
-The fee comes from `run.feeByRing` and is capped at one typical day (`floor(typicalDailyCoins(difficulty, 0.9))`), never below 1. The ring is the player's ring when the run starts; the run keeps it until it ends.
+`run.feeByRing` at the ring of entry, capped at one typical day (`floor(typicalDailyCoins(difficulty, 0.9))`), never below 1:
 
 | Ring | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `feeByRing` | 20 | 26 | 32 | 38 | 44 | 50 | 56 |
+| Steady (cap 71), Hardcore (cap 122) | 20 | 26 | 32 | 38 | 44 | 50 | 56 |
 | Gentle (cap 37) | 20 | 26 | 32 | 37 | 37 | 37 | 37 |
-| Steady (cap 71) | 20 | 26 | 32 | 38 | 44 | 50 | 56 |
-| Hardcore (cap 122) | 20 | 26 | 32 | 38 | 44 | 50 | 56 |
 
-The one-day cap only bites for Gentle, from ring 4 on.
+The cap only bites for Gentle, from ring 4.
 
 ### 3.2 The win payout
 
@@ -68,7 +65,7 @@ Each won game adds to the spoils:
 winCoins = max(1, round(fee × (0.4 + 0.6 × score / 1000) × (1 + 0.25 × room)))
 ```
 
-`score` is the game's `Outcome.score` (0 to 1000), `room` is the 0-based room. A perfect first room returns exactly the fee; a zero score still returns 40% of it; every room after the first is worth 25% more than the first.
+`score` is `Outcome.score` (0 to 1000), `room` is 0-based. A perfect first room returns the fee, a zero score 40% of it, and each later room adds 25% of the first room's value.
 
 Worked example, Steady at ring 1 (fee 20), every game scored 700:
 
@@ -77,7 +74,7 @@ Worked example, Steady at ring 1 (fee 20), every game scored 700:
 | Win coins | 16 | 21 | 25 | 29 | 33 |
 | Spoils so far | 16 | 37 | 62 | 91 | 124 |
 
-Banking after two wins returns 37 for a fee of 20 (1.85 times). Five wins return 124 (6.2 times). At ring 7 (fee 56) the same scores give 46, 57, 69, 80, 92.
+Two wins return 37 for a fee of 20 (1.85 times), five wins 124 (6.2 times). At ring 7 (fee 56): 46, 57, 69, 80, 92.
 
 ### 3.3 Carry home
 
@@ -106,13 +103,13 @@ Realistically a player buys tier 1 at ring 1, tier 2 at ring 2 and tier 3 at rin
 
 ### 4.1 Troops and the roster
 
-`rosterFor(save)` (`roster.ts`) is the one place that knows where troops come from. Today it returns `vassalMembers(save)`: every active vassal (enabled and present, in habit order) as a contract `PartyMember` built with `makeMember`: `id` is the habit id, `name` the vassal's name, `level` and `loyalty` (rounded) their own, `power` the contract's `derivePower(level, loyalty)`, and `traits` the ids of earned titles that belong to that vassal's habit (a habit title, or a utility title of the habit's utility).
+`rosterFor(save)` (`roster.ts`) is the one place that knows where troops come from. Today it returns `vassalMembers(save)`: every active vassal (enabled and present, habit order) built with `makeMember`: `id` the habit id, the vassal's name, own `level` and rounded `loyalty`, `power = derivePower(level, loyalty)`, and `traits` the earned titles of that habit (a habit title, or a title of the habit's utility).
 
-**Extension point for citizens.** Brief F writes `citizenMembers(save): PartyMember[]` next to the citizen code; `roster.ts` imports it and adds it to `ROSTER_SOURCES`. Nothing else changes: `buildParty`, the host and the games already accept members with `habit: null`, and `equipMember` passes them through without gear. The Arena never imports citizen code itself.
+**Extension point for citizens.** Brief F writes `citizenMembers(save): PartyMember[]` next to the citizen code and adds it to `ROSTER_SOURCES` in `roster.ts`. Nothing else changes: `buildParty`, the host and the games accept `habit: null`, and `equipMember` passes such members through ungeared. The Arena never imports citizen code.
 
 ### 4.2 Gear
 
-Three slots per vassal. A vassal can only buy an upgrade for a slot (a strictly higher tier), and buying replaces the item. Prices scale with the ring by `1 + 0.12 × (ring − 1)`, rounded to the nearest 5 (`gearPrice`). Sold items can be worn by many vassals at once; each purchase is per vassal.
+Three slots per vassal. A purchase must be an upgrade (strictly higher tier) and replaces the slot's item; each purchase is per vassal. Prices scale by `1 + 0.12 × (ring − 1)`, rounded to 5 (`gearPrice`).
 
 | Item | Id | Slot | Tier | Min ring | Price ring 1 | Price ring 7 | Power |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -126,24 +123,15 @@ Three slots per vassal. A vassal can only buy an upgrade for a slot (a strictly 
 | Brass Compass | `brass_compass` | charm | 2 | 2 | 100 | 170 | 2 |
 | Haven Seal | `haven_seal` | charm | 3 | 4 | 220 | 380 | 3 |
 
-The "ring 1" price of a tier 2 or 3 item is the base price; the item is only for sale from its `minRing`. A full sold set (tier 3 in every slot) adds 15 power.
+Tier 2 and 3 items are on sale only from their `minRing`; their "ring 1" price is the base. A tier 3 set adds 15 power.
 
-**Rare items** are tier 4, price 0, never sold (`rare item` refusal) and only won by banking a run (5.3). Two per slot:
+**Rare items** are tier 4, price 0, never sold (`rare item`), only won by banking (5.3): weapons Moonlit Pike (`moonlit_pike`, 9) and Ladle of Ages (`ladle_of_ages`, 8); armor Dawnbreak Mantle (`dawnbreak_mantle`, 9) and Quiet Plate (`quiet_plate`, 8); charms Heart of the Haven (`heart_of_the_haven`, 5) and Sun-Crow Feather (`sun_crow_feather`, 5).
 
-| Item | Id | Slot | Power |
-| --- | --- | --- | --- |
-| Moonlit Pike | `moonlit_pike` | weapon | 9 |
-| Ladle of Ages | `ladle_of_ages` | weapon | 8 |
-| Dawnbreak Mantle | `dawnbreak_mantle` | armor | 9 |
-| Quiet Plate | `quiet_plate` | armor | 8 |
-| Heart of the Haven | `heart_of_the_haven` | charm | 5 |
-| Sun-Crow Feather | `sun_crow_feather` | charm | 5 |
-
-A won rare item goes to the **stash**. `equipRare` puts it on one vassal: the slot's previous rare item goes back to the stash, and a sold item in that slot is given up. Each rare item exists once: worn by one vassal or in the stash. Once a slot holds a rare item, no sold item is an upgrade for it.
+A won rare item goes to the **stash**. `equipRare` puts it on one vassal; the slot's previous rare item returns to the stash, and a sold item there is given up. Each rare item exists once. No sold item is an upgrade over a rare one.
 
 ### 4.3 Training
 
-Each vassal can take up to six bumps. Prices use the curve `14 + 2n + 0.5n²` (where `n` is the bumps already taken) times `1 + 0.08 × (ring − 1)`, rounded to the nearest coin (`trainingPrice`).
+Up to six bumps per vassal. Price: `14 + 2n + 0.5n²` (`n` = bumps taken) times `1 + 0.08 × (ring − 1)`, rounded to the coin (`trainingPrice`).
 
 | Bump | Power added | Total power | Price ring 1 | Price ring 7 | Cumulative ring 1 | Cumulative ring 7 |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -154,14 +142,9 @@ Each vassal can take up to six bumps. Prices use the curve `14 + 2n + 0.5n²` (w
 | 5 | 1 | 7 | 30 | 44 | 106 | 155 |
 | 6 | 1 | 8 | 37 | 54 | 143 | 209 |
 
-The curve has six entries, so a vassal is fully trained after six bumps (`training maxed`). The brief asked for prices up to eight bumps; with the current content there is no seventh or eighth bump to price.
+After six bumps a vassal is fully trained (`training maxed`); the curve has no seventh or eighth entry.
 
-**The weekly cap.** Training is counted per wave period (`week.index`), across all vassals together:
-
-- at most **2 bumps** per period (`training week full`);
-- at most **`trainingWeeklyCap(difficulty)`** coins per period: Gentle **65**, Steady **124**, Hardcore **213**, a quarter of a 90% habit week, rounded down (`training week cap`).
-
-Two bumps a week means fully training all eight vassals takes 24 wave periods at best. For Steady the bump limit binds first (two sixth bumps at ring 7 cost 108); for Gentle at high rings the coin cap can bind first.
+**The weekly cap**, per wave period (`week.index`), across all vassals: at most **2 bumps** (`training week full`) and at most **`trainingWeeklyCap(difficulty)`** coins, a quarter of a 90% habit week rounded down: Gentle **65**, Steady **124**, Hardcore **213** (`training week cap`). Fully training eight vassals takes 24 periods at best. For Steady the bump limit binds first (two sixth bumps at ring 7 cost 108); for Gentle at high rings the coin cap can.
 
 ### 4.4 The party builder
 
@@ -172,7 +155,7 @@ power  = clamp(derivePower(level, loyalty) + gear power + training power, 1, 100
 traits = [earned title ids of the habit..., 'gear:<slot>:<tier>' per worn item (slot order), 'training:<n>' when n > 0]
 ```
 
-For example a vassal with the Practice Baton and three bumps carries `gear:weapon:1` and `training:3`, and gains 2 + 5 = 7 power. Level and loyalty stay the vassal's own. The clamp keeps the contract range even for a level 30, loyalty 100 vassal in full rare gear. Members are sorted strongest first (ties keep roster order), because the host calls `fitParty`, which takes the first `rosterSize.max` members. Games ignore trait ids they do not know. `party.test.ts` asserts the ranges, the trait order and that the contract validator accepts the members.
+A vassal with the Practice Baton and three bumps carries `gear:weapon:1` and `training:3` and gains 2 + 5 = 7 power. Level and loyalty stay its own; the clamp holds even for a level 30, loyalty 100 vassal in rare gear. Members are sorted strongest first (ties keep roster order) because `fitParty` takes the first `rosterSize.max`. Games ignore unknown trait ids. `party.test.ts` asserts ranges, trait order and contract validity.
 
 ### 4.5 Haven decor
 
@@ -213,15 +196,11 @@ A run lives in `arena.run` and moves through three phases:
              RUN ENDS: BANKED (coins | defense | item), buffs cleared
 ```
 
-- `playing`: a game is mounted; `run.current` holds its id, seed, room and difficulty.
-- `lottery`: a win; three buffs are on offer in `run.offers`.
-- `decide`: a buff was picked (or the tenth room was won, which opens no Lottery); the player banks or continues.
-
-Banking is allowed from `lottery` and `decide` (banking from the Lottery skips the pick). After the tenth win only banking remains (`chain complete`). A run has no clock: it waits across days until the player comes back.
+`playing` has `run.current` (game id, seed, room, difficulty); `lottery` has three `run.offers`; in `decide` the player banks or continues. Banking from the Lottery skips the pick. The tenth win opens no Lottery and leaves only banking (`chain complete`). A run has no clock: it waits across days.
 
 ### 5.2 The Lottery
 
-After a win in room `r` (unless it was the tenth), `drawOffers(run.seed, r, run.buffs)` draws three distinct definitions by weight, without replacement. The chosen buff enters `run.buffs` with the id `<definition id>@<room>`, so picks stay unique.
+After a win in room `r` (not the tenth), `drawOffers(run.seed, r, run.buffs)` draws three distinct definitions by weight, without replacement. The pick enters `run.buffs` as `<definition id>@<room>`, so ids stay unique.
 
 | Id | Name | Kind | Amount | Weight | Rare | First-draw chance (no luck) |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -237,17 +216,17 @@ After a win in room `r` (unless it was the tenth), `drawOffers(run.seed, r, run.
 | `luck-s` | Lucky Penny | luck | +10% | 8 | no | 10.3% |
 | `luck-l` | Four-Leaf Banner | luck | +25% | 3 | yes | 3.8% |
 
-The weights total 78. Units follow the contract (section 7 of CONTRACT.md): `attack`, `defense` and `luck` are percentage points, `time` is seconds, `hint` and `revive` are counts.
+Weights total 78. Units follow CONTRACT.md section 7: `attack`, `defense`, `luck` in percentage points, `time` in seconds, `hint` and `revive` as counts.
 
-**Caps per run**: attack 60, defense 60, time 90, hint 5, revive 2, luck 50. A definition whose amount would push its kind over the cap is left out of the draw, so a run can never exceed a cap. If fewer than three remain, fewer are offered; if none remain, the win goes straight to `decide`.
+**Caps per run**: attack 60, defense 60, time 90, hint 5, revive 2, luck 50. A definition that would push its kind over the cap is left out of the draw; if fewer than three remain, fewer are offered, and with none the win goes straight to `decide`.
 
-**The luck rule.** A rare definition's weight is multiplied by `1 + luck / 50`, where `luck` is the run's total luck. At luck 25 rare weights are 1.5 times heavier (Battle Hymn rises from 6.4% to 8.2%); at the luck cap of 50 they double. Common weights never change. Luck is also passed to the games, which may use it for their own dice.
+**The luck rule.** Rare weights are multiplied by `1 + luck / 50` (the run's total luck): 1.5 times at luck 25 (Battle Hymn rises from 6.4% to 8.2%), double at the cap. Common weights never change. Games may also use luck for their own dice.
 
-**Determinism.** The draw uses `mulberry32(fnv1a("<run seed>:lottery:<room>"))`, so a reload shows the same three offers. `lottery.test.ts` checks the weights over many draws, determinism, the caps and the luck rule.
+**Determinism.** The draw uses `mulberry32(fnv1a("<run seed>:lottery:<room>"))`, so a reload shows the same offers (`lottery.test.ts`: weights, determinism, caps, luck).
 
 ### 5.3 Banking, and how the host maps an `Outcome`
 
-`bankOptions(save)` tells the buttons what each choice would give. The three choices are exclusive: banking defense or an item gives up the pending coins.
+`bankOptions(save)` feeds the buttons. The choices are exclusive: defense or an item gives up the pending coins.
 
 | Choice | Gives | Condition | Refusal |
 | --- | --- | --- | --- |
@@ -255,28 +234,22 @@ The weights total 78. Units follow the contract (section 7 of CONTRACT.md): `att
 | `defense` | +1 wave defense per win, up to 6 per wave period across all runs | room left under the period's cap | `defense capped` |
 | `item` | one rare item the player does not own yet, seeded by `fnv1a("<run seed>:item")`, into the stash | at least 3 wins, and a rare item left | `chain too short`, `no rare item left` |
 
-**Wave defense.** The amount is stored in `arena.defense` with the current `week.index` and appears as the new `arena` term of `waveDefense` (`WaveBreakdown.arena`), with the battle-log line "The Arena spoils reinforce the gate. +N". It is spent by the settlement of that period. A **quiet week** carries it over to the next period; a bonus left from an older period is replaced, not added to, and dropped when a later wave settles. Defense never grants Domain Points or coins by itself.
+**Wave defense** is stored in `arena.defense` with the current `week.index` and becomes the `arena` term of `waveDefense` (`WaveBreakdown.arena`), logged as "The Arena spoils reinforce the gate. +N". That period's settlement spends it; a **quiet week** carries it to the next period; a bonus from an older period is replaced, not added to, and dropped when a later wave settles. It never grants DP or coins by itself.
 
-**How `Outcome.score` scales rewards.** The score only scales the coins (3.2). Defense counts wins and the rare item needs three wins, whatever the scores. Higher rooms pay more.
+**`Outcome.score`** scales only the coins (3.2). Defense counts wins and the item needs three wins, whatever the scores.
 
 **How the host applies an `Outcome`** (G2, `src/components/arena/host/`):
 
-1. The host mounts the game's Screen with `fitParty(buildParty(save), manifest)`, the seed `run.current.seed` and `runContext(run)` (buffs, room index, difficulty).
-2. It validates every `Outcome` with `outcomeProblems(outcome, partyIds)` from `src/games/testing/validate.ts`. An invalid outcome is logged and applied as `{ result: 'fled', score: 0 }`, never trusted.
-3. A valid outcome goes to `resolveGame(save, now, { result, score, learned })` through the store. The engine reads only those three fields and cleans them again: an unknown result reads as `fled`, the score is rounded and clamped to 0..1000, and `learned` is kept only when both languages of topic and note are non-empty (topic at most 80 characters, note at most 240).
-4. `learned` is shown after the game and kept in the run's game record, then in the run log.
-5. Exit with no `onFinish` records `fledOutcome()`; an `onFinish` that arrives after `onExit` in the same task wins (CONTRACT.md section 5). `abandonRun` is the same as resolving with `fled`.
-6. `resolveGame` refuses when no game is in progress (`no game in progress`), so a double apply can never pay twice.
+1. Mount the Screen with `fitParty(buildParty(save), manifest)`, seed `run.current.seed` and `runContext(run)`.
+2. Validate with `outcomeProblems(outcome, partyIds)` (`src/games/testing/validate.ts`). An invalid outcome is logged and applied as `{ result: 'fled', score: 0 }`, never trusted.
+3. Pass `{ result, score, learned }` to `resolveGame` through the store. The engine cleans them again: an unknown result reads as `fled`, the score is rounded and clamped to 0..1000, `learned` is kept only with both languages non-empty (topic up to 80 characters, note up to 240).
+4. Show `learned` after the game; it stays in the game record and the run log.
+5. Exit without `onFinish` records `fledOutcome()`; an `onFinish` after `onExit` in the same task wins (CONTRACT.md 5). `abandonRun` equals resolving `fled`.
+6. `resolveGame` refuses with no game in progress, so a double apply never pays twice.
 
 ### 5.4 Game selection and difficulty
 
-The engine never imports a game. The host lists `listGames({ includeDev: debugEnabled() })` (so `devOnly` games such as Coin Duel appear only in debug and tests) and passes candidates `{ id, minRing, rosterMin: rosterSize.min }`. `pickGame`:
-
-- keeps games with `minRing <= run ring` and `rosterMin <=` the number of troops, sorted by id so the listing order never matters;
-- drops the previous game when more than one is eligible, so the same game never comes twice in a row;
-- picks with `mulberry32(fnv1a("<run seed>:game:<room>"))`.
-
-No eligible game refuses `enterRun` before any coin moves (`no games`); during a run, `continueRun` refuses and the player can still bank. The run seed is `fnv1a("<firstPlayDay>:arena:<seq>")`, and each game's seed is `fnv1a("<run seed>:seed:<room>")`.
+The engine never imports a game. The host lists `listGames({ includeDev: debugEnabled() })` (dev-only games such as Coin Duel appear only in debug and tests) and passes `{ id, minRing, rosterMin: rosterSize.min }`. `pickGame` keeps games with `minRing <=` the run's ring and `rosterMin <=` the troop count, sorted by id; drops the previous game when more than one is eligible; and picks with `mulberry32(fnv1a("<run seed>:game:<room>"))`. With no eligible game, `enterRun` refuses before any coin moves (`no games`); mid-run, `continueRun` refuses and banking stays open. Seeds: run `fnv1a("<firstPlayDay>:arena:<seq>")`, game `fnv1a("<run seed>:seed:<room>")`.
 
 Difficulty (`roomDifficulty`) is `1 + floor(room / 2)`, plus 1 from ring 4, capped at 5:
 
@@ -366,19 +339,17 @@ export interface SaveFile { version: 5; /* ...existing fields... */ map: MapStat
 export interface WaveBreakdown { /* ...existing fields... */ outposts: number; arena?: number } // absent before v5, read with ?? 0
 ```
 
-The brief named the request list `arenaRequests` at the top level of the save. It lives at **`arena.requests`** instead, so the whole feature is one field and one migration function.
+The brief's top-level `arenaRequests` is **`arena.requests`** here: one field and one migration for the whole feature.
 
 ### 6.2 Invariants
 
-- The Arena never changes `domainPoints`, `ring`, `highestRing`, XP, streaks, loyalty, trust, utilities or the board.
-- `run.current` is set exactly while `phase` is `playing`; `run.offers` is non-empty exactly while `phase` is `lottery`.
-- `run.room == run.pending.wins <= 10`.
-- For every kind, the sum of `run.buffs` amounts stays within its cap. Buffs exist only inside `run`, so ending a run clears them.
-- A rare item is owned at most once (worn by one vassal or in the stash); `gear` holds only known items in their own slot.
-- `training[h]` is 0 to 6. Within one period, `trainingWeek.bumps <= 2` and `trainingWeek.spent <=` the cap.
-- `defense.amount` is 1 to 6.
-- `log` and `requests` hold at most 30 entries each; run and request ids are unique and below `nextSeq`.
-- Every mutator returns a new save and leaves its input untouched; a refusal returns the input save, no events and an error code.
+- The Arena never changes DP, ring, XP, streaks, loyalty, trust, utilities or the board.
+- `run.current` is set exactly in `playing`; `run.offers` is non-empty exactly in `lottery`; `run.room == run.pending.wins <= 10`.
+- Each kind's buff total stays within its cap; buffs live only in `run`, so ending a run clears them.
+- A rare item is owned at most once; `gear` holds only known items in their own slot.
+- `training[h]` is 0 to 6; per period, at most 2 bumps and the coin cap; `defense.amount` is 1 to 6.
+- `log` and `requests` hold at most 30 each; ids are unique and below `nextSeq`.
+- Mutators never touch their input; a refusal returns the input save, no events and a code.
 
 ### 6.3 Migration (v4 to v5)
 
@@ -436,17 +407,17 @@ Added to `GameEvent`:
 | { type: 'arenaRequestSaved'; requestId: string }
 ```
 
-A win emits `arenaGameResolved`; a loss or leaving emits `arenaGameResolved` then `arenaRunEnded`; banking emits `arenaBanked` then `arenaRunEnded`. `continueRun` emits nothing. Every run end also writes one Haven log line of kind `arena`, picked from `strings.arena.log.<end>` with `{wins}` and `{coins}`. G2 maps the events to toasts from `strings.arena.toasts`.
+A win emits `arenaGameResolved`; a loss or leaving adds `arenaRunEnded`; banking emits `arenaBanked` then `arenaRunEnded`; `continueRun` emits nothing. Every run end writes one Haven log line of kind `arena` from `strings.arena.log.<end>` (`{wins}`, `{coins}`). G2 toasts come from `strings.arena.toasts`.
 
 ## 9. Requests: "Ask for a game"
 
-**Flow.** The Arena home has an *Ask for a game* button. It opens a short form: one text area and a microphone button, reusing the compose input of `ComposeQuestSheet` (the same speech recognition, its fallbacks and its privacy line). *Send* calls `requestGame`; the toast says "Request saved. The engineers are reading." The form lists the player's earlier requests, newest first.
+**Flow.** *Ask for a game* on the Arena home opens a short form: a text area and a microphone, reusing the compose input of `ComposeQuestSheet` (speech, fallbacks, privacy line). *Send* calls `requestGame`; the toast says "Request saved. The engineers are reading."
 
-**Limits.** At least 3 characters after cleaning (white space collapsed, trimmed), at most 400; 3 requests per game day (`requestsLeft` drives the button); the newest 30 are kept. Ids are `q<n>` from the same counter as runs.
+**Limits.** 3 to 400 characters after cleaning (white space collapsed, trimmed); 3 per game day (`requestsLeft`); the newest 30 kept; ids `q<n>` from the runs' counter.
 
-**Privacy.** A request is stored in the save on the device, with its date and whether it was typed or spoken. The app sends it nowhere. Voice goes through the same compose input as quests, so the same caveat applies: the browser's speech service may hear the audio, and Haven records nothing else. Requests reach the engineers only when the player shares a save export.
+**Privacy.** A request is stored locally in the save, with its date and source (typed or spoken), and sent nowhere. Voice uses the same compose input as quests, with the same caveat: the browser's speech service may hear the audio. Requests reach the engineers only if the player shares a save export.
 
-**Request template.** An agent turning a request into a game fills this in, then follows `docs/design/games/CONTRACT.md` section 14 (the ten-step recipe):
+**Request template.** An agent turning a request into a game fills this in, then follows the ten-step recipe in `docs/design/games/CONTRACT.md` section 14:
 
 ```markdown
 # Game request <q-id>: <working name>
@@ -480,7 +451,7 @@ Original: no names, art or text from any existing game.
 
 ## 10. Interaction
 
-Sketches only; G2 builds the screens. The Arena is not a sixth tab: it is a card on the Haven screen, below the recent log, that opens `#/arena`.
+Sketches only; G2 builds them. The Arena is not a sixth tab but a Haven card, below the recent log, opening `#/arena`.
 
 Phone, 390 x 844:
 
@@ -519,7 +490,7 @@ BANK OR CONTINUE                       ARMORY
 +------------------------------------+ +------------------------------------+
 | 3 wins . 62 coins at risk          | | [Gear] [Training] [Decor]          |
 | If the troops lose: 15 come home   | | Troop: [Pell (Move)        v]      |
-| [ NEXT ROOM ]                      | | Power 44 -> with gear 51           |
+| [ NEXT ROOM ]                      | | Power 44, with the Armory 46       |
 | Bank:                              | | WEAPON  Practice Baton  T1  +2     |
 | [ 62 coins ]                       | |   [ Staff T2 +4 . 150 ]            |
 | [ +3 wave defense ]                | | ARMOR   (empty)  [ Vest T1 . 60 ]  |
@@ -533,7 +504,6 @@ ASK FOR A GAME
 | [mic] Speak   (privacy line)       |
 | 2 requests left today              |
 | [ SEND ]                           |
-| Your requests: "a chess puzzle..." |
 +------------------------------------+
 ```
 
@@ -545,7 +515,7 @@ Tablet and desktop, 768 px and up: two columns. The run screen gives the game th
 +-------------------------------------------+------------------------------+
 | [ ENTER A RUN . 20 coins ]                | ARMORY                       |
 | GAMES                                     | [Gear] [Training] [Decor]    |
-| [ico] Name     category  tagline          | Troop [Pell v]  Power 51     |
+| [ico] Name     category  tagline          | Troop [Pell v]  Power 46     |
 | [ico] Name     category  tagline          | WEAPON / ARMOR / CHARM rows  |
 | ...                                       | STASH                        |
 | RECENT RUNS                               +------------------------------+
@@ -555,14 +525,14 @@ Tablet and desktop, 768 px and up: two columns. The run screen gives the game th
 
 ## 11. Accessibility and responsive
 
-- Follow `docs/RESPONSIVE-RULES.md`: `minmax(0, 1fr)` tracks, `flex: none` on icons and badges, no fixed px heights, the three breakpoints, safe areas once. Check 320x568, 390x844 at 150% text and 844x390. Sheets (Lottery, bank, request form) align `flex-start`, push down with `margin-top: auto` and scroll inside.
-- Tap targets of at least 44 x 44 px, including the three Lottery cards and the slot buttons.
-- The screen owns the `h1`; the game's title is an `h2` (CONTRACT.md section 5).
-- Results are announced in an `aria-live="polite"` region: the win and its coins, the learned note, "The troops are home" with what came back, the bank result.
-- Colour is never the only signal: rare buffs and items carry the word *Rare*; tiers are written (T1 to T4); a capped choice says why in text, not only by greying out.
-- Reduced motion: no coin showers, card flips or shakes; the same layout, results appear at once. The host passes `reducedMotion` to every game.
-- Keyboard order: header, *Enter a run*, the games list, Armory, *Ask for a game*. In a run: the game, then *Leave*. In the Lottery: the three cards, then *Bank now*. Escape closes a sheet and returns focus to its opener. Every control is a real button with an accessible name.
-- Every word comes from `strings.json` under `arena`.
+- Follow `docs/RESPONSIVE-RULES.md` (`minmax(0, 1fr)`, `flex: none` on icons, no fixed px heights, the three breakpoints, safe areas once) and check 320x568, 390x844 at 150% text and 844x390. Sheets align `flex-start`, push down with `margin-top: auto` and scroll inside.
+- Tap targets of at least 44 x 44 px, Lottery cards and slot buttons included.
+- The screen owns the `h1`; a game's title is an `h2` (CONTRACT.md 5).
+- Results go to an `aria-live="polite"` region: the win and its coins, the learned note, "The troops are home" and what came back, the bank result.
+- Colour is never the only signal: rare things say *Rare*, tiers are written (T1 to T4), a capped choice says why in text.
+- Reduced motion: no coin showers, flips or shakes; same layout, results at once. The host passes `reducedMotion` to every game.
+- Keyboard order: header, *Enter a run*, games list, Armory, *Ask for a game*; in a run, the game then *Leave*; in the Lottery, the three cards then *Bank now*. Escape closes a sheet and returns focus to its opener. Every control is a real button with an accessible name.
+- Every word comes from `strings.arena`.
 
 ## 12. Implementation plan and file map
 
@@ -574,7 +544,7 @@ Tablet and desktop, 768 px and up: two columns. The run screen gives the game th
 - `src/game/content/strings.json`: `arena.errors`, `arena.log`, `arena.toasts`;
 - `docs/design/GDD-errata.md` entries 24 to 26, and this document.
 
-**G2: screens and host** (`feat/G2-arena-ui`, stacked on G1): `src/screens/ArenaScreen.tsx` (lazy route `#/arena`), `src/components/arena/**` (home, Armory, run panel, Lottery, bank, request form, games list), `src/components/arena/host/**` (mounts the lazy Screen, builds `Party` and `RunContext`, validates and applies outcomes), the Haven card in `HomeScreen.tsx`, store actions at the end of `gameStore.ts`, event toasts, original SVG icons in `src/assets/arena/`, more `strings.arena` keys, `e2e/arena.spec.ts`, the responsive case, and `## The Arena` in `docs/PLAYER-GUIDE.md`.
+**G2: screens and host** (`feat/G2-arena-ui`, stacked on G1): `ArenaScreen.tsx` (lazy route `#/arena`), `src/components/arena/**`, the host in `src/components/arena/host/**` (5.3), the Haven card, store actions, toasts, SVG icons in `src/assets/arena/`, more `strings.arena` keys, `e2e/arena.spec.ts`, and `## The Arena` in `docs/PLAYER-GUIDE.md`.
 
 ## 13. Resolution and open questions
 
@@ -595,4 +565,4 @@ Open, answered by playtesting rather than by this page:
 - **Defense cap of 6 per period**, the stronghold cap's size; it may be strong next to early-ring trust.
 - **No selling or unequipping**: a sold item given up for a rare one is gone.
 - **Decor placement** in the Haven is for G2 and ART.md.
-- **Requests** stay on the device; an opt-in "send" would need its own privacy review.
+- **Requests** stay on the device; an opt-in "send" needs its own privacy review.

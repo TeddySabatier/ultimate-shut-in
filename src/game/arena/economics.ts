@@ -1,6 +1,6 @@
 /**
  * Arena prices and limits, all derived from `economy.ts` and `arena.json`
- * (docs/design/ARENA.md 3 and 9). The one rule behind every number: coins
+ * (docs/design/ARENA.md 3). The one rule behind every number: coins
  * come from habits, so what the Arena asks for is a share of what a player
  * who keeps their habits earns.
  */

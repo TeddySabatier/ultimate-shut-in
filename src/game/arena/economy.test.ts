@@ -20,7 +20,7 @@ function dailyFromRewards(difficulty: Difficulty, adherence: number): number {
 const RINGS: RingId[] = [1, 2, 3, 4, 5, 6, 7];
 const DIFFICULTIES: Difficulty[] = ['gentle', 'steady', 'hardcore'];
 
-describe('arena economy proof (ARENA.md 9)', () => {
+describe('arena economy proof (ARENA.md 3)', () => {
   it('the typical day is computed from questRewards, and matches the GDD table within rounding', () => {
     for (const d of DIFFICULTIES) {
       // `questRewards` rounds per quest; the expected value does not: they agree within half a coin per quest.
@@ -48,7 +48,7 @@ describe('arena economy proof (ARENA.md 9)', () => {
     for (const d of DIFFICULTIES) {
       for (const ring of RINGS) expect(entryFee(ring, d)).toBeLessThanOrEqual(Math.floor(typicalDailyCoins(d, arenaContent.run.feeAdherence)));
     }
-    // Gentle earns about 37 a day, so the fee is capped there from ring 3 on.
+    // Gentle earns about 37 a day, so the fee is capped there from ring 4 on.
     expect(entryFee(7, 'gentle')).toBe(Math.floor(typicalDailyCoins('gentle', 0.9)));
     expect(entryFee(1, 'gentle')).toBe(20);
   });

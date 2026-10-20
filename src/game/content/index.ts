@@ -488,7 +488,7 @@ export function validateContent(): string[] {
   return errors;
 }
 
-/** Arena content problems (docs/design/ARENA.md 10): ids, slots, tiers, weights, caps and ascending curves. */
+/** Arena content problems (docs/design/ARENA.md 6): ids, slots, tiers, weights, caps and ascending curves. */
 export function validateArenaContent(): string[] {
   const errors: string[] = [];
   const a = arenaContent;
