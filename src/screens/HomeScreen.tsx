@@ -4,6 +4,7 @@ import { useGameStore, useSave } from '../state/gameStore';
 import { encouragementLine, utilityViews, vassalLabel, waveOutlook } from '../state/selectors';
 import { useNow } from '../hooks/useNow';
 import { cx } from '../utils/cx';
+import { ArenaCard } from '../components/arena/ArenaCard';
 import { Icon } from '../components/Icon';
 import { Meter } from '../components/Meter';
 import { RingHeader } from '../components/RingHeader';
@@ -91,6 +92,8 @@ export function HomeScreen() {
           </ul>
         )}
       </SystemWindow>
+
+      <ArenaCard save={save} now={now} />
 
       <p className={cx('muted', styles.encouragement)}>{encouragementLine(save, now)}</p>
     </>

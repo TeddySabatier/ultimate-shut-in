@@ -1,0 +1,570 @@
+/* Shared styles of the Arena components (docs/design/ARENA.md 11, docs/RESPONSIVE-RULES.md). */
+
+/* ---- text and layout primitives ---- */
+.stack {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.line,
+.note,
+.reason,
+.ok,
+.live {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.note {
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+
+/* The visible reason next to a disabled button: readable, never colour alone (it is words). */
+.reason {
+  font-size: var(--text-sm);
+  color: var(--color-accent-text);
+}
+
+.ok {
+  font-size: var(--text-sm);
+  color: var(--color-success);
+}
+
+.live:empty {
+  display: none;
+}
+
+.live {
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin: 0;
+  min-width: 0;
+}
+
+.row > :global(.btn) {
+  flex: none;
+}
+
+.text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.subhead {
+  margin: var(--space-2) 0 0;
+  font-size: var(--heading-sm);
+  color: var(--color-accent-text);
+}
+
+.label {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-accent-text);
+  overflow-wrap: anywhere;
+}
+
+.badge {
+  display: inline-block;
+  flex: none;
+  margin-left: var(--space-2);
+  padding: 0 var(--space-1);
+  border: 1px solid var(--color-accent-2);
+  color: var(--color-accent-2);
+  font-family: var(--font-heading);
+  font-size: var(--heading-xs);
+  line-height: 1.8;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.tag {
+  display: inline-block;
+  padding: 0 var(--space-1);
+  border: 1px solid var(--color-border-light);
+  font-size: var(--text-xs);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+.block {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.focusTarget {
+  outline-offset: -2px;
+}
+
+/* ---- the coin chip ---- */
+.coin {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  font-size: var(--text-sm);
+}
+
+.coinIcon {
+  flex: none;
+  color: var(--color-accent-2);
+}
+
+/* ---- the Haven card ---- */
+.cardHead {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+  margin-bottom: var(--space-3);
+}
+
+.cardIcon {
+  flex: none;
+  color: var(--color-accent-2);
+}
+
+.cardLink {
+  overflow-wrap: anywhere;
+}
+
+/* ---- games ---- */
+.game {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-1);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.game:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.gameName {
+  margin: 0;
+  font-size: var(--heading-sm);
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+
+/* ---- run status and buffs ---- */
+.buffs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-1);
+}
+
+.buff {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.buffIcon {
+  flex: none;
+  color: var(--color-accent-2);
+}
+
+/* ---- the Lottery cards ---- */
+.offers {
+  list-style: none;
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+}
+
+.offerItem {
+  min-width: 0;
+}
+
+.offer {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+  width: 100%;
+  min-height: var(--touch-target);
+  padding: var(--space-3);
+  background: var(--color-panel-raised);
+  color: var(--color-text);
+  border: 2px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-hard);
+  text-align: left;
+}
+
+.offer:hover {
+  border-color: var(--color-accent-2);
+}
+
+.offer:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+.offerIcon {
+  flex: none;
+  color: var(--color-accent-2);
+}
+
+.offerText {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.offerName {
+  font-family: var(--font-heading);
+  font-size: var(--heading-sm);
+  line-height: 1.6;
+  text-transform: uppercase;
+  color: var(--color-accent-2);
+  overflow-wrap: anywhere;
+}
+
+.offerAmount {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.offerBlurb {
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+}
+
+/* ---- banking ---- */
+.bankList {
+  list-style: none;
+  margin: 0 0 var(--space-2);
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+.bankItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/* ---- Armory ---- */
+.troops {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.troop {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.troopSummary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--space-2);
+  row-gap: var(--space-1);
+  align-items: center;
+  padding: var(--space-2) 0;
+}
+
+.troopSummary > * {
+  grid-column: 2;
+}
+
+/* The open or closed marker, as on the Haven wave breakdown. */
+.troopSummary::before {
+  content: '+';
+  grid-column: 1;
+  grid-row: 1;
+  font-family: var(--font-heading);
+  font-size: var(--heading-sm);
+  color: var(--color-accent-text);
+}
+
+.troopDetails[open] > .troopSummary::before {
+  content: '-';
+}
+
+.troopName {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.troopFacts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.gearIcons {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-accent-2);
+}
+
+.gearIcons > * {
+  flex: none;
+}
+
+.troopBody {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: 0 0 var(--space-3);
+}
+
+.slots {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+.slot {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-2);
+  align-items: start;
+  min-width: 0;
+}
+
+.slotIcon {
+  flex: none;
+  color: var(--color-accent-text);
+}
+
+.inlineIcon {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: var(--space-1);
+  color: var(--color-accent-text);
+}
+
+.stashItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.wearRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-1) var(--space-2);
+  align-items: end;
+}
+
+.wearRow > .label {
+  grid-column: 1 / -1;
+}
+
+.select {
+  width: 100%;
+  min-width: 0;
+}
+
+.decorList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.decor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-1) var(--space-2);
+  align-items: center;
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.decor:last-child {
+  border-bottom: none;
+}
+
+.decorName {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.decorBuy {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.decorBuy > * {
+  flex: none;
+}
+
+.decor > .reason {
+  grid-column: 1 / -1;
+}
+
+.owned {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--color-success);
+}
+
+.owned > * {
+  flex: none;
+}
+
+/* ---- the request form ---- */
+.textarea {
+  width: 100%;
+  min-height: 5.5rem;
+  padding: var(--space-2) var(--space-3);
+  resize: vertical;
+  line-height: 1.4;
+}
+
+.voiceRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.voiceRow > * {
+  flex: none;
+}
+
+.listening {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.rec {
+  font-size: var(--text-sm);
+  color: var(--color-danger);
+}
+
+.request {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/* ---- the run log ---- */
+.logRun {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-1);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.logRun:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.learned {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 var(--space-3);
+  border-left: 2px solid var(--color-border-light);
+  display: grid;
+  gap: var(--space-1);
+}
+
+/* ---- breakpoints ---- */
+@media (max-width: 359px) {
+  .cardHead {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cardIcon {
+    display: none;
+  }
+  .offer {
+    gap: var(--space-2);
+    padding: var(--space-2);
+  }
+  .wearRow,
+  .decor {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .decorBuy {
+    justify-content: space-between;
+  }
+}
+
+@media (min-width: 768px) {
+  .offers {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .offer {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+    height: 100%;
+  }
+}
+
+@media (max-height: 500px) and (min-width: 600px) {
+  .offers {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .offer {
+    grid-template-columns: minmax(0, 1fr);
+    padding: var(--space-2);
+  }
+  .offerBlurb {
+    display: none;
+  }
+}

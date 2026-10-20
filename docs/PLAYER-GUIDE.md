@@ -17,13 +17,14 @@ Haven Protocol turns real-life habits into a small fortress-building game. You d
 9. [Rings](#rings)
 10. [The City Map and outposts](#the-city-map-and-outposts)
 11. [Titles](#titles)
-12. [Combos](#combos)
-13. [Resurrection token](#resurrection-token)
-14. [Benevolent and Strict modes](#benevolent-and-strict-modes)
-15. [Missing days](#missing-days)
-16. [Reminders and app shortcuts](#reminders-and-app-shortcuts)
-17. [Export and import](#export-and-import)
-18. [FAQ](#faq)
+12. [The Arena](#the-arena)
+13. [Combos](#combos)
+14. [Resurrection token](#resurrection-token)
+15. [Benevolent and Strict modes](#benevolent-and-strict-modes)
+16. [Missing days](#missing-days)
+17. [Reminders and app shortcuts](#reminders-and-app-shortcuts)
+18. [Export and import](#export-and-import)
+19. [FAQ](#faq)
 
 ## First launch
 
@@ -219,6 +220,24 @@ Caps: **3 + your ring** active outposts (4 at The Room, 10 at The City), at most
 | Open Door | Welcome back a vassal who had left | +1 loyalty per completion |
 
 Bonuses are small and capped: XP bonuses total at most +20%, coins +15%, wave DP +10%, flat defense +12.
+
+## The Arena
+
+The Arena is where your settlement coins go to work. Open it from the card at the bottom of the Haven screen. The Arena never pays Domain Points, never touches your streaks, your loyalty or your utilities, and there is no real money anywhere (banked wave defense can only help the week's wave, see Banking). The Armory stays shut until the first games are ready, so no coin is spent on gear that has nowhere to be used. Losing a run is never a punishment: the troops simply come home.
+
+**Entering a run.** A run costs an entry fee in coins. The fee grows with your ring but is never more than about one day of what a steady habit day earns (20 coins at the first ring, up to 56 at the City; a Gentle player never pays more than about 37). The Arena picks a game for you (never the same one twice in a row when there is a choice), seeded so a reload shows the same game. Each game uses your troops: higher level, loyalty, gear and training make them stronger.
+
+**After a win** the Lottery opens: three run buffs are drawn and you keep one (more attack, defense, time, hints, a second wind, luck). Buffs last for the run only. You can then play the next game (the difficulty rises every other room, up to 10 rooms) or **bank**.
+
+**Banking** ends the run and turns the spoils into one of three things: coins, a small boost to the defense of this week's wave (one point per win, at most 6 per week; it needs a week with at least one vassal working, and it can help a wave to a better result, but it never gives Domain Points by itself), or, after three wins, a rare Armory item.
+
+**Losing or leaving** ends the run and clears the buffs. The troops carry a quarter of the coins home. What you banked before, and your gear, always stay.
+
+**The Armory** is the lasting sink for coins. Each vassal has three gear slots (weapon, armor, charm) with three tiers each; prices rise with your ring, and higher tiers open at higher rings. **Training** adds a few permanent power points per vassal with steep diminishing returns, at most two sessions a week and never more than a quarter of what a week of habits pays, so coins cannot replace the habits. **Haven decor** is cosmetic: the names of your combo items given a place in the Haven.
+
+**Ask for a game.** Describe a game you would like, typed or spoken (the same way as a custom quest, with the same voice privacy note). It is saved on your device; the app sends it nowhere. Up to three a day. The engineers read the exports.
+
+**A gentle cap.** After a handful of runs in a day the Arena suggests a rest. It is a suggestion, never a block.
 
 ## Combos
 

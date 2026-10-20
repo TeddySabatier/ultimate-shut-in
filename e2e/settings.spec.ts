@@ -52,7 +52,7 @@ test('export downloads a version-3 JSON save and import restores the name', asyn
   const path = await download.path();
   const text = await readFile(path, 'utf8');
   const parsed = JSON.parse(text) as { version: number; player: { name: string } };
-  expect(parsed.version).toBe(4);
+  expect(parsed.version).toBe(5);
   expect(parsed.player.name).toBe('Tester');
 
   // Change the name, then import the file: the exported name comes back.

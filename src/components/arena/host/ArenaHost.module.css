@@ -1,0 +1,36 @@
+.host {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+.status {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.line,
+.buffs,
+.note {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.buffsLabel {
+  font-weight: 700;
+}
+
+.note {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.stage {
+  min-width: 0;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}

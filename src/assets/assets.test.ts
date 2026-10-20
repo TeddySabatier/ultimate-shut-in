@@ -33,6 +33,10 @@ const EXPECTED = [
   ...['gym', 'park', 'library', 'friend', 'family', 'cafe', 'clinic', 'market', 'pool', 'class', 'other'].map((o) => `outposts/${o}.svg`),
   'logo/logo.svg',
   'logo/mark.svg',
+  // arena (brief G2)
+  ...[
+    'weapon', 'armor', 'charm', 'buff-attack', 'buff-defense', 'buff-time', 'buff-hint', 'buff-revive', 'buff-luck', 'card',
+  ].map((a) => `arena/${a}.svg`),
 ];
 
 describe('svg assets', () => {
@@ -77,6 +81,17 @@ describe('svg assets', () => {
     const mono = files.filter((f) => /[\\/](habits|outposts)[\\/]/.test(f) || /[\\/]ui[\\/](check|timer|lock|chevron|close|settings|home|quests|character|mic|map|compare|list|utility-\w+|wave-shield|title-badge|panel-frame|xp-bar-cap)\.svg$/.test(f));
     expect(mono.length).toBeGreaterThan(0);
     for (const f of mono) {
+      const src = readFileSync(f, 'utf8');
+      expect(src, `${f} should not hard-code colours`).not.toMatch(/#[0-9a-f]{3,8}\b/i);
+      expect(src).toMatch(/currentColor/);
+    }
+  });
+
+  // arena (brief G2)
+  it('arena icons use currentColor only', () => {
+    const arena = files.filter((f) => /[\\/]arena[\\/]/.test(f));
+    expect(arena.length).toBe(10);
+    for (const f of arena) {
       const src = readFileSync(f, 'utf8');
       expect(src, `${f} should not hard-code colours`).not.toMatch(/#[0-9a-f]{3,8}\b/i);
       expect(src).toMatch(/currentColor/);

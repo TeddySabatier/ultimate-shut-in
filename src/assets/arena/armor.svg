@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="miter" stroke-linecap="square">
+  <!-- armor slot: a padded vest -->
+  <path d="M8 4l4 3 4-3 4 4-2 3v9H6v-9L4 8z"/>
+  <path d="M12 7v13M9 14h6"/>
+</svg>

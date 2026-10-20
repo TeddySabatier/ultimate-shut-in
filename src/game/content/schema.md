@@ -176,3 +176,58 @@ UI copy. Every array is a pool; the UI picks with a seeded index (e.g. `hash(gam
 | `compose.*` | object | The Compose sheet (custom quests, see `docs/design/CUSTOM-QUESTS.md`). `open`, `title`, `intro`, `textLabel`, `textPlaceholder`, `speak`, `stop`, `listening`, `hearing`, `heard`, `parsedHeading`, `emptyHint`: sheet copy. `voicePrivacy`: the privacy line next to the microphone (must say that the browser vendor's speech service may hear the audio, in Chrome while online, that Haven records nothing, and that nothing else leaves the device). `unsupported`, `denied`, `noMic`, `noSpeech`, `offline`: the voice fallbacks, each ending in the way forward (type it). `labels.*` field labels, `kinds.*` (`check`, `timer`, `count`), `slots.*` (`any`, `morning`, `afternoon`, `evening`), `tiers[]` (names of tiers 1 to 3), `tierSuggested`, `tierCap` (`{kind}`, `{max}`), `questions.*` (`habit`, `amount`, `title`, `empty`: what the parser asks when unsure), `labels.where` with `whereNone`, `whereHint` and `whereAt` (`{name}`: the outpost a custom quest defaults to, see `map.*`), `actions.*` (`board`, `recurring`, `later`, `cancel`), `notes.*` (`full`, `habitOff` with `{habit}`, `away` with `{name}`), `toasts.*` (`saved`, `boarded`, `updated`, `archived`, all with `{title}`), `myQuests.*` (the Ledger section: `title`, `empty`, `addToday`, `onBoard`, `archive`, `stats` with `{issued}`, `{done}`, `{tried}`, `archiveTitle`, `archiveBody`, `sources.*` for `voice`, `text`, `proposal`). |
 | `map.*` | object | The City Map tab (`docs/design/CITY-MAP.md`). `title`, `ringLine` (`{ring}`, `{name}`), `chip` (the Haven header link), `seeOnMap` (ring-unlock overlay). `a11y.*`: `svg` (the map's spoken label), `zoneBand` (`{zone}`, `{name}`, `{status}`), `pin` (`{name}`, `{type}`, `{state}`, `{quiet}`, `{zone}`, `{beyond}`, `{visits}`). `hud.*`: `compare`, `compareLabel`, `list`, `listLabel`, `mapLabel`, `mapView`, `nextWave` (`{days}`), `waveTonight`. `since.*`: `gain` (`{dp}`), `same`, `legend`, `legendNew`, `compare` (`{dp}`, `{streets}`), `compareNone`. `domain.*`: the Domain window (`sub` with `{dp}`, `{next}`, `{name}`, `{pct}`; `subCity` with `{dp}`; tile labels). `outposts.*`: the Outposts window, rows, sheet, Ledger section and badges (`capRoom` with `{free}` and `{ring}`, `capFull` with `{cap}` and `{ring}`, `visitsOf` with `{visits}` and `{next}`, `toNext` with `{n}`, `{s}`, `{state}`, `lastVisit` with `{days}`, perk lines with `{aHabits}`, `{discount}`, `{habits}`, `related` with `{who}`, retire and forget copy with `{name}`). `zone.*`: the zone sheet (`kick` with `{zone}`, `claimedAt`, `toGo`, `registersAt` with `{dp}`, `wallsIn` with `{bonus}`, `creep` with `{name}` and `{dp}`, `opensWith` with `{name}`, `placeholder`). `list.*`: the list view rows. `form.*`: the add and edit form (labels, `editTitle` with `{name}`, `directions.<compass>`). `errors.<code>`: one warm line per engine refusal code (`name required`, `name taken`, `cap reached` with `{cap}` and `{ring}`, `zone full` with `{zone}`, `cell taken`, `cell invalid`, `no free cell` with `{zone}`, `pick a habit`, `already logged today`, `outpost is retired`, `not retired`, `quest not done`, `already tagged`, `nothing to undo`, `unknown outpost`; every line may use `{name}`). `toasts.*`: `created`, `visited` (`{name}`, `{visits}`, `{s}`, `{next}`), `visitedNext` (`{n}`, `{state}`), `visitedHold`, `visitedUncounted`, `undone`, `stateReached` (`{name}`, `{state}`, `{perk}`) with `stateScouted`/`stateCorridor`/`stateStronghold` and `perkScouted`/`perkCorridor`/`perkStronghold`, `retired`, `restored`, `forgotten`, `withinWalls` (`{name}`). `settlement.*`: `where`, `elsewhere` (the settlement toast's "Where were you?" row). |
 | `proposals.*` | object | "The Haven notices". `heading`, `intro`, `accept`, `dismiss`: section copy. `titles.*`: card headings per rule (`smaller`, `stepUp`, `makeRecurring`, `footInDoor`, `pinWeekday`). `reasons.*`: per rule, a pool of reason sentences picked with a seed (placeholders `{vassal}`, `{habit}`, `{quest}`, `{n}`, `{recurrence}`, `{weekday}`; never a verdict, always a way forward or "no pressure"). `footInDoor.titles.<habit>`: the 5-minute check quest title per habit (Title Case, at most 40 characters); `footInDoor.description`. `toasts.accepted` (`{title}`), `toasts.dismissed`. |
+| `arena.*` | object | The Arena (`docs/design/ARENA.md`). G1 ships three keys; G2 adds the screen copy. `errors.<code>`: one warm line per engine refusal code (`run in progress`, `no troops`, `no games`, `not enough coins`, `no game in progress`, `no lottery open`, `not on offer`, `nothing to continue`, `chain complete`, `nothing to bank`, `defense capped`, `chain too short`, `no rare item left`, `unknown item`, `rare item`, `unknown troop`, `ring too low`, `not an upgrade`, `not in the stash`, `training maxed`, `training week full`, `training week cap`, `unknown decor`, `already owned`, `request too short`, `request limit`). `log.lost[]`, `log.fled[]`, `log.banked[]`: the Haven log line written when a run ends, picked with `fnv1a(runId)` (`{wins}`, `{coins}`). `toasts.*`: `gearBought` and `gearEquipped` (`{troop}`, `{item}`), `trained` (`{troop}`, `{bumps}`), `decorBought` (`{decor}`), `requestSaved`, `runStarted`, `banked`, `runEnded`. |
+
+## arena.json
+
+```
+{ version, run, bank, lottery, armory, training, decor, requests, log }
+```
+
+The Arena (`docs/design/ARENA.md`). Prices are derived in `src/game/arena/economics.ts` from these numbers and the difficulty table of `economy.ts`. `validateArenaContent()` (in `content/index.ts`) checks: seven positive fees that never drop with the ring; non-negative reward terms and `carryHome` in [0, 1); consistent bank limits; unique buff ids, known kinds, positive integer amounts within their cap, positive weights, a name and blurb, at least one buff and a positive cap per kind, at least `offers` buffs; slots exactly `weapon`, `armor`, `charm`; unique item ids, a known `minRing`, positive integer power, rare items tier 4 at price 0 and sold items tier 1 to 3 with a price; per slot, sold tiers 1, 2, 3 with price and power rising, and at least two rare items; a training curve of at least three positive integers that never rise; `weeklyShareOfHabitCoins` in (0, 0.25]; and the request and log limits.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `run.feeByRing` | integer[7] | Entry fee by ring (20 to 56). `entryFee` caps it at one typical day of the player's difficulty. |
+| `run.feeAdherence` | number (0, 1] | Adherence behind the "typical day" of the fee cap (0.9). |
+| `run.maxRooms` | integer | Most games in one run (10). The last win opens no Lottery. |
+| `run.roomsPerDifficultyStep` | integer | Rooms per difficulty step (2): difficulty is `1 + floor(room / step)`. |
+| `run.ringBoostFrom` | integer | From this ring (4) every room is one difficulty step harder. Difficulty is capped at 5. |
+| `run.suggestedRunsPerDay` | integer | Runs per game day after which the screen suggests a rest (5). Never enforced. |
+| `run.reward.base`, `run.reward.perScore`, `run.reward.growthPerRoom` | number | Win payout `fee × (base + perScore × score / 1000) × (1 + growthPerRoom × room)`, rounded, at least 1 (0.4, 0.6, 0.25). |
+| `run.carryHome` | number [0, 1) | Share of the pending coins a loss or leaving still pays, rounded down (0.25). |
+| `bank.defensePerWin` | integer | Wave defense banked per win (1). |
+| `bank.defenseCapPerPeriod` | integer | Most Arena defense per wave period, across runs (6); `breakdown.arena`. |
+| `bank.itemMinWins` | integer | Wins needed to bank a rare item (3). |
+| `lottery.offers` | integer | Buffs offered after a win (3), drawn without replacement. |
+| `lottery.luckBoostPer` | number | Points of run luck that double rare weights (50): a rare weight is `weight × (1 + luck / luckBoostPer)`. |
+| `lottery.caps.<kind>` | integer | Most of each kind a run can hold (`attack` 60, `defense` 60, `time` 90, `hint` 5, `revive` 2, `luck` 50). A buff that would pass the cap is not offered. |
+| `lottery.buffs[].id` | string | Unique; a picked buff is stored as `<id>@<room>`. |
+| `lottery.buffs[].kind` | `"attack" \| "defense" \| "time" \| "hint" \| "revive" \| "luck"` | The contract `RunBuff` kind. Units: percentage points for `attack`, `defense`, `luck`; seconds for `time`; counts for `hint`, `revive`. |
+| `lottery.buffs[].amount` | integer | Size of the buff, at most the kind's cap. |
+| `lottery.buffs[].weight` | number | Draw weight (all weights total 78). |
+| `lottery.buffs[].rare` | boolean | Rare buffs get heavier with luck. |
+| `lottery.buffs[].name`, `lottery.buffs[].blurb` | string | Card title and one line. |
+| `armory.ringPriceStep` | number | Gear price factor per ring above 1 (0.12); prices round to 5. |
+| `armory.slots` | `["weapon", "armor", "charm"]` | The three gear slots, in this order. |
+| `armory.items[].id` | string | Unique, stored in saves; never rename. |
+| `armory.items[].slot` | `"weapon" \| "armor" \| "charm"` | The slot it fills. |
+| `armory.items[].tier` | `1 \| 2 \| 3 \| 4` | 1 to 3 sold; 4 rare. A purchase must be a higher tier than what the slot holds. |
+| `armory.items[].minRing` | `1..7` | Ring from which it is sold (rare items: 1). |
+| `armory.items[].price` | integer | Price at ring 1, scaled by ring; 0 for rare items. |
+| `armory.items[].power` | integer | Added to the troop's `power` in the party (clamped to 100). |
+| `armory.items[].rare` | boolean, optional | `true` for items only won by banking a run. |
+| `armory.items[].name`, `armory.items[].flavor` | string | Display name and one line. |
+| `training.bumpPower` | integer[] | Power of each successive bump, never rising; its length is the most bumps per vassal (6). |
+| `training.costBase`, `training.costStep`, `training.costSquare` | number | Price of the next bump after `n`: `(costBase + costStep × n + costSquare × n²)` times the ring factor, rounded to the coin (14, 2, 0.5). |
+| `training.ringPriceStep` | number | Training price factor per ring above 1 (0.08). |
+| `training.maxBumpsPerWeek` | integer | Bumps per wave period across all vassals (2). |
+| `training.weeklyShareOfHabitCoins` | number (0, 0.25] | Weekly coin cap as a share of a typical habit week (0.25). |
+| `training.weeklyAdherence` | number (0, 1] | Adherence behind that habit week (0.9). |
+| `decor.pricePerPower` | number | Decor price per point of the combo's power (30), rounded to 5. |
+| `requests.textMax` | integer | Longest request after cleaning (400); the shortest is 3 (`REQUEST_MIN_LENGTH` in code). |
+| `requests.perDay` | integer | Requests per game day (3). |
+| `requests.keep` | integer | Requests kept in the save, newest last (30). |
+| `log.keep` | integer | Finished runs kept in `arena.log` (30). |
+| `log.learnedKeep` | integer | Recent learned notes the screen may list (8). Validated; not read by the engine. |
+| `log.noteMax` | integer | Longest `learned` note kept, per language (240). |
