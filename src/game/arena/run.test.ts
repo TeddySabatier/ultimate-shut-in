@@ -5,6 +5,7 @@ import { settleWave, waveDefense } from '../wave';
 import { entryFee } from './economics';
 import { abandonRun, bankOptions, bankRun, continueRun, enterRun, eligibleGames, pickBuff, pickGame, resolveGame, runContext, type GameCandidate } from './run';
 import { requestGame } from './requests';
+import { overDailySuggestion, runsToday } from './state';
 import { T0 } from '../testUtils';
 import type { SaveFile } from '../types';
 
@@ -44,7 +45,7 @@ describe('entering a run', () => {
     expect(run.current).toMatchObject({ roomIndex: 0, difficulty: 1 });
     expect(r.events).toEqual([{ type: 'arenaRunStarted', runId: 'r1', fee }]);
     expect(r.save.arena.stats.runs).toBe(1);
-    expect(r.save.arena.today.runs).toBe(1);
+    expect(runsToday(r.save, r.save.lastOpenDay)).toBe(1);
     expect(r.save.arena.nextSeq).toBe(2);
   });
 
@@ -89,10 +90,11 @@ describe('entering a run', () => {
     save = mustOk(enterRun(save, T0, ONE));
     save = mustOk(abandonRun(save, T0));
     save = mustOk(enterRun(save, T0, ONE));
-    expect(save.arena.today.runs).toBe(2);
+    expect(runsToday(save, save.lastOpenDay)).toBe(2);
     save = mustOk(abandonRun(save, T0));
     save = mustOk(enterRun(save, T0 + 24 * 3_600_000, ONE));
-    expect(save.arena.today.runs).toBe(1);
+    expect(runsToday(save, save.lastOpenDay + 1)).toBe(1);
+    expect(runsToday(save, save.lastOpenDay)).toBe(2);
   });
 });
 
@@ -464,9 +466,21 @@ describe('the banked defense reaches the wave', () => {
     expect(settled.arena.defense).toEqual({ period: 1, amount: 4 });
   });
 
-  it('never creates Domain Points: a quiet week stays at zero', () => {
-    const settled = settleWave(withBank(6), 0, T0, 10).save;
-    expect(settled.player.domainPoints).toBe(0);
+  it('Domain Points come only from the wave result: a quiet week gets none, and a real wave gets at most the next result up', () => {
+    const quiet = settleWave(withBank(6), 0, T0, 10).save;
+    expect(quiet.player.domainPoints).toBe(0);
+    // One trust point, attack 18: defense 16 (a win) becomes decisive only with enough Arena defense.
+    const base = fresh();
+    base.vassals.move.trust = 1;
+    base.vassals.move.level = 5;
+    const plain = settleWave(base, 0, T0, 10).save.week.history[0]!;
+    const boosted = base;
+    boosted.arena.defense = { period: 0, amount: 6 };
+    const withArena = settleWave(boosted, 0, T0, 10).save.week.history[0]!;
+    expect(withArena.defense - plain.defense).toBe(6);
+    expect(withArena.dpAwarded).toBeGreaterThanOrEqual(plain.dpAwarded);
+    // The one route from the Arena to Domain Points is the wave's own result, capped at +6 defense per period.
+    expect(withArena.dpAwarded - plain.dpAwarded).toBeLessThanOrEqual(7);
   });
 
   it('a stale bonus from an older period is dropped when a later wave settles', () => {
@@ -486,5 +500,29 @@ describe('requests and runs share the sequence counter', () => {
     save = mustOk(enterRun(save, T0, ONE));
     expect(save.arena.requests[0]!.id).toBe('q1');
     expect(save.arena.run!.id).toBe('r2');
+  });
+});
+
+describe('the daily suggestion and a changed reset hour', () => {
+  it('counts runs from their start times, so moving the reset hour cannot shift them', () => {
+    let save = richSave();
+    save = mustOk(enterRun(save, T0, ONE));
+    save = mustOk(abandonRun(save, T0));
+    const day = save.lastOpenDay;
+    expect(runsToday(save, day)).toBe(1);
+    expect(overDailySuggestion(save, day)).toBe(false);
+    save = { ...save, settings: { ...save.settings, resetHour: 0 } };
+    // 12:00 UTC is the same real day under both reset hours.
+    expect(runsToday(save, day)).toBe(1);
+  });
+
+  it('the suggestion appears after the suggested number of runs and never blocks one', () => {
+    let save = richSave(10_000);
+    for (let i = 0; i < arenaContent.run.suggestedRunsPerDay; i++) {
+      save = mustOk(enterRun(save, T0, ONE));
+      save = mustOk(abandonRun(save, T0));
+    }
+    expect(overDailySuggestion(save, save.lastOpenDay)).toBe(true);
+    expect(enterRun(save, T0, ONE).error).toBeUndefined();
   });
 });

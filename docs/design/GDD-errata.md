@@ -241,3 +241,47 @@ Each Stronghold now adds +2 in its own `breakdown.outposts` term, capped at
 stronghold holds. +2" / "Three strongholds hold the outer line. +6").
 Retired outposts contribute nothing. Quiet never lowers visits, `peak` or
 perks; `peak` is sticky the way `highestRing` is (errata 15).
+
+---
+
+Entries 24–26 come from the Arena (`docs/design/ARENA.md`, 2026-10-20).
+GDD 8.2 left settlement with few sinks ("Cosmetic decor purchases are a v2
+sink"). The Arena makes coins its currency and adds one wave term; these are
+the places the engine departs from GDD 1.0 numbers.
+
+## 24. Arena coins sink (6.2, 8.2) [ARENA 3, 4]
+
+Settlement gains a permanent sink and a run fee, all priced from the GDD 6.2
+difficulty table and the 6.4 reward formula (`arena/economics.ts`): a
+typical day is `questsPerDay × 0.9 × expected coins per quest` (Gentle 37.26,
+Steady 71.28, Hardcore 122.04). The run entry fee is 20 to 56 by ring, never
+more than one typical day (Gentle is capped at 37 from ring 4). The Armory
+sells gear (three slots per vassal, tiers 1 to 3, prices `× (1 + 0.12 ×
+(ring − 1))`), training (six bumps per vassal, at most two per wave period and
+at most a quarter of a 90% habit week in coins: 65 / 124 / 213) and Haven
+decor (any combo name, `power × 30`), which is the cosmetic sink 8.2
+deferred. Coins only flow back through Arena spoils. Domain Points are never
+spent or granted by the Arena, and Arena results never touch streaks,
+loyalty or utilities. `arena/economy.test.ts` asserts the numbers.
+
+## 25. Arena wave defense (9.3) [ARENA 5.3]
+
+GDD 9.3 defense (with the errata 23 `outposts` term) gains one more term,
+`breakdown.arena`: wave defense banked from an Arena run, +1 per win, capped
+at +6 per wave period across all runs, with one battle-log line ("The Arena
+spoils reinforce the gate. +N"). It counts only for the period it was banked
+in and is spent by that settlement; a quiet week carries it to the next
+period, and a bonus left from an older period is dropped. Banking defense
+gives up the run's coins and never awards Domain Points by itself.
+
+## 26. Save version 5 (4) [ARENA 6]
+
+The Arena adds `save.arena` right after `save.map` (gear, stash, training,
+the training week, decor, banked defense, the run in progress, the run log,
+stats, the daily run counter, game requests and `nextSeq`) and the optional
+`WaveBreakdown.arena`, so the file is version 5. The brief's top-level
+`arenaRequests` lives at `arena.requests`. `migrate` gives v2, v3 and v4
+saves an empty Arena, fills `arena: 0` on every stored wave record, and
+normalises a damaged `arena` (drops unknown items, a rare item worn twice, a
+run in an impossible phase and unknown buffs; clamps training, defense and
+stats; keeps the newest 30 log records and requests; rebuilds `nextSeq`).

@@ -5,6 +5,7 @@
  */
 import { arenaContent, getArenaBuff, getArenaItem, getCombo } from '../content';
 import { clamp } from '../draft';
+import { roomDifficulty } from './economics';
 import { gameDayIndex, type TimeOptions } from '../time';
 import type {
   ArenaBankChoice,
@@ -28,6 +29,8 @@ import { ARENA_BUFF_KINDS, GEAR_SLOTS, HABIT_IDS } from '../types';
 
 /** A request shorter than this is refused (the upper limit is `requests.textMax` in the content). */
 export const REQUEST_MIN_LENGTH = 3;
+/** Run start times kept for the daily suggestion. */
+export const STARTS_KEPT = 40;
 
 function emptyGear(): Record<GearSlot, string | null> {
   return { weapon: null, armor: null, charm: null };
@@ -50,7 +53,7 @@ export function emptyArena(): ArenaState {
     run: null,
     log: [],
     stats: { runs: 0, gamesWon: 0, gamesLost: 0, bestChain: 0, coinsBanked: 0 },
-    today: { day: 0, runs: 0 },
+    starts: [],
     requests: [],
     nextSeq: 1,
   };
@@ -67,14 +70,14 @@ export function arenaDefense(save: Pick<SaveFile, 'arena' | 'week'>, period: num
   return d !== null && d.period === period ? d.amount : 0;
 }
 
-/** Runs started today (the counter resets with the game day). */
-export function runsToday(save: Pick<SaveFile, 'arena'>, day: number): number {
-  return save.arena.today.day === day ? save.arena.today.runs : 0;
+/** Runs started on game day `day`, counted from their start times so a changed reset hour cannot shift them. */
+export function runsToday(save: Pick<SaveFile, 'arena' | 'settings'>, day: number, opts?: TimeOptions): number {
+  return save.arena.starts.filter((at) => dayOf(save, at, opts) === day).length;
 }
 
 /** True once the player passed the suggested number of runs for today. Never a block. */
-export function overDailySuggestion(save: Pick<SaveFile, 'arena'>, day: number): boolean {
-  return runsToday(save, day) >= arenaContent.run.suggestedRunsPerDay;
+export function overDailySuggestion(save: Pick<SaveFile, 'arena' | 'settings'>, day: number, opts?: TimeOptions): boolean {
+  return runsToday(save, day, opts) >= arenaContent.run.suggestedRunsPerDay;
 }
 
 /** Sum of the amounts of the run's buffs of one kind. */
@@ -166,20 +169,24 @@ function migrateGames(raw: unknown): ArenaGameRecord[] {
   return out.slice(-arenaContent.run.maxRooms - 1);
 }
 
+/** A buff id is `<definition id>@<room>`; the kind and the amount always come from the definition. */
 function migrateBuff(raw: unknown): ArenaBuff | null {
-  if (!isDict(raw) || typeof raw.id !== 'string') return null;
+  if (!isDict(raw) || typeof raw.id !== 'string' || !/^[a-z-]+@\d{1,2}$/.test(raw.id)) return null;
   const kind = oneOf(raw.kind, ARENA_BUFF_KINDS);
   const def = getArenaBuff(raw.id.split('@')[0] ?? '');
   if (!kind || !def || def.kind !== kind) return null;
   return { id: raw.id, kind, amount: def.amount };
 }
 
-function migrateBuffs(raw: unknown): ArenaBuff[] {
+/** Drops unknown and duplicate buffs, and any buff that would take its kind past its cap. */
+function migrateBuffs(raw: unknown, limit = 1000): ArenaBuff[] {
   if (!Array.isArray(raw)) return [];
   const out: ArenaBuff[] = [];
   for (const b of raw) {
     const m = migrateBuff(b);
-    if (m && !out.some((x) => x.id === m.id)) out.push(m);
+    if (!m || out.some((x) => x.id === m.id) || out.length >= limit) continue;
+    if (runBuffTotal(out, m.kind) + m.amount > arenaContent.lottery.caps[m.kind]) continue;
+    out.push(m);
   }
   return out;
 }
@@ -194,24 +201,31 @@ function migrateRun(raw: unknown): ArenaRun | null {
       ? {
           gameId: cur.gameId.slice(0, 32),
           seed: Math.floor(num(cur.seed, 0)) >>> 0,
-          roomIndex: int(cur.roomIndex, 0, 0, 99),
-          difficulty: int(cur.difficulty, 1, 1, 5) as ArenaDifficulty,
+          roomIndex: 0,
+          difficulty: 1 as ArenaDifficulty,
         }
       : null;
   if (phase === 'playing' && current === null) return null;
-  const offers = migrateBuffs(raw.offers);
+  const offers = migrateBuffs(raw.offers, arenaContent.lottery.offers);
   if (phase === 'lottery' && offers.length === 0) return null;
   const pend = isDict(raw.pending) ? raw.pending : {};
   const lastGameId = typeof raw.lastGameId === 'string' ? raw.lastGameId.slice(0, 32) : null;
+  const ring = int(raw.ring, 1, 1, 7) as RingId;
+  const room = int(raw.room, 0, 0, arenaContent.run.maxRooms);
+  // The game being played is always the one after the games won: its room and difficulty are derived, never read.
+  if (current) {
+    current.roomIndex = room;
+    current.difficulty = roomDifficulty(room, ring);
+  }
   return {
     id: raw.id,
     seed: Math.floor(num(raw.seed, 0)) >>> 0,
     startedDay: Math.floor(num(raw.startedDay, 0)),
     startedAt: num(raw.startedAt, 0),
-    ring: int(raw.ring, 1, 1, 7) as RingId,
+    ring,
     fee: int(raw.fee, 0, 0, 10_000),
     phase,
-    room: int(raw.room, 0, 0, arenaContent.run.maxRooms),
+    room,
     buffs: migrateBuffs(raw.buffs),
     pending: { coins: int(pend.coins, 0, 0, 1_000_000), wins: int(pend.wins, 0, 0, arenaContent.run.maxRooms) },
     current: phase === 'playing' ? current : null,
@@ -270,7 +284,7 @@ function maxSeq(ids: readonly string[]): number {
  * trusted (unknown items, a run in an impossible phase), clamp numbers, keep
  * the caps. A save with no `arena` (v4 and older) gets the empty state.
  */
-export function migrateArena(raw: unknown): ArenaState {
+export function migrateArena(raw: unknown, maxPeriod = 1_000_000): ArenaState {
   const arena = emptyArena();
   if (!isDict(raw)) return arena;
 
@@ -304,7 +318,7 @@ export function migrateArena(raw: unknown): ArenaState {
   const d = isDict(raw.defense) ? raw.defense : null;
   if (d) {
     const amount = int(d.amount, 0, 0, arenaContent.bank.defenseCapPerPeriod);
-    if (amount > 0) arena.defense = { period: int(d.period, 0, 0, 1_000_000), amount };
+    if (amount > 0) arena.defense = { period: int(d.period, 0, 0, maxPeriod), amount };
   }
   arena.run = migrateRun(raw.run);
   if (Array.isArray(raw.log)) {
@@ -322,8 +336,7 @@ export function migrateArena(raw: unknown): ArenaState {
     bestChain: int(s.bestChain, 0, 0, arenaContent.run.maxRooms),
     coinsBanked: int(s.coinsBanked, 0, 0, 1_000_000_000),
   };
-  const t = isDict(raw.today) ? raw.today : {};
-  arena.today = { day: Math.floor(num(t.day, 0)), runs: int(t.runs, 0, 0, 10_000) };
+  if (Array.isArray(raw.starts)) arena.starts = raw.starts.filter((n): n is number => typeof n === 'number' && Number.isFinite(n) && n > 0).slice(-STARTS_KEPT);
   arena.requests = migrateRequests(raw.requests);
   arena.nextSeq = Math.max(1, Math.floor(num(raw.nextSeq, 1)), maxSeq([...(arena.run ? [arena.run.id] : []), ...arena.log.map((r) => r.id), ...arena.requests.map((r) => r.id)]) + 1);
   return arena;

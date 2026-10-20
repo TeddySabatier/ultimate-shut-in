@@ -144,7 +144,7 @@ describe('arena content', () => {
     const codes = [
       'run in progress', 'no troops', 'no games', 'not enough coins', 'no game in progress', 'no lottery open', 'not on offer', 'nothing to continue',
       'chain complete', 'nothing to bank', 'defense capped', 'chain too short', 'no rare item left', 'unknown item', 'rare item', 'unknown troop',
-      'ring too low', 'not an upgrade', 'not in the stash', 'training maxed', 'training week full', 'training week cap', 'unknown decor', 'already owned',
+      'ring too low', 'not an upgrade', 'power full', 'not in the stash', 'training maxed', 'training week full', 'training week cap', 'unknown decor', 'already owned',
       'request too short', 'request limit',
     ];
     const lines = strings.arena.errors as Record<string, string>;

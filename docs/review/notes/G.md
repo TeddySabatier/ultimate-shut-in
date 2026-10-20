@@ -18,6 +18,13 @@ When this run started, `origin` already held `feat/G1-arena-engine` (2 commits),
 8. **Wave bonus on a quiet week is carried to the next period** instead of lost (warm tone).
 9. **No Arena reward ever touches** Domain Points, streaks, loyalty or utilities (a test snapshots the save and checks only `player.coins`, `arena.*` and the `log` line change).
 
+10. **Independent review of G1 (a fresh reviewer, code only).** Fixed: the daily run count and the request limit are counted from time stamps, so `changeResetHour` (which cannot shift Arena days, `tick.ts` is not mine) never gives the limit back; migration enforces buff caps, offer count and the `def@room` id format, derives the room and difficulty of the game in progress, and brings a banked-defense period back to the next one; gear and training are refused for a troop already at power 100 (`power full`); `itemMinWins <= maxRooms` is validated. **Kept on purpose:** banked defense (at most +6 per wave period) can move a wave result up one step and so award that result's own Domain Points. The brief makes it a defense term, never a direct DP award; the test now shows the bound. A quiet week never gets DP. Also kept: the Gentle fee stops rising from ring 4 (it is capped at one day of Gentle earnings, 37 coins); no unequip (a rare item can be replaced by another or left); `log.learnedKeep` is reserved for the screen.
+
+## Files outside the G1 list that this PR touches
+
+- `src/components/overlays/eventText.ts`: grouped `case` in `eventKey` (exhaustive switch).
+- `e2e/settings.spec.ts` (`version` 4 to 5) and `e2e/progression.spec.ts` (`.first()`: the wave log line can now start with "Decisive", which matched the result line too; it depends on the calendar date, so it also fails on the base branch on some days).
+
 ## Requests for files I do not own
 
 None so far.

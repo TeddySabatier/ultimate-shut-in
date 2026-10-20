@@ -230,6 +230,7 @@
       "unknown troop": "No such troop.",
       "ring too low": "The Armorer will sell that once your ring is higher.",
       "not an upgrade": "That slot already holds something as good or better.",
+        "power full": "This troop is already at full strength. Save the coins for someone else.",
       "not in the stash": "That item is not in the stash.",
       "training maxed": "Nothing more to learn here. This troop has trained all it can.",
       "training week full": "The troops have trained enough for this week. They will be ready after the next wave.",

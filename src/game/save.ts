@@ -732,7 +732,7 @@ export function migrate(raw: unknown, now: number, opts?: TimeOptions): SaveFile
     proposals: migrateProposals(unwrapped.proposals),
     activity: migrateActivity(unwrapped.activity),
     map,
-    arena: migrateArena(unwrapped.arena),
+    arena: migrateArena(unwrapped.arena, week.index + 1),
     firstPlayDay,
     lastOpenDay,
   };
