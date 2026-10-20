@@ -79,6 +79,18 @@ export function eventKey(e: GameEvent): string {
       return `${e.type}:${e.outpostId}:${e.state}`;
     case 'outpostWithinWalls':
       return `${e.type}:${e.outpostId}:${e.ring}`;
+    // Arena events (brief G1): G2 gives them their own toasts.
+    case 'arenaRunStarted':
+    case 'arenaGameResolved':
+    case 'arenaBuffPicked':
+    case 'arenaBanked':
+    case 'arenaRunEnded':
+    case 'arenaGearBought':
+    case 'arenaGearEquipped':
+    case 'arenaTrained':
+    case 'arenaDecorBought':
+    case 'arenaRequestSaved':
+      return e.type;
   }
 }
 

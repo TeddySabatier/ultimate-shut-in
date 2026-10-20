@@ -32,7 +32,7 @@ export const HABIT_IDS: readonly HabitId[] = [
 export const UTILITY_IDS: readonly UtilityId[] = ['power', 'water', 'gas'] as const;
 
 export interface SaveFile {
-  version: 4;
+  version: 5;
   player: Player;
   settings: Settings;
   vassals: Record<HabitId, Vassal>;
@@ -54,6 +54,8 @@ export interface SaveFile {
   activity: ActivityDay[];
   /** The City Map: outposts, visits, domain snapshots (`docs/design/CITY-MAP.md`). */
   map: MapState;
+  /** The Arena: gear, training, runs, requests (`docs/design/ARENA.md`). */
+  arena: ArenaState;
   firstPlayDay: number;
   lastOpenDay: number;
 }
@@ -154,6 +156,11 @@ export interface WaveBreakdown {
   wellKept: number;
   /** Stronghold outposts, +2 each, capped (CITY-MAP 3.3). */
   outposts: number;
+  /**
+   * Arena spoils banked as wave defense for this period (`ARENA.md` 5.3).
+   * Absent on records settled before save version 5; read it with `?? 0`.
+   */
+  arena?: number;
 }
 
 export interface WaveRecord {
@@ -371,6 +378,129 @@ export interface MapState {
 }
 
 /* ------------------------------------------------------------------ */
+/* The Arena: gear, training, runs and requests (docs/design/ARENA.md). */
+/* ------------------------------------------------------------------ */
+
+export type GearSlot = 'weapon' | 'armor' | 'charm';
+export const GEAR_SLOTS: readonly GearSlot[] = ['weapon', 'armor', 'charm'] as const;
+
+/** Same kinds as `RunBuffKind` in `src/games/contract.ts`; the engine does not import the games. */
+export type ArenaBuffKind = 'attack' | 'defense' | 'time' | 'hint' | 'revive' | 'luck';
+export const ARENA_BUFF_KINDS: readonly ArenaBuffKind[] = ['attack', 'defense', 'time', 'hint', 'revive', 'luck'] as const;
+
+/** A lottery buff; structurally a contract `RunBuff`. */
+export interface ArenaBuff {
+  id: string;
+  kind: ArenaBuffKind;
+  amount: number;
+}
+
+/** `playing`: a game is mounted. `lottery`: a win, three buffs on offer. `decide`: a buff is picked, bank or go on. */
+export type ArenaPhase = 'playing' | 'lottery' | 'decide';
+export type ArenaGameResult = 'won' | 'lost' | 'fled';
+export type ArenaEnd = 'lost' | 'fled' | 'banked';
+export type ArenaBankChoice = 'coins' | 'defense' | 'item';
+export type ArenaDifficulty = 1 | 2 | 3 | 4 | 5;
+
+export interface ArenaLearned {
+  topic: { en: string; fr: string };
+  note: { en: string; fr: string };
+}
+
+/** One game of a run, kept in the run log. */
+export interface ArenaGameRecord {
+  gameId: string;
+  room: number;
+  result: ArenaGameResult;
+  score: number;
+  /** Coins this game added to the run's pending spoils (0 unless won). */
+  coins: number;
+  learned?: ArenaLearned;
+}
+
+export interface ArenaRun {
+  /** `r${seq}`, never reused. */
+  id: string;
+  seed: number;
+  startedDay: number;
+  startedAt: number;
+  /** The ring at entry: fixes the fee and the difficulty curve for the whole run. */
+  ring: RingId;
+  fee: number;
+  phase: ArenaPhase;
+  /** Games won so far = the room index of the next game. */
+  room: number;
+  buffs: ArenaBuff[];
+  /** Spoils at risk until the player banks (a loss keeps only a share). */
+  pending: { coins: number; wins: number };
+  /** The game being played; set exactly while `phase` is `playing`. */
+  current: { gameId: string; seed: number; roomIndex: number; difficulty: ArenaDifficulty } | null;
+  /** The three buffs on offer; non-empty exactly while `phase` is `lottery`. */
+  offers: ArenaBuff[];
+  games: ArenaGameRecord[];
+  lastGameId: string | null;
+}
+
+/** A finished run, newest last in `arena.log`. */
+export interface ArenaRunRecord {
+  id: string;
+  day: number;
+  at: number;
+  ring: RingId;
+  fee: number;
+  wins: number;
+  end: ArenaEnd;
+  bank: ArenaBankChoice | null;
+  /** Coins paid out at the end: the banked spoils, or the share carried home after a loss. */
+  coins: number;
+  /** Wave defense banked at the end. */
+  defense: number;
+  itemId: string | null;
+  games: ArenaGameRecord[];
+}
+
+export interface ArenaRequest {
+  id: string;
+  at: number;
+  day: number;
+  text: string;
+  source: 'text' | 'voice';
+}
+
+export interface ArenaStats {
+  runs: number;
+  gamesWon: number;
+  gamesLost: number;
+  bestChain: number;
+  coinsBanked: number;
+}
+
+export interface ArenaState {
+  /** The item worn in each slot, per vassal (`null` = empty). Rare items sit here once placed. */
+  gear: Record<HabitId, Record<GearSlot, string | null>>;
+  /** Rare items won but not worn yet. */
+  stash: string[];
+  /** Training bumps bought, per vassal. */
+  training: Record<HabitId, number>;
+  /** Spending this wave period (`week.index`); resets when the period changes. */
+  trainingWeek: { period: number; spent: number; bumps: number };
+  /** Owned Haven decor: combo ids. Cosmetic only. */
+  decor: string[];
+  /** Banked wave defense for one period (`week.index` when banked); read by `waveDefense`. */
+  defense: { period: number; amount: number } | null;
+  run: ArenaRun | null;
+  /** Finished runs, newest last, capped at 30. */
+  log: ArenaRunRecord[];
+  stats: ArenaStats;
+  /** When the latest runs started (Unix ms, newest last, at most 40): the suggested daily cap counts today's, so a changed reset hour never shifts it. */
+  starts: number[];
+  /** "Ask for a game" requests, newest last. */
+  requests: ArenaRequest[];
+  /** Next run and request sequence number. */
+  nextSeq: number;
+}
+
+/* ------------------------------------------------------------------ */
 /* Events: emitted by every state transition so the UI can toast them. */
 /* ------------------------------------------------------------------ */
 
@@ -405,7 +535,17 @@ export type GameEvent =
   | { type: 'outpostStateReached'; outpostId: string; state: OutpostState }
   | { type: 'outpostRetired'; outpostId: string }
   | { type: 'outpostRestored'; outpostId: string }
-  | { type: 'outpostWithinWalls'; outpostId: string; ring: RingId };
+  | { type: 'outpostWithinWalls'; outpostId: string; ring: RingId }
+  | { type: 'arenaRunStarted'; runId: string; fee: number }
+  | { type: 'arenaGameResolved'; runId: string; gameId: string; result: ArenaGameResult; score: number; coins: number }
+  | { type: 'arenaBuffPicked'; runId: string; buffId: string }
+  | { type: 'arenaBanked'; runId: string; choice: ArenaBankChoice; coins: number; defense: number; itemId: string | null }
+  | { type: 'arenaRunEnded'; runId: string; end: ArenaEnd; wins: number; coins: number }
+  | { type: 'arenaGearBought'; habit: HabitId; slot: GearSlot; itemId: string; price: number }
+  | { type: 'arenaGearEquipped'; habit: HabitId; slot: GearSlot; itemId: string }
+  | { type: 'arenaTrained'; habit: HabitId; bumps: number; price: number }
+  | { type: 'arenaDecorBought'; decorId: string; price: number }
+  | { type: 'arenaRequestSaved'; requestId: string };
 
 export interface ActionResult {
   save: SaveFile;

@@ -9,8 +9,9 @@ import titlesJson from './titles.json';
 import combosJson from './combos.json';
 import stringsJson from './strings.json';
 import outpostsJson from './outposts.json';
-import type { HabitId, OutpostState, OutpostTypeId, QuestKind, RingId, Tier, UtilityId } from '../types';
-import { HABIT_IDS, OUTPOST_STATES, OUTPOST_TYPE_IDS, UTILITY_IDS } from '../types';
+import arenaJson from './arena.json';
+import type { ArenaBuffKind, GearSlot, HabitId, OutpostState, OutpostTypeId, QuestKind, RingId, Tier, UtilityId } from '../types';
+import { ARENA_BUFF_KINDS, GEAR_SLOTS, HABIT_IDS, OUTPOST_STATES, OUTPOST_TYPE_IDS, UTILITY_IDS } from '../types';
 
 /* ----------------------------- Types ----------------------------- */
 
@@ -158,6 +159,64 @@ export interface OutpostTypeDef {
   visitLines: string[];
 }
 
+/* ---- Arena content (docs/design/ARENA.md) ---- */
+
+export interface ArenaGearItem {
+  id: string;
+  slot: GearSlot;
+  /** 1 to 3 are sold in the Armory; 4 is a rare item won by banking a run. */
+  tier: 1 | 2 | 3 | 4;
+  minRing: RingId;
+  /** Settlement at ring 1 (scaled by ring); 0 for rare items. */
+  price: number;
+  /** Power added to the troop's `power`. */
+  power: number;
+  rare?: boolean;
+  name: string;
+  flavor: string;
+}
+
+export interface ArenaBuffDef {
+  id: string;
+  kind: ArenaBuffKind;
+  amount: number;
+  weight: number;
+  /** Rare buffs get heavier with the `luck` buff. */
+  rare: boolean;
+  name: string;
+  blurb: string;
+}
+
+export interface ArenaContent {
+  version: number;
+  run: {
+    feeByRing: number[];
+    feeAdherence: number;
+    maxRooms: number;
+    roomsPerDifficultyStep: number;
+    ringBoostFrom: number;
+    suggestedRunsPerDay: number;
+    reward: { base: number; perScore: number; growthPerRoom: number };
+    carryHome: number;
+  };
+  bank: { defensePerWin: number; defenseCapPerPeriod: number; itemMinWins: number };
+  lottery: { offers: number; luckBoostPer: number; caps: Record<ArenaBuffKind, number>; buffs: ArenaBuffDef[] };
+  armory: { ringPriceStep: number; slots: GearSlot[]; items: ArenaGearItem[] };
+  training: {
+    bumpPower: number[];
+    costBase: number;
+    costStep: number;
+    costSquare: number;
+    ringPriceStep: number;
+    maxBumpsPerWeek: number;
+    weeklyShareOfHabitCoins: number;
+    weeklyAdherence: number;
+  };
+  decor: { pricePerPower: number };
+  requests: { textMax: number; perDay: number; keep: number };
+  log: { keep: number; learnedKeep: number; noteMax: number };
+}
+
 /* ---------------------------- Loaders ---------------------------- */
 
 export const habits: readonly HabitDef[] = habitsJson.habits as HabitDef[];
@@ -176,6 +235,7 @@ export const strings: Strings = stringsJson;
 export const outpostRules: OutpostRules = outpostsJson.rules;
 export const outpostStates: readonly OutpostStateDef[] = outpostsJson.states as OutpostStateDef[];
 export const outpostTypes: readonly OutpostTypeDef[] = outpostsJson.types as OutpostTypeDef[];
+export const arenaContent: ArenaContent = arenaJson as ArenaContent;
 
 const habitById = new Map(habits.map((h) => [h.id, h] as const));
 const questById = new Map(quests.map((q) => [q.id, q] as const));
@@ -184,6 +244,8 @@ const titleById = new Map(titles.map((t) => [t.id, t] as const));
 const comboById = new Map(combos.map((c) => [c.id, c] as const));
 const outpostTypeById = new Map(outpostTypes.map((t) => [t.id, t] as const));
 const outpostStateById = new Map(outpostStates.map((s) => [s.id, s] as const));
+const arenaItemById = new Map(arenaContent.armory.items.map((i) => [i.id, i] as const));
+const arenaBuffById = new Map(arenaContent.lottery.buffs.map((b) => [b.id, b] as const));
 
 export function getHabit(id: HabitId): HabitDef {
   const h = habitById.get(id);
@@ -219,6 +281,14 @@ export function getOutpostState(id: OutpostState): OutpostStateDef {
   const s = outpostStateById.get(id);
   if (!s) throw new Error(`Unknown outpost state ${id}`);
   return s;
+}
+
+export function getArenaItem(id: string): ArenaGearItem | undefined {
+  return arenaItemById.get(id);
+}
+
+export function getArenaBuff(id: string): ArenaBuffDef | undefined {
+  return arenaBuffById.get(id);
 }
 
 /** Habit that feeds a utility (sleep -> power, hygiene -> water, eat -> gas). */
@@ -413,5 +483,73 @@ export function validateContent(): string[] {
   if (!(r.quietAfterDays > 0 && r.quietIfNeverVisitedAfterDays > 0)) errors.push('outpost rules: quiet days must be positive');
   for (const [code, line] of Object.entries(strings.map.errors)) if (!line) errors.push(`strings.map.errors.${code}: empty`);
 
+  errors.push(...validateArenaContent());
+
+  return errors;
+}
+
+/** Arena content problems (docs/design/ARENA.md 6): ids, slots, tiers, weights, caps and ascending curves. */
+export function validateArenaContent(): string[] {
+  const errors: string[] = [];
+  const a = arenaContent;
+  if (a.run.feeByRing.length !== 7) errors.push('arena run.feeByRing: needs 7 entries, one per ring');
+  a.run.feeByRing.forEach((fee, i) => {
+    if (!(Number.isInteger(fee) && fee > 0)) errors.push(`arena run.feeByRing[${i}]: must be a positive integer`);
+    const prev = a.run.feeByRing[i - 1];
+    if (prev !== undefined && fee < prev) errors.push(`arena run.feeByRing[${i}]: fees must not drop with the ring`);
+  });
+  if (!(a.run.maxRooms >= 3 && a.run.roomsPerDifficultyStep >= 1)) errors.push('arena run: maxRooms or roomsPerDifficultyStep out of range');
+  if (!(a.run.reward.base >= 0 && a.run.reward.perScore >= 0 && a.run.reward.growthPerRoom >= 0)) errors.push('arena run.reward: negative term');
+  if (!(a.run.carryHome >= 0 && a.run.carryHome < 1)) errors.push('arena run.carryHome: must be in [0, 1)');
+  if (!(a.run.feeAdherence > 0 && a.run.feeAdherence <= 1)) errors.push('arena run.feeAdherence: must be in (0, 1]');
+  if (!(a.bank.defensePerWin >= 0 && a.bank.defenseCapPerPeriod >= a.bank.defensePerWin && a.bank.itemMinWins >= 1 && a.bank.itemMinWins <= a.run.maxRooms)) errors.push('arena bank: inconsistent limits');
+
+  const seenBuffs = new Set<string>();
+  for (const b of a.lottery.buffs) {
+    if (seenBuffs.has(b.id)) errors.push(`arena buff ${b.id}: duplicate id`);
+    seenBuffs.add(b.id);
+    if (!(ARENA_BUFF_KINDS as readonly string[]).includes(b.kind)) errors.push(`arena buff ${b.id}: unknown kind ${b.kind}`);
+    if (!(Number.isInteger(b.amount) && b.amount > 0)) errors.push(`arena buff ${b.id}: amount must be a positive integer`);
+    if (!(b.weight > 0)) errors.push(`arena buff ${b.id}: weight must be positive`);
+    if (b.amount > a.lottery.caps[b.kind]) errors.push(`arena buff ${b.id}: amount above the cap for ${b.kind}`);
+    if (!b.name || !b.blurb) errors.push(`arena buff ${b.id}: needs a name and a blurb`);
+  }
+  for (const kind of ARENA_BUFF_KINDS) {
+    if (!a.lottery.buffs.some((b) => b.kind === kind)) errors.push(`arena lottery: no buff of kind ${kind}`);
+    if (!(a.lottery.caps[kind] > 0)) errors.push(`arena lottery.caps.${kind}: must be positive`);
+  }
+  if (a.lottery.buffs.length < a.lottery.offers) errors.push('arena lottery: fewer buffs than offers');
+
+  if (a.armory.slots.join() !== GEAR_SLOTS.join()) errors.push('arena armory.slots: must be weapon, armor, charm');
+  const seenItems = new Set<string>();
+  for (const it of a.armory.items) {
+    if (seenItems.has(it.id)) errors.push(`arena item ${it.id}: duplicate id`);
+    seenItems.add(it.id);
+    if (!(GEAR_SLOTS as readonly string[]).includes(it.slot)) errors.push(`arena item ${it.id}: unknown slot ${it.slot}`);
+    if (!ringById.has(it.minRing)) errors.push(`arena item ${it.id}: bad minRing`);
+    if (!(it.power >= 1 && Number.isInteger(it.power))) errors.push(`arena item ${it.id}: power must be a positive integer`);
+    const shapeOk = it.rare === true ? it.price === 0 && it.tier === 4 : it.price > 0 && it.tier >= 1 && it.tier <= 3;
+    if (!shapeOk) errors.push(`arena item ${it.id}: rare items are tier 4 and free, the rest tier 1-3 with a price`);
+    if (!it.name || !it.flavor) errors.push(`arena item ${it.id}: needs a name and flavor`);
+  }
+  for (const slot of GEAR_SLOTS) {
+    const sold = a.armory.items.filter((i) => i.slot === slot && i.rare !== true).sort((x, y) => x.tier - y.tier);
+    if (sold.map((i) => i.tier).join() !== '1,2,3') errors.push(`arena armory: slot ${slot} needs tiers 1, 2 and 3`);
+    sold.forEach((i, idx) => {
+      const prev = sold[idx - 1];
+      if (prev && !(i.price > prev.price && i.power > prev.power)) errors.push(`arena item ${i.id}: price and power must rise with the tier`);
+    });
+    if (a.armory.items.filter((i) => i.slot === slot && i.rare === true).length < 2) errors.push(`arena armory: slot ${slot} needs at least two rare items`);
+  }
+
+  const t = a.training;
+  const flat = t.bumpPower.length < 3 || t.bumpPower.some((n, i) => !(Number.isInteger(n) && n >= 1) || (i > 0 && n > (t.bumpPower[i - 1] ?? 0)));
+  if (flat) errors.push('arena training.bumpPower: positive integers that never rise (diminishing returns)');
+  if (!(t.costBase > 0 && t.costStep >= 0 && t.costSquare >= 0 && t.maxBumpsPerWeek >= 1)) errors.push('arena training: bad cost terms');
+  if (!(t.weeklyShareOfHabitCoins > 0 && t.weeklyShareOfHabitCoins <= 0.25)) errors.push('arena training.weeklyShareOfHabitCoins: must be in (0, 0.25]');
+  if (!(t.weeklyAdherence > 0 && t.weeklyAdherence <= 1)) errors.push('arena training.weeklyAdherence: must be in (0, 1]');
+  if (!(a.decor.pricePerPower > 0)) errors.push('arena decor.pricePerPower: must be positive');
+  if (!(a.requests.textMax >= 40 && a.requests.perDay >= 1 && a.requests.keep >= a.requests.perDay)) errors.push('arena requests: bad limits');
+  if (!(a.log.keep >= 5 && a.log.learnedKeep >= 1 && a.log.noteMax >= 40)) errors.push('arena log: bad limits');
   return errors;
 }

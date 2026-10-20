@@ -210,6 +210,61 @@
       "blurb": "Five quests a day, mostly big. Vassals need attention; waves hit harder. Rings roughly twice as fast."
     }
   },
+  "arena": {
+    "errors": {
+      "run in progress": "The troops are already in the field. Finish that run first.",
+      "no troops": "No vassal is ready to go. Bring one home from the Ledger first.",
+      "no games": "No game is ready for you yet. The engineers are still building them.",
+      "not enough coins": "Not enough settlement for that yet. Your habits will fill the purse.",
+      "no game in progress": "There is no game being played right now.",
+      "no lottery open": "The Lottery is not open right now.",
+      "not on offer": "That one is not on offer.",
+      "nothing to continue": "There is no run waiting for its next game.",
+      "chain complete": "That was the last room. Time to bank the spoils.",
+      "nothing to bank": "There are no spoils to bank right now.",
+      "defense capped": "The walls already hold all the Arena spoils they can this week. Bank the coins instead.",
+      "chain too short": "A rare item needs a longer chain of wins. Bank the coins, or go one more room.",
+      "no rare item left": "You already own every rare item. Bank the coins instead.",
+      "unknown item": "The Armory has no such item.",
+      "rare item": "Rare items are only won in the Arena, never sold.",
+      "unknown troop": "No such troop.",
+      "ring too low": "The Armorer will sell that once your ring is higher.",
+      "not an upgrade": "That slot already holds something as good or better.",
+        "power full": "This troop is already at full strength. Save the coins for someone else.",
+      "not in the stash": "That item is not in the stash.",
+      "training maxed": "Nothing more to learn here. This troop has trained all it can.",
+      "training week full": "The troops have trained enough for this week. They will be ready after the next wave.",
+      "training week cap": "That is more than the troops should spend on training this week. Habits first, then drills.",
+      "unknown decor": "The Haven has no such decor.",
+      "already owned": "Already in the Haven.",
+      "request too short": "Tell the engineers a little more about the game you have in mind.",
+      "request limit": "That is enough requests for today. The engineers are reading, come back tomorrow."
+    },
+    "log": {
+      "lost": [
+        "The troops came home from the Arena after {wins} wins. {coins} coins in their packs.",
+        "A run ended and the troops came home. {wins} wins, {coins} coins carried back."
+      ],
+      "fled": [
+        "The troops left the Arena early: {wins} wins, {coins} coins carried home.",
+        "The troops stepped out of the Arena. {wins} wins, {coins} coins in their packs."
+      ],
+      "banked": [
+        "The troops banked their spoils: {wins} wins, {coins} coins.",
+        "A good run in the Arena: {wins} wins banked."
+      ]
+    },
+    "toasts": {
+      "gearBought": "{troop} now carries the {item}.",
+      "gearEquipped": "{troop} takes the {item}.",
+      "trained": "{troop} trained. {bumps} sessions so far.",
+      "decorBought": "The {decor} has a place in the Haven now.",
+      "requestSaved": "Request saved. The engineers are reading.",
+      "runStarted": "The troops head into the Arena.",
+      "banked": "Spoils banked.",
+      "runEnded": "The troops are home."
+    }
+  },
   "benevolence": {
     "benevolent": {
       "label": "Benevolent",

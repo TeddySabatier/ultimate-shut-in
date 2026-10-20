@@ -2,10 +2,12 @@
  * Save creation and migration. `migrate` accepts the legacy `usi.player`
  * shape (`{name, level, xp}`, version missing or 1), v2 files (no custom
  * quests, proposals or activity: they get empty arrays), v3 files (no city
- * map: they get an empty one seeded with one snapshot of the current state)
- * and the current v4 file (City Map: `map`, `WaveBreakdown.outposts`), filling
+ * map: they get an empty one seeded with one snapshot of the current state),
+ * v4 files (City Map: `map`, `WaveBreakdown.outposts`: they get an empty Arena)
+ * and the current v5 file (Arena: `arena`, `WaveBreakdown.arena`), filling
  * any missing field with a default so older saves keep loading.
  */
+import { emptyArena, migrateArena } from './arena/state';
 import { getCombo, habits } from './content';
 import { instanceId } from './board';
 import { MAX_LOG_ENTRIES, clamp } from './draft';
@@ -72,7 +74,7 @@ import type {
 } from './types';
 import { HABIT_IDS, OUTPOST_STATES, UTILITY_IDS } from './types';
 
-export const SAVE_VERSION = 4 as const;
+export const SAVE_VERSION = 5 as const;
 export const DEFAULT_NAME = 'Absolute';
 export const DEFAULT_RESET_HOUR = 4;
 export const NAME_MAX_LENGTH = 24;
@@ -165,6 +167,7 @@ export function createNewSave(now: number, name?: string, opts?: NewSaveOptions)
     proposals: [],
     activity: [],
     map: emptyMap(),
+    arena: emptyArena(),
     firstPlayDay: today,
     lastOpenDay: today,
   };
@@ -362,6 +365,7 @@ function migrateWaveRecord(raw: unknown): WaveRecord | null {
       titles: num(b.titles, 0),
       wellKept: num(b.wellKept, 0),
       outposts: num(b.outposts, 0),
+      arena: num(b.arena, 0),
     },
     result: oneOf(raw.result, WAVE_RESULTS, 'quiet'),
     dpAwarded: num(raw.dpAwarded, 0),
@@ -656,7 +660,7 @@ function looksLikeV2(v: unknown): v is Dict {
 }
 
 /**
- * Accept any previously persisted shape and return a valid v4 SaveFile.
+ * Accept any previously persisted shape and return a valid v5 SaveFile.
  * Unknown or corrupt input yields a fresh save (name kept when readable).
  *
  * A zustand/persist envelope `{ state, version }` is unwrapped; the inner
@@ -728,6 +732,7 @@ export function migrate(raw: unknown, now: number, opts?: TimeOptions): SaveFile
     proposals: migrateProposals(unwrapped.proposals),
     activity: migrateActivity(unwrapped.activity),
     map,
+    arena: migrateArena(unwrapped.arena, week.index + 1),
     firstPlayDay,
     lastOpenDay,
   };
