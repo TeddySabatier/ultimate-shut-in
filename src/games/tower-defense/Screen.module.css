@@ -88,10 +88,10 @@
 }
 
 /* The cards fill the row with as many columns as fit (4 on a phone, 3 in the narrow landscape column);
-   the minimum track is min(100%, 4.9rem) so it still obeys the minmax rule and never overflows. */
+   the minimum track is min(100%, 4.2rem) so it still obeys the minmax rule and never overflows. */
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 4.9rem), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 4.2rem), 1fr));
   gap: var(--space-2);
   margin: 0;
   padding: 0;
@@ -203,7 +203,7 @@
 
 @media (max-width: 359px) {
   .cards {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 

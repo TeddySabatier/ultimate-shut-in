@@ -13,6 +13,14 @@ const ID = 'tower-defense';
 const hud = (page: Page) => page.getByTestId('lab-stage').getByTestId('td-hud');
 const board = (page: Page) => page.getByTestId('lab-stage').getByTestId('td-board');
 
+/** Move to the next pad, pick the card with its key and press Build (the keyboard still works while a button has the focus). */
+async function buildNext(page: Page, card: string): Promise<void> {
+  const stage = page.getByTestId('lab-stage');
+  await stage.getByRole('button', { name: 'Next pad' }).click();
+  await page.keyboard.press(card);
+  await stage.getByRole('button', { name: /^Build \(/ }).click();
+}
+
 // 1. Required: it loads, and axe finds no serious violation (the audit runs on the mobile project only).
 test('loads in the Lab and passes axe', async ({ page }, testInfo) => {
   await openLab(page, ID, { seed: 11 });
@@ -34,12 +42,9 @@ test('places a tower with the keyboard and pauses with P', async ({ page }, test
   await page.keyboard.press('Enter');
   await expect(stage.getByTestId('td-feed')).toContainText(/takes a post: Runner on pad/);
   expect(Number(/Glow (\d+)/.exec(await hud(page).innerText())?.[1])).toBeLessThan(glowBefore);
-  await page.keyboard.press('ArrowDown');
-  await page.keyboard.press('2');
-  await page.keyboard.press('Enter');
-  await page.keyboard.press('ArrowRight');
-  await page.keyboard.press('3');
-  await page.keyboard.press('Enter');
+  // Two more towers with the buttons: next pad, pick a card, Build.
+  await buildNext(page, '2');
+  await buildNext(page, '3');
   // Call the first wave and let a few monsters walk in before the screenshot.
   await page.keyboard.press('n');
   await expect(hud(page)).toContainText('Wave 1 of 6');
@@ -66,7 +71,11 @@ test('plays a gentle game to an outcome', async ({ page }, testInfo) => {
   // The Lab shows the bot's outcome while the stage still holds a fresh game: play a few real seconds, then stand down mid-wave to show the closing screen.
   const stage = page.getByTestId('lab-stage');
   await board(page).focus();
-  for (const key of ['1', 'Enter', 'ArrowRight', '2', 'Enter', 'ArrowDown', '3', 'Enter', 'n']) await page.keyboard.press(key);
+  await page.keyboard.press('1');
+  await page.keyboard.press('Enter');
+  await buildNext(page, '2');
+  await buildNext(page, '3');
+  await page.keyboard.press('n');
   await expect.poll(async () => Number(await page.getByTestId('td-root').getAttribute('data-tick')), { timeout: 10_000 }).toBeGreaterThan(160);
   await stage.getByRole('button', { name: 'Give up' }).click();
   await expect(stage.getByRole('status')).toContainText('The troops head home');

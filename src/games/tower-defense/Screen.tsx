@@ -288,7 +288,7 @@ export default function TowerDefenseScreen(props: GameScreenProps) {
   const fx = useState(newFx)[0];
   const prevPos = useState(() => new Map<number, number>())[0];
   const base = useRef<HTMLCanvasElement | null>(null);
-  const baseKey = useRef('');
+  const baseKey = useRef({ w: -1, h: -1, dpr: -1 });
   const view = useRef<View>({ alpha: 1, reduced: reducedMotion, cursor, pickedKind: null, pickedPower: 0, hintPad: -1, prevPos, fx });
 
   useEffect(() => {
@@ -304,8 +304,8 @@ export default function TowerDefenseScreen(props: GameScreenProps) {
       const ctx = canvasRef.current?.getContext('2d');
       if (!ctx || size.width === 0) return;
       // The static layer (grass, road, Haven, pads) is drawn once per size into an offscreen canvas.
-      const key = `${size.width}x${size.height}@${size.dpr}`;
-      if (baseKey.current !== key || !base.current) {
+      const k = baseKey.current;
+      if (k.w !== size.width || k.h !== size.height || k.dpr !== size.dpr || !base.current) {
         const off = base.current ?? document.createElement('canvas');
         off.width = Math.round(size.width * size.dpr);
         off.height = Math.round(size.height * size.dpr);
@@ -315,7 +315,9 @@ export default function TowerDefenseScreen(props: GameScreenProps) {
           drawStatic(octx, size.width, size.height, cur.current, palette);
         }
         base.current = off;
-        baseKey.current = key;
+        k.w = size.width;
+        k.h = size.height;
+        k.dpr = size.dpr;
       }
       ctx.setTransform(size.dpr, 0, 0, size.dpr, 0, 0);
       view.current.alpha = reducedMotion ? 1 : alpha;
