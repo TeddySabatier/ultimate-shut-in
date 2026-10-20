@@ -2,6 +2,10 @@
 
 Agent: Arena (G1 on `feat/G1-arena-engine`, G2 on `feat/G2-arena-ui`). Nobody answers overnight, so every decision below was taken alone.
 
+## An earlier attempt was already on origin
+
+When this run started, `origin` already held `feat/G1-arena-engine` (2 commits), `feat/G2-arena-ui` (1 commit on top of it) and `cursor/g1-arena-engine-0d9a`, all by "Cursor Agent" between 06:59 and 07:13 UTC on 2026-10-20, with **no pull request** (its own notes say `gh pr create` returned 403) and red e2e on every commit (`e2e/settings.spec.ts` still expects save version 4; a wave-window strict-mode violation; one flaky sample replay). Nothing was force-pushed or deleted. This run keeps its own engine (a fuller run state machine, a migration that validates everything it reads, a rare-item stash, the proof computed from `economy.ts`) and merged the old branch into `feat/G1-arena-engine` with `git merge -s ours`, so both old commits stay in history, the push was a fast-forward and the old files are still readable at `0df2e03` (G1) and `ee826ce` (G2). `feat/G2-arena-ui` is handled the same way. Their SVG icons and a few ideas were looked at; their UI was not ported because it targets a different engine API. If the maintainer prefers the old attempt, `git diff 0df2e03 feat/G1-arena-engine` shows exactly what differs.
+
 ## Decisions taken alone (G1)
 
 1. **`WaveBreakdown.arena` is optional (`arena?: number`).** The brief asks for "one new `arena` term next to `outposts`". Making it required would break the type of every `WaveBreakdown` literal in files this brief does not own (`OverlayHost.test.tsx`, `MapScreen.test.tsx`). Records settled before v5 simply lack it; the engine reads it with `?? 0` and the migration fills 0.
