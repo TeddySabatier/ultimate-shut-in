@@ -60,26 +60,24 @@ test('plays a gentle game to an outcome', async ({ page }, testInfo) => {
   expect(['won', 'lost']).toContain(outcome.result);
   await expectValidOutcome(page);
   expect(outcome.log).toMatch(/The path: /);
-  // The Lab shows the bot's outcome while the stage still holds a fresh game: build a little and stand down to show the closing screen.
+  // The Lab shows the bot's outcome while the stage still holds a fresh game: play a few real seconds, then stand down mid-wave to show the closing screen.
   const stage = page.getByTestId('lab-stage');
   await board(page).focus();
-  for (const key of ['1', 'ArrowRight', '2', 'ArrowRight', '3']) await page.keyboard.press(key);
+  for (const key of ['1', 'ArrowRight', '2', 'ArrowDown', '3', 'n']) await page.keyboard.press(key);
+  await expect.poll(async () => Number(await page.getByTestId('td-root').getAttribute('data-tick')), { timeout: 10_000 }).toBeGreaterThan(160);
   await stage.getByRole('button', { name: 'Give up' }).click();
   await expect(stage.getByRole('status')).toContainText('The troops head home');
   await shootGame(page, testInfo, ID, 'end');
 });
 
-// 4. Required: replaying the same seed gives the same outcome.
+// 4. Required: replaying the same seed gives the same outcome. The real-time clock would make a played game depend on timing
+// (the glow earned grows every second), so both runs go through the Lab's Bot play, which is deterministic.
 test('replaying the same seed gives the same outcome', async ({ page }) => {
-  await openLab(page, ID, { seed: 42 });
-  const stage = page.getByTestId('lab-stage');
+  await openLab(page, ID, { seed: 42, difficulty: 1 });
   const outcome = await replaySameSeed(page, async () => {
-    await board(page).focus();
-    await page.keyboard.press('1');
-    await expect(stage.getByTestId('td-feed')).toContainText('takes a post');
-    await stage.getByRole('button', { name: 'Give up' }).click();
+    await botPlayToOutcome(page);
   });
-  expect(outcome.result).toBe('fled');
+  expect(['won', 'lost']).toContain(outcome.result);
   expect(outcome.log).toMatch(/The path: /);
 });
 

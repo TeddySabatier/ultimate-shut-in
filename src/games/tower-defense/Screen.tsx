@@ -9,6 +9,12 @@
  * affordable), Enter or Space place the picked tower or upgrade the one under the
  * cursor, S or Delete sell it, Escape clears the pick, P pauses, N calls the next
  * wave, X changes the speed. Every key has a button.
+ *
+ * Drawing reads two states that this file keeps itself, `cur` and `prev`: every
+ * action goes to React (`dispatch`) and, at the same moment, to a copy of the state
+ * (`engine.reduce` is pure, so both agree). The frame that follows a tick therefore
+ * interpolates between the true previous and current ticks, with no wait for React's
+ * next render.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { SystemWindow } from '../../components/SystemWindow';
@@ -18,7 +24,7 @@ import { useCanvas } from '../ui/useCanvas';
 import { useEngine } from '../ui/useEngine';
 import { useFixedStep } from '../ui/useFixedStep';
 import { drawFrame, drawStatic, geometry, newFx, type Palette, type View } from './draw';
-import { COLS, bestPad, callWaveBonus, engine, placeCost, refund, upgradeCost, type Member, type TDState, type TowerKind } from './engine';
+import { COLS, bestPad, callWaveBonus, engine, placeCost, refund, upgradeCost, type Member, type TDAction, type TDState, type TowerKind } from './engine';
 import { GLYPH, TOWER_FALLBACK, TOWER_TOKEN } from './glyphs';
 import game from './manifest';
 import { feedText, nextPad, type Dir } from './screenLogic';
@@ -30,7 +36,7 @@ const SHOWN_LINES = 4;
 const DIRS: Record<string, Dir> = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' };
 
 /** The colours the canvas uses, read from the design tokens once per game. */
-function readPalette(letters: Record<TowerKind, string>): Palette {
+function readPalette(letters: Record<TowerKind, string>, slowMark: string): Palette {
   const css = getComputedStyle(document.documentElement);
   const tok = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
   const tower = {} as Record<TowerKind, string>;
@@ -49,6 +55,7 @@ function readPalette(letters: Record<TowerKind, string>): Palette {
     panel: tok('--color-panel-raised', '#22222f'),
     tower,
     letters,
+    slowMark,
     monster: [
       tok('--color-danger', '#ff6b85'),
       tok('--color-info', '#7cc6ff'),
@@ -90,29 +97,48 @@ export default function TowerDefenseScreen(props: GameScreenProps) {
   const [picked, setPicked] = useState<string | null>(null);
   const [notes, setNotes] = useState<Note[]>(() => [{ id: 0, after: 0, text: s.feed.ready }]);
 
-  // Latest values for handlers and the draw loop (written after each commit).
-  const stateRef = useRef<TDState>(state);
-  const prevState = useRef<TDState>(state);
+  // The state the handlers and the canvas read: updated at the moment of each action, not at React's next render.
+  const cur = useRef<TDState>(state);
+  const prev = useRef<TDState>(state);
   const cursorRef = useRef(cursor);
   const pickedRef = useRef(picked);
-  const pausedRef = useRef(paused);
   const noteId = useRef(1);
   const boardRef = useRef<HTMLDivElement>(null);
+  const bannerRef = useRef<HTMLParagraphElement>(null);
+
+  const send = useCallback(
+    (action: TDAction) => {
+      dispatch(action);
+      cur.current = engine.reduce(cur.current, action);
+    },
+    [dispatch],
+  );
 
   const cards = useMemo(() => state.members.filter((m) => m.kind !== null), [state.members]);
   const pickedMember = picked === null ? undefined : state.members.find((m) => m.id === picked);
   const towerHere = state.towers.find((t) => t.pad === cursor);
   const over = outcome !== null;
   const running = !over && !paused;
+  // The star: the best pad of the picked card, while a hint is left.
+  const hintPad = state.hintsLeft > 0 && picked !== null ? (bestPad(state, picked) ?? -1) : -1;
 
   const note = useCallback((text: string) => {
-    setNotes((all) => [...all.slice(-(SHOWN_LINES - 1)), { id: noteId.current++, after: stateRef.current.feedSeq, text }]);
+    setNotes((all) => [...all.slice(-(SHOWN_LINES - 1)), { id: noteId.current++, after: cur.current.feedSeq, text }]);
+  }, []);
+
+  const select = useCallback((id: string | null) => {
+    pickedRef.current = id;
+    setPicked(id);
+  }, []);
+  const moveTo = useCallback((pad: number) => {
+    cursorRef.current = pad;
+    setCursor(pad);
   }, []);
 
   // ---- actions -----------------------------------------------------------
   const placeOn = useCallback(
     (member: Member, pad: number) => {
-      const st = stateRef.current;
+      const st = cur.current;
       if (st.result !== null || member.kind === null) return;
       if (st.towers.some((t) => t.pad === pad)) {
         note(formatText(s.feed.padTaken, { pad: pad + 1 }));
@@ -123,71 +149,91 @@ export default function TowerDefenseScreen(props: GameScreenProps) {
         note(formatText(s.feed.noGlow, { tower: s.towers[member.kind].name, cost, glow: st.glow }));
         return;
       }
-      dispatch({ type: 'place', pad, member: member.id });
+      // A hint is spent only on the pad the player was shown: the star of the picked card.
+      const hinted = st.hintsLeft > 0 && pickedRef.current === member.id && bestPad(st, member.id) === pad;
+      send(hinted ? { type: 'place', pad, member: member.id, hinted: true } : { type: 'place', pad, member: member.id });
     },
-    [dispatch, note, s],
+    [note, s, send],
   );
 
   const pickCard = useCallback(
     (member: Member) => {
-      if (stateRef.current.result !== null || member.kind === null) return;
-      setPicked(member.id);
-      const pad = cursorRef.current;
-      if (stateRef.current.towers.some((t) => t.pad === pad)) note(formatText(s.feed.picked, { tower: s.towers[member.kind].name }));
-      else placeOn(member, pad);
+      const st = cur.current;
+      if (st.result !== null || member.kind === null) return;
+      const name = s.towers[member.kind].name;
+      if (st.hintsLeft > 0) {
+        const best = bestPad(st, member.id);
+        if (best !== null && pickedRef.current !== member.id) {
+          // First tap with a hint left: pick the card and show the star, place nothing yet.
+          select(member.id);
+          moveTo(best);
+          note(formatText(s.feed.hint, { tower: name, n: best + 1 }));
+          return;
+        }
+        select(member.id);
+        placeOn(member, cursorRef.current);
+        return;
+      }
+      select(member.id);
+      if (st.towers.some((t) => t.pad === cursorRef.current)) note(formatText(s.feed.picked, { tower: name }));
+      else placeOn(member, cursorRef.current);
     },
-    [note, placeOn, s],
+    [moveTo, note, placeOn, s, select],
   );
 
   const upgradeHere = useCallback(() => {
-    const st = stateRef.current;
+    const st = cur.current;
     const t = st.towers.find((x) => x.pad === cursorRef.current);
     if (!t) return note(s.feed.noTower);
     const cost = upgradeCost(t);
     if (cost === null) return note(s.feed.maxLevel);
     if (st.glow < cost) return note(formatText(s.feed.noGlowUp, { cost, glow: st.glow }));
-    dispatch({ type: 'upgrade', pad: t.pad });
-  }, [dispatch, note, s]);
+    send({ type: 'upgrade', pad: t.pad });
+  }, [note, s, send]);
 
   const sellHere = useCallback(() => {
-    const t = stateRef.current.towers.find((x) => x.pad === cursorRef.current);
+    const st = cur.current;
+    const t = st.towers.find((x) => x.pad === cursorRef.current);
     if (!t) return note(s.feed.noTower);
-    dispatch({ type: 'sell', pad: t.pad });
-  }, [dispatch, note, s]);
+    if (st.tick < t.jamUntil) return note(s.feed.jammedSell);
+    send({ type: 'sell', pad: t.pad });
+  }, [note, s, send]);
 
   const confirmHere = useCallback(() => {
-    const st = stateRef.current;
+    const st = cur.current;
     const member = pickedRef.current === null ? undefined : st.members.find((m) => m.id === pickedRef.current);
     if (st.towers.some((t) => t.pad === cursorRef.current)) upgradeHere();
     else if (member) placeOn(member, cursorRef.current);
     else note(s.feed.noPick);
   }, [note, placeOn, s, upgradeHere]);
 
-  const togglePause = useCallback(() => {
-    const next = !pausedRef.current;
-    setPaused(next);
-    note(next ? s.feed.paused : s.feed.resumed);
-  }, [note, s]);
+  const togglePause = useCallback(() => setPaused((p) => !p), []);
+  const announced = useRef(false);
+  useEffect(() => {
+    if (announced.current === paused) return;
+    announced.current = paused;
+    note(paused ? s.feed.paused : s.feed.resumed);
+  }, [paused, note, s]);
 
   const toggleSpeed = useCallback(() => {
-    const next = stateRef.current.speed === 1 ? 2 : 1;
-    dispatch({ type: 'setSpeed', speed: next });
+    const next = cur.current.speed === 1 ? 2 : 1;
+    send({ type: 'setSpeed', speed: next });
     note(formatText(s.feed.speed, { n: next }));
-  }, [dispatch, note, s]);
+  }, [note, s, send]);
 
   const callNext = useCallback(() => {
-    const st = stateRef.current;
+    const st = cur.current;
     if (callWaveBonus(st) === null) note(st.started >= st.total ? s.feed.noWave : s.feed.waveBusy);
-    else dispatch({ type: 'callWave' });
-  }, [dispatch, note, s]);
+    else send({ type: 'callWave' });
+  }, [note, s, send]);
 
-  const move = useCallback((dir: Dir) => setCursor((c) => nextPad(stateRef.current.pads, c, dir)), []);
-  const step = useCallback((by: 1 | -1) => setCursor((c) => (c + by + stateRef.current.pads.length) % stateRef.current.pads.length), []);
+  const move = useCallback((dir: Dir) => moveTo(nextPad(cur.current.pads, cursorRef.current, dir)), [moveTo]);
+  const step = useCallback((by: 1 | -1) => moveTo((cursorRef.current + by + cur.current.pads.length) % cur.current.pads.length), [moveTo]);
 
   // ---- keyboard (on the game root) ----------------------------------------
   const onKeyDown = useCallback(
     (e: KeyboardEvent<HTMLElement>) => {
-      if (e.altKey || e.ctrlKey || e.metaKey || isTyping(e.target) || stateRef.current.result !== null) return;
+      if (e.altKey || e.ctrlKey || e.metaKey || isTyping(e.target) || cur.current.result !== null) return;
       const dir = DIRS[e.key];
       let handled = true;
       if (dir) move(dir);
@@ -201,7 +247,7 @@ export default function TowerDefenseScreen(props: GameScreenProps) {
         else handled = false;
       } else if (e.key === 's' || e.key === 'S' || e.key === 'Delete') sellHere();
       else if (e.key === 'Escape') {
-        setPicked(null);
+        select(null);
         note(s.feed.cleared);
       } else if (e.key === 'p' || e.key === 'P') togglePause();
       else if (e.key === 'n' || e.key === 'N') callNext();
@@ -209,7 +255,7 @@ export default function TowerDefenseScreen(props: GameScreenProps) {
       else handled = false;
       if (handled) e.preventDefault();
     },
-    [callNext, cards, confirmHere, move, note, pickCard, s, sellHere, toggleSpeed, togglePause],
+    [callNext, cards, confirmHere, move, note, pickCard, s, select, sellHere, toggleSpeed, togglePause],
   );
 
   // ---- taps on the board ---------------------------------------------------
@@ -224,7 +270,7 @@ export default function TowerDefenseScreen(props: GameScreenProps) {
       const y = (e.clientY - rect.top - oy) / cell;
       let best = -1;
       let bestD = 0.8 * 0.8;
-      stateRef.current.pads.forEach((c, i) => {
+      cur.current.pads.forEach((c, i) => {
         const dx = x - ((c % COLS) + 0.5);
         const dy = y - (Math.floor(c / COLS) + 0.5);
         if (dx * dx + dy * dy < bestD) {
@@ -232,30 +278,22 @@ export default function TowerDefenseScreen(props: GameScreenProps) {
           best = i;
         }
       });
-      if (best >= 0) setCursor(best);
+      if (best >= 0) moveTo(best);
     },
-    [canvasRef],
+    [canvasRef, moveTo],
   );
 
   // ---- the clock and the drawing -------------------------------------------
-  const palette = useState(() => readPalette(Object.fromEntries(KINDS.map((k) => [k, s.towers[k].letter])) as Record<TowerKind, string>))[0];
+  const palette = useState(() =>
+    readPalette(Object.fromEntries(KINDS.map((k) => [k, s.towers[k].letter])) as Record<TowerKind, string>, s.marks.slowed),
+  )[0];
   const fx = useState(newFx)[0];
   const prevPos = useState(() => new Map<number, number>())[0];
   const base = useRef<HTMLCanvasElement | null>(null);
   const baseKey = useRef('');
-  const hintPad = state.hintsLeft > 0 && picked !== null ? (bestPad(state, picked) ?? -1) : -1;
   const view = useRef<View>({ alpha: 1, reduced: reducedMotion, cursor, pickedKind: null, pickedPower: 0, hintPad: -1, prevPos, fx });
 
   useEffect(() => {
-    prevState.current = stateRef.current;
-    stateRef.current = state;
-    prevPos.clear();
-    for (const e of prevState.current.enemies) prevPos.set(e.id, e.pos);
-  }, [state, prevPos]);
-  useEffect(() => {
-    cursorRef.current = cursor;
-    pickedRef.current = picked;
-    pausedRef.current = paused;
     view.current.reduced = reducedMotion;
     view.current.cursor = cursor;
     view.current.pickedKind = pickedMember?.kind ?? null;
@@ -276,22 +314,26 @@ export default function TowerDefenseScreen(props: GameScreenProps) {
         const octx = off.getContext('2d');
         if (octx) {
           octx.setTransform(size.dpr, 0, 0, size.dpr, 0, 0);
-          drawStatic(octx, size.width, size.height, stateRef.current, palette);
+          drawStatic(octx, size.width, size.height, cur.current, palette);
         }
         base.current = off;
         baseKey.current = key;
       }
       ctx.setTransform(size.dpr, 0, 0, size.dpr, 0, 0);
       view.current.alpha = reducedMotion ? 1 : alpha;
-      drawFrame(ctx, size.width, size.height, base.current, stateRef.current, palette, view.current);
+      drawFrame(ctx, size.width, size.height, base.current, cur.current, palette, view.current);
     },
     [canvasRef, size, palette, reducedMotion],
   );
 
-  const ticksPerStep = state.speed;
+  // One clock step: `speed` ticks. `prev` is the state the step starts from, so the frames that follow
+  // draw from it to the new `cur` (a x2 step moves two ticks in the same 50 ms).
   useFixedStep(
     () => {
-      for (let i = 0; i < ticksPerStep; i++) dispatch({ type: 'tick' });
+      prev.current = cur.current;
+      prevPos.clear();
+      for (const e of prev.current.enemies) prevPos.set(e.id, e.pos);
+      for (let i = 0, n = cur.current.speed; i < n; i++) send({ type: 'tick' });
     },
     { running, onFrame: paint },
   );
@@ -301,37 +343,54 @@ export default function TowerDefenseScreen(props: GameScreenProps) {
     if (!running) paint(1);
   }, [running, paint, state, cursor, picked]);
 
+  // When the game ends its buttons go away: keep the focus on the result line.
+  useEffect(() => {
+    if (over) bannerRef.current?.focus();
+  }, [over]);
+
   // ---- text -----------------------------------------------------------------
   const left = state.waveAt >= 0 ? Math.max(0, Math.ceil((state.waveAt - state.tick) / 20)) : -1;
   const hud = [
     formatText(s.hud.wave, { n: state.started, total: state.total }),
     formatText(s.hud.haven, { hp: state.havenHp, max: state.havenMax }),
     formatText(s.hud.glow, { n: state.glow }),
+    state.hintsLeft > 0 ? formatText(s.hud.hints, { n: state.hintsLeft }) : null,
     over ? null : left >= 0 ? formatText(s.hud.nextIn, { s: left }) : s.hud.under,
   ]
     .filter(Boolean)
-    .join(' · ');
-  const padText = towerHere
-    ? formatText(s.pad.taken, {
-        tower: s.towers[towerHere.kind].name,
-        name: state.members.find((m) => m.id === towerHere.member)?.name ?? '',
-        level: towerHere.level,
-      })
-    : s.pad.free;
-  const padStatus = `${formatText(s.pad.status, { pad: cursor + 1, total: state.pads.length })}: ${padText}`;
+    .join(s.hud.separator);
+  const jammed = towerHere !== undefined && state.tick < towerHere.jamUntil;
+  let padText = s.pad.free;
+  if (towerHere) {
+    padText = formatText(jammed ? s.pad.takenJammed : s.pad.taken, {
+      tower: s.towers[towerHere.kind].name,
+      name: state.members.find((m) => m.id === towerHere.member)?.name ?? '',
+      level: towerHere.level,
+    });
+  }
+  if (cursor === hintPad) padText = formatText(s.pad.withHint, { text: padText, hint: s.pad.hint });
+  const padStatus = formatText(s.pad.line, { status: formatText(s.pad.status, { pad: cursor + 1, total: state.pads.length }), text: padText });
+  // What the picked card (else the tower under the cursor) does, in words.
+  const infoKind = pickedMember?.kind ?? towerHere?.kind ?? null;
+  const info = infoKind ? formatText(s.pad.blurb, { tower: s.towers[infoKind].name, blurb: s.towers[infoKind].blurb }) : '';
+  const boardHint = hintPad >= 0 && pickedMember?.kind ? formatText(s.pad.boardHint, { tower: s.towers[pickedMember.kind].name, n: hintPad + 1 }) : '';
   const upCost = towerHere ? upgradeCost(towerHere) : null;
+  const upLabel = !towerHere ? s.controls.upgradeNone : upCost === null ? s.controls.upgradeMax : formatText(s.controls.upgrade, { cost: upCost });
+  const sellLabel = towerHere && !jammed ? formatText(s.controls.sell, { glow: refund(towerHere) }) : s.controls.sellNone;
   const bonus = callWaveBonus(state);
+  const nextLabel = bonus ? formatText(s.controls.nextWave, { glow: bonus }) : s.controls.nextWaveNone;
 
   const lines = useMemo(() => {
-    const all = [
-      ...state.feed.map((l) => ({ key: `e${l.seq}`, order: l.seq, text: feedText(l, s) })),
-      ...notes.map((n) => ({ key: `n${n.id}`, order: n.after + 0.5 + n.id / 1000, text: n.text })),
+    // Engine lines and notes in the order they happened: a note sorts after the engine line it followed.
+    const all: Array<{ key: string; at: number; kind: 0 | 1; id: number; text: string }> = [
+      ...state.feed.map((l) => ({ key: `e${l.seq}`, at: l.seq, kind: 0 as const, id: l.seq, text: feedText(l, s) })),
+      ...notes.map((n) => ({ key: `n${n.id}`, at: n.after, kind: 1 as const, id: n.id, text: n.text })),
     ];
-    return all.sort((a, b) => a.order - b.order).slice(-SHOWN_LINES);
+    return all.sort((a, b) => a.at - b.at || a.kind - b.kind || a.id - b.id).slice(-SHOWN_LINES);
   }, [state.feed, notes, s]);
 
   return (
-    <div className={cx(styles.game, reducedMotion && styles.still)} onKeyDown={onKeyDown} data-testid="td-root" data-tick={state.tick} data-paused={paused ? 'true' : 'false'}>
+    <div className={styles.game} onKeyDown={onKeyDown} data-testid="td-root" data-tick={state.tick} data-paused={paused ? 'true' : 'false'}>
       <SystemWindow
         title={game.manifest.name[locale]}
         headingLevel={2}
@@ -339,7 +398,7 @@ export default function TowerDefenseScreen(props: GameScreenProps) {
         actions={
           <>
             {over ? null : (
-              <button type="button" className="btn btn--danger" onClick={() => dispatch({ type: 'forfeit' })}>
+              <button type="button" className="btn btn--danger" onClick={() => send({ type: 'forfeit' })}>
                 {s.controls.giveUp}
               </button>
             )}
@@ -365,13 +424,18 @@ export default function TowerDefenseScreen(props: GameScreenProps) {
               data-testid="td-board"
               onPointerDown={onBoardPointer}
             >
-              <canvas ref={canvasRef} className={styles.canvas} role="img" aria-label={formatText(s.board, { pad: padStatus, n: cards.length })} />
+              <canvas ref={canvasRef} className={styles.canvas} role="img" aria-label={formatText(s.board, { pad: padStatus, hint: boardHint, n: cards.length })} />
             </div>
 
             <div className={styles.padBar}>
               <p className={styles.padStatus} aria-live="polite" data-testid="td-pad">
                 {padStatus}
               </p>
+              {info ? (
+                <p className={cx('muted', styles.padInfo)} data-testid="td-info">
+                  {info}
+                </p>
+              ) : null}
               <button type="button" className="btn" onClick={() => step(-1)}>
                 {s.controls.prev}
               </button>
@@ -379,10 +443,10 @@ export default function TowerDefenseScreen(props: GameScreenProps) {
                 {s.controls.next}
               </button>
               <button type="button" className="btn" onClick={upgradeHere} disabled={over}>
-                {upCost === null && towerHere ? s.controls.upgradeMax : formatText(s.controls.upgrade, { cost: upCost ?? '-' })}
+                {upLabel}
               </button>
               <button type="button" className="btn" onClick={sellHere} disabled={over}>
-                {formatText(s.controls.sell, { glow: towerHere ? refund(towerHere) : 0 })}
+                {sellLabel}
               </button>
             </div>
           </div>
@@ -431,13 +495,13 @@ export default function TowerDefenseScreen(props: GameScreenProps) {
                   {formatText(s.controls.speed, { n: state.speed })}
                 </button>
                 <button type="button" className={cx('btn', styles.wide)} onClick={callNext}>
-                  {formatText(s.controls.nextWave, { glow: bonus ?? 0 })}
+                  {nextLabel}
                 </button>
               </div>
             )}
 
             {outcome ? (
-              <p className={styles.banner} role="status" data-result={outcome.result}>
+              <p ref={bannerRef} tabIndex={-1} className={styles.banner} role="status" data-result={outcome.result}>
                 {s.end[outcome.result]}
               </p>
             ) : null}

@@ -5,9 +5,9 @@
  */
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { GameScreenProps, Outcome } from '../contract';
+import type { GameScreenProps, Outcome, RunContext } from '../contract';
 import { parties, runs } from '../testing/contract';
-import { engine } from './engine';
+import { bestPad, engine, pointInto, type TDState } from './engine';
 import TowerDefenseScreen from './Screen';
 
 // ---- a hand-driven requestAnimationFrame: frames arrive when the test says ----
@@ -232,21 +232,21 @@ describe('Hold the Haven screen: the end', () => {
     expect(p.onExit).toHaveBeenCalledTimes(1);
   });
 
-  it('plays a whole game to the outcome the engine computes for the same actions', () => {
-    const p = props({ run: { ...runs.plain, difficulty: 1 } });
+  it('plays a whole game to the outcome the engine computes for the same actions', { timeout: 60000 }, () => {
+    const run: RunContext = { ...runs.plain, difficulty: 1 };
+    const p = props({ run });
     render(<TowerDefenseScreen {...p} />);
-    press('n');
-    // The bot's own rules, driven through the Screen's clock: place nothing, just let the waves come and the Haven fall or hold.
+    press('n'); // the only action: call the first wave, then let the clock run with nothing built
     runFrames(1, 0);
-    for (let i = 0; i < 40000 && vi.mocked(p.onFinish).mock.calls.length === 0; i++) {
-      if (i % 600 === 0 && screen.queryByRole('button', { name: /^Next wave/ })) fireEvent.click(screen.getByRole('button', { name: /^Next wave/ }));
-      runFrames(5, 50);
-    }
+    for (let i = 0; i < 20000 && vi.mocked(p.onFinish).mock.calls.length === 0; i++) runFrames(5, 50);
     expect(p.onFinish).toHaveBeenCalledTimes(1);
     const got = vi.mocked(p.onFinish).mock.calls[0]![0] as Outcome;
-    expect(['won', 'lost']).toContain(got.result);
-    expect(got.log[0]).toMatch(/^The path: /);
-    expect(screen.getByRole('status')).toBeInTheDocument();
+    // The same actions through the engine alone: a callWave, then ticks until it ends.
+    let s: TDState = engine.reduce(engine.initial(42, parties.full, run, 'en'), { type: 'callWave' });
+    while (s.result === null) s = engine.reduce(s, { type: 'tick' });
+    expect({ ...got, durationMs: undefined }).toEqual({ ...engine.outcome(s)!, durationMs: undefined });
+    expect(got.result).toBe('lost');
+    expect(screen.getByRole('status')).toHaveTextContent('The troops come home');
   });
 
   it('writes the screen and the outcome in French when the locale is fr', () => {
@@ -287,13 +287,128 @@ describe('Hold the Haven screen: the canvas', () => {
     expect(screen.getByTestId('td-feed')).toHaveAttribute('aria-live', 'polite');
   });
 
-  it('under reduced motion it still moves the enemies, tick by tick, with no particles', () => {
-    render(<TowerDefenseScreen {...props({ reducedMotion: true })} />);
+  /** The last canvas arc of a clutter blob (radius 6 on this 30 px cell board), in CSS pixels. */
+  const blobAt = () => {
+    const hits = calls.arc!.mock.calls.filter((c) => c[2] === 6);
+    const last = hits[hits.length - 1] as number[];
+    return { x: last[0]!, y: last[1]! };
+  };
+
+  it('draws the monsters at the tick itself under reduced motion, and between two ticks otherwise', () => {
+    const expected = (ticks: number) => {
+      let st = engine.reduce(engine.initial(42, parties.full, runs.plain, 'en'), { type: 'callWave' });
+      for (let i = 0; i < ticks; i++) st = engine.reduce(st, { type: 'tick' });
+      return st;
+    };
+    const px = (st: TDState, pos: number) => {
+      const pt = { x: 0, y: 0 };
+      pointInto(st.path, pos, pt);
+      return { x: (pt.x * 30) / 1000, y: (pt.y * 30) / 1000 };
+    };
+    const atTick2 = expected(2);
+    const pos2 = atTick2.enemies[0]!.pos;
+    const pos1 = expected(1).enemies[0]!.pos;
+    expect(pos2).toBeGreaterThan(pos1);
+
+    // Reduced motion: two ticks have run, a frame in the middle of the third interval, and the blob is still at tick 2.
+    const { unmount } = render(<TowerDefenseScreen {...props({ reducedMotion: true })} />);
     press('n');
     runFrames(1, 0);
-    runFrames(60, 1000 / 60);
-    expect(tickOf()).toBeGreaterThanOrEqual(19);
-    expect(calls.arc).toBeDefined();
+    runFrames(5, 25);
+    expect(tickOf()).toBe(2);
+    expect(blobAt()).toEqual(px(atTick2, pos2));
     expect(assigned.has('globalAlpha')).toBe(false);
+    unmount();
+
+    // Motion allowed: the same frame draws halfway between tick 1 and tick 2 (not at either).
+    queue = [];
+    now = 0;
+    for (const f of Object.values(calls)) f.mockClear();
+    render(<TowerDefenseScreen {...props({ reducedMotion: false })} />);
+    press('n');
+    runFrames(1, 0);
+    runFrames(5, 25);
+    expect(tickOf()).toBe(2);
+    const mid = blobAt();
+    const half = px(atTick2, Math.floor((pos1 + pos2) / 2));
+    expect(Math.abs(mid.x - half.x) + Math.abs(mid.y - half.y)).toBeLessThan(0.5);
+    expect(mid).not.toEqual(px(atTick2, pos2));
   });
 });
+
+describe('Hold the Haven screen: the hint buff', () => {
+  const hintRun: RunContext = { buffs: [{ id: 'h', kind: 'hint', amount: 2 }], roomIndex: 0, difficulty: 2 };
+  const lanternBest = bestPad(engine.initial(42, parties.full, hintRun, 'en'), 'outside')! + 1;
+
+  it('a first tap shows the best pad and places nothing: the cursor moves, the star is announced in text, no hint is spent', () => {
+    render(<TowerDefenseScreen {...props({ run: hintRun })} />);
+    expect(hud()).toContain('Hints 2');
+    press('2'); // Lantern
+    expect(hud()).toContain('Glow 110');
+    expect(hud()).toContain('Hints 2');
+    expect(screen.getByTestId('td-pad')).toHaveTextContent(`Pad ${lanternBest} of`);
+    expect(screen.getByTestId('td-pad')).toHaveTextContent('Best spot for this tower');
+    expect(screen.getByTestId('td-feed')).toHaveTextContent(`Best pad for Lantern: pad ${lanternBest}.`);
+    expect(screen.getByRole('img').getAttribute('aria-label')).toContain(`Best pad for Lantern: pad ${lanternBest}.`);
+    expect(screen.getByTestId('td-info')).toHaveTextContent('Lantern: Long reach, slow, ignores armour.');
+  });
+
+  it('a second tap (or Enter) places it on the star and spends the hint; a pad that was not starred spends none', () => {
+    render(<TowerDefenseScreen {...props({ run: hintRun })} />);
+    press('2');
+    press('2'); // second tap: place on the shown star
+    expect(hud()).toContain('Glow 62');
+    expect(hud()).toContain('Hints 1');
+    press('1'); // Runner: shows its own star, places nothing
+    expect(hud()).toContain('Glow 62');
+    expect(screen.getByTestId('td-pad')).toHaveTextContent('Best spot for this tower');
+    // Walk off the star onto another free pad and place with Enter: no hint is spent there.
+    for (let i = 0; i < 12 && /Best spot|level/.test(screen.getByTestId('td-pad').textContent ?? ''); i++) fireEvent.click(screen.getByRole('button', { name: 'Next pad' }));
+    expect(screen.getByTestId('td-pad')).toHaveTextContent('free');
+    fireEvent.keyDown(board(), { key: 'Enter' });
+    expect(hud()).toContain('Glow 24');
+    expect(hud()).toContain('Hints 1');
+  });
+
+  it('with no hint left a card tap places at once, as before', () => {
+    render(<TowerDefenseScreen {...props()} />);
+    expect(hud()).not.toContain('Hints');
+    press('2');
+    expect(hud()).toContain('Glow 62');
+  });
+});
+
+describe('Hold the Haven screen: focus and text', () => {
+  it('moves focus to the result line when the game ends and its buttons go away', () => {
+    render(<TowerDefenseScreen {...props()} />);
+    const giveUp = screen.getByRole('button', { name: 'Give up' });
+    giveUp.focus();
+    fireEvent.click(giveUp);
+    expect(screen.getByRole('status')).toHaveFocus();
+  });
+
+  it('says in plain words when nothing can be upgraded or sold, and describes the picked tower', () => {
+    render(<TowerDefenseScreen {...props()} />);
+    expect(screen.getByRole('button', { name: 'Upgrade' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sell' })).toBeInTheDocument();
+    press('3');
+    expect(screen.getByRole('button', { name: /^Sell \(\+/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Upgrade \(/ })).toBeInTheDocument();
+    expect(screen.getByTestId('td-info')).toHaveTextContent('Sweeper: Hits everything close by.');
+  });
+
+  it('keeps the French spacing before a colon in the pad line', () => {
+    render(<TowerDefenseScreen {...props({ locale: 'fr' })} />);
+    expect(screen.getByTestId('td-pad').textContent).toMatch(/Emplacement 1 sur \d+ : libre/);
+  });
+
+  it('orders the feed by what happened: a note follows the engine line it came after', () => {
+    render(<TowerDefenseScreen {...props()} />);
+    press('1'); // places: an engine line
+    press('Escape'); // a note
+    const texts = Array.from(screen.getByTestId('td-feed').querySelectorAll('li')).map((li) => li.textContent);
+    expect(texts[texts.length - 2]).toMatch(/takes a post/);
+    expect(texts[texts.length - 1]).toBe('Pick cleared.');
+  });
+});
+

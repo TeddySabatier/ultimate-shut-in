@@ -23,6 +23,8 @@ export interface Palette {
   tower: Record<TowerKind, string>;
   /** The letter drawn on each tower, in the player's language. */
   letters: Record<TowerKind, string>;
+  /** The mark drawn beside a slowed monster, in the player's language. */
+  slowMark: string;
   /** Seven body colours for the monsters. */
   monster: string[];
 }
@@ -35,8 +37,16 @@ export interface Geometry {
 
 /** `cell = floor(min(w / 9, h / 7))`, the board centred. */
 export function geometry(w: number, h: number): Geometry {
+  return geometryInto({ cell: 1, ox: 0, oy: 0 }, w, h);
+}
+
+/** Same, written into `out` (the frame loop reuses one object). */
+export function geometryInto(out: Geometry, w: number, h: number): Geometry {
   const cell = Math.max(1, Math.floor(Math.min(w / COLS, h / ROWS)));
-  return { cell, ox: Math.floor((w - COLS * cell) / 2), oy: Math.floor((h - ROWS * cell) / 2) };
+  out.cell = cell;
+  out.ox = Math.floor((w - COLS * cell) / 2);
+  out.oy = Math.floor((h - ROWS * cell) / 2);
+  return out;
 }
 
 /** Particles, shake and bookkeeping that live outside React state. */
@@ -47,12 +57,29 @@ export interface Fx {
   lastHaven: number;
   shake: number;
   frame: number;
+  /** Scratch the frame loop reuses, so a frame allocates nothing of its own. */
+  geo: Geometry;
+  pt: Point;
+  scratch: Point;
+  fontSize: number;
+  fontBold: string;
 }
 export const PARTICLE_COUNT = 32;
 const STRIDE = 6;
 
 export function newFx(): Fx {
-  return { particles: new Float32Array(PARTICLE_COUNT * STRIDE), lastTick: -1, lastHaven: -1, shake: 0, frame: 0 };
+  return {
+    particles: new Float32Array(PARTICLE_COUNT * STRIDE),
+    lastTick: -1,
+    lastHaven: -1,
+    shake: 0,
+    frame: 0,
+    geo: { cell: 1, ox: 0, oy: 0 },
+    pt: { x: 0, y: 0 },
+    scratch: { x: 0, y: 0 },
+    fontSize: 0,
+    fontBold: '',
+  };
 }
 
 export interface View {
@@ -213,9 +240,9 @@ function emit(fx: Fx, x: number, y: number, colour: number, n: number): void {
 
 /** One frame: the static layer, then towers, shots, monsters, particles and the cursor. */
 export function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, base: CanvasImageSource | null, s: TDState, pal: Palette, v: View): void {
-  const { cell, ox, oy } = geometry(w, h);
-  const k = cell / UNIT;
   const fx = v.fx;
+  const { cell, ox, oy } = geometryInto(fx.geo, w, h);
+  const k = cell / UNIT;
   fx.frame += 1;
   if (!v.reduced) {
     if (fx.lastHaven >= 0 && s.havenHp < fx.lastHaven) fx.shake = 8;
@@ -261,6 +288,10 @@ export function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, b
 
   // Towers: a glyph and a letter each; a cross-hatch when jammed; pips for the level.
   const letterSize = Math.max(8, Math.round(cell * 0.24));
+  if (fx.fontSize !== letterSize) {
+    fx.fontSize = letterSize;
+    fx.fontBold = `bold ${letterSize}px sans-serif`;
+  }
   for (let i = 0; i < s.towers.length; i++) {
     const t = s.towers[i]!;
     const c = s.pads[t.pad]!;
@@ -276,7 +307,7 @@ export function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, b
     ctx.stroke();
     drawGlyph(ctx, t.kind, x + cell / 2, y + cell * 0.46, cell * 0.5, color);
     ctx.fillStyle = pal.text;
-    ctx.font = `bold ${letterSize}px sans-serif`;
+    ctx.font = fx.fontBold;
     ctx.textAlign = 'right';
     ctx.textBaseline = 'bottom';
     ctx.fillText(pal.letters[t.kind], x + cell * 0.95, y + cell * 0.98);
@@ -296,9 +327,9 @@ export function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, b
     }
   }
 
-  // Shots: a line from the tower to what it aimed at.
+  // Shots: a line from the tower to what it aimed at. Under reduced motion they would only blink for one tick, so none is drawn.
   ctx.lineWidth = 2;
-  for (let i = 0; i < s.shots.length; i++) {
+  for (let i = 0; i < s.shots.length && !v.reduced; i++) {
     const sh = s.shots[i]!;
     const c = s.pads[sh.pad]!;
     ctx.strokeStyle = pal.tower[sh.kind];
@@ -309,11 +340,12 @@ export function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, b
   }
 
   // Monsters, at prev + (cur - prev) * alpha.
-  const hasLull = s.towers.some((t) => t.kind === 'lull');
-  const pt: Point = { x: 0, y: 0 };
-  const scratch: Point = { x: 0, y: 0 };
+  let hasLull = false;
+  for (let i = 0; i < s.towers.length; i++) if (s.towers[i]!.kind === 'lull') hasLull = true;
+  const pt = fx.pt;
+  const scratch = fx.scratch;
   const end = pathEnd(s.path);
-  ctx.font = `bold ${letterSize}px sans-serif`;
+  ctx.font = fx.fontBold;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   for (let i = 0; i < s.enemies.length; i++) {
@@ -349,7 +381,7 @@ export function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, b
     }
     if (hasLull && enemySlow(s, e, s.tick + 1, scratch) > 0) {
       ctx.fillStyle = pal.text;
-      ctx.fillText('z', x + r + 3, y - r);
+      ctx.fillText(pal.slowMark, x + r + 3, y - r);
     }
   }
 
