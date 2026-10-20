@@ -33,6 +33,7 @@ const EXPECTED = [
   ...['gym', 'park', 'library', 'friend', 'family', 'cafe', 'clinic', 'market', 'pool', 'class', 'other'].map((o) => `outposts/${o}.svg`),
   'logo/logo.svg',
   'logo/mark.svg',
+  ...['card', 'blade', 'mail', 'charm', 'buff-attack', 'buff-defense', 'buff-time', 'buff-hint', 'buff-revive', 'buff-luck'].map((a) => `arena/${a}.svg`),
 ];
 
 describe('svg assets', () => {
@@ -74,7 +75,7 @@ describe('svg assets', () => {
   });
 
   it('monochrome icon sets use currentColor only', () => {
-    const mono = files.filter((f) => /[\\/](habits|outposts)[\\/]/.test(f) || /[\\/]ui[\\/](check|timer|lock|chevron|close|settings|home|quests|character|mic|map|compare|list|utility-\w+|wave-shield|title-badge|panel-frame|xp-bar-cap)\.svg$/.test(f));
+    const mono = files.filter((f) => /[\\/](habits|outposts|arena)[\\/]/.test(f) || /[\\/]ui[\\/](check|timer|lock|chevron|close|settings|home|quests|character|mic|map|compare|list|utility-\w+|wave-shield|title-badge|panel-frame|xp-bar-cap)\.svg$/.test(f));
     expect(mono.length).toBeGreaterThan(0);
     for (const f of mono) {
       const src = readFileSync(f, 'utf8');

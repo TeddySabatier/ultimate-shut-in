@@ -236,6 +236,10 @@ test.describe('responsive sweep', () => {
       await settleOverlays(page);
       await check('haven', { tabBar: true });
 
+      await page.getByTestId('arena-card').getByRole('link', { name: 'Go' }).click();
+      await expect(page.getByTestId('arena-screen')).toBeVisible();
+      await check('arena', { tabBar: true });
+
       await gotoTab(page, 'Board');
       await check('board', { tabBar: true });
 

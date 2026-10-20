@@ -25,7 +25,24 @@ Agent G, overnight program. Base `integration/arena`. G1 branch `feat/G1-arena-e
 - `src/components/overlays/eventText.ts` — exhaustive `eventKey` cases for arena events (keys only). Needed for `tsc`. Label `needs-maintainer` if the morning review wants this reverted and folded into G2.
 - `src/screens/CharacterScreen.tsx` — the Ledger wave breakdown does not yet show the `arena` term. G2 cannot edit that screen either. Ask the maintainer to add ` · Arena +{n}` next to Outposts.
 
+## G2 decisions
+
+16. **ManagePullRequest** is still missing from the tool catalog. `gh pr create` returned 403 on G1. Branches are pushed; PR bodies live in this notes file for the maintainer.
+17. **Registry stays in `src/components/arena/host/catalog.ts`.** `ArenaScreen` is lazy from `App.tsx`. `GameList` reads `listedGames()` from that catalog (not from `registry` directly) so the lint rule holds. Home's `ArenaCard` never imports the registry.
+18. **Voice status** on the request form reuses `strings.compose.stop` for the listening toggle. G2 cannot add arena keys. Other request copy is `strings.arena`.
+19. **Leave on the bank panel** banks coins (keeps the outing). Forfeit in Coin Duel is homecoming (`fled`).
+20. **Invalid outcomes** become `{ result: 'fled', score: 0 }` in `resolveHostOutcome` before `applyArenaOutcome`.
+21. **e2e earns coins by completing boards** rather than mutating the save, because `window.__haven` has no setter and a raw mutation would not re-render or persist.
+
+## Files needed but not owned
+
+- `src/components/overlays/eventText.ts` — G1 added `eventKey` cases; G2 added toast bodies. Still owned here.
+- `src/screens/CharacterScreen.tsx` — Ledger wave breakdown does not show the `arena` term.
+- `e2e/a11y.spec.ts` — not in the G2 list. Arena axe lives in `e2e/arena.spec.ts`.
+- Pull requests — open G1 against `integration/arena` and G2 stacked on G1 when the token allows.
+
 ## Open for the reviewer
 
 - Confirm optional `arena` on `WaveBreakdown` is acceptable.
 - Confirm eventKey cases in `eventText.ts` (decision 15).
+- G1 and G2 draft PRs if they are not already open.

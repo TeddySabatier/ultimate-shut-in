@@ -3,7 +3,23 @@
  * `strings.json` pools (seeded so a re-render shows the same line) or from a
  * content definition; nothing here computes a number.
  */
-import { formatLine, getCombo, getHabit, getOutpostState, getTitle, nextOutpostState, resolveTemplate, strings, TIED_HABIT, vassalName, type GameEvent, type SaveFile } from '../../game';
+import {
+  arenaContent,
+  formatLine,
+  getCombo,
+  getHabit,
+  getOutpostState,
+  getTitle,
+  nextOutpostState,
+  resolveTemplate,
+  strings,
+  TIED_HABIT,
+  vassalName,
+  type ArenaRunBuffKind,
+  type GameEvent,
+  type SaveFile,
+} from '../../game';
+import { getGearItem } from '../../game/arena';
 import { seededLine } from '../../state/selectors';
 import type { WindowTone } from '../SystemWindow';
 
@@ -181,8 +197,50 @@ export function toastCopy(save: SaveFile, e: GameEvent): ToastCopy | null {
       return { title: 'Retired', line: formatLine(strings.map.toasts.retired, { name: outpostName(save, e.outpostId) }), tone: 'default' };
     case 'outpostRestored':
       return { title: 'Restored', line: formatLine(strings.map.toasts.restored, { name: outpostName(save, e.outpostId) }), tone: 'success' };
+    case 'arenaRunStarted':
+      return { title: strings.arena.entryTitle, line: formatLine(strings.arena.entryFee, { coins: e.fee }), tone: 'accent' };
+    case 'arenaRunEnded':
+      return e.banked
+        ? { title: strings.arena.bankTitle, line: strings.arena.bankIntro, tone: 'success' }
+        : { title: strings.arena.troopsHome, line: strings.arena.troopsHomeBody, tone: 'default' };
+    case 'arenaGearBought':
+      return {
+        title: strings.arena.armoryTitle,
+        line: getGearItem(e.itemId)?.name ?? e.itemId,
+        tone: 'success',
+      };
+    case 'arenaTrainingBought':
+      return { title: strings.arena.train, line: formatLine(strings.arena.power, { n: e.sessions }), tone: 'success' };
+    case 'arenaDecorBought':
+      return { title: strings.arena.decorTitle, line: getCombo(e.comboId)?.name ?? e.comboId, tone: 'success' };
+    case 'arenaRequestSent':
+      return { title: strings.arena.requestTitle, line: strings.arena.requestSent, tone: 'success' };
+    case 'arenaBuffPicked': {
+      const def = arenaContent.lottery.buffs.find((b) => b.id === e.buffId);
+      return { title: strings.arena.lotteryTitle, line: def ? buffLine(def.kind, def.amount) : e.buffId, tone: 'accent' };
+    }
     default:
       return null;
+  }
+}
+
+function buffLine(kind: string, amount: number): string {
+  const a = strings.arena;
+  switch (kind as ArenaRunBuffKind) {
+    case 'attack':
+      return formatLine(a.buffAttack, { n: amount });
+    case 'defense':
+      return formatLine(a.buffDefense, { n: amount });
+    case 'time':
+      return formatLine(a.buffTime, { n: amount });
+    case 'hint':
+      return formatLine(a.buffHint, { n: amount });
+    case 'revive':
+      return formatLine(a.buffRevive, { n: amount });
+    case 'luck':
+      return formatLine(a.buffLuck, { n: amount });
+    default:
+      return kind;
   }
 }
 

@@ -1,0 +1,50 @@
+.card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
+  min-width: 0;
+}
+
+.icon {
+  flex: none;
+  color: var(--color-accent-text);
+}
+
+.body {
+  min-width: 0;
+}
+
+.title {
+  margin: 0 0 var(--space-1);
+  font-family: var(--font-heading);
+  font-size: var(--heading-xs);
+  text-transform: uppercase;
+}
+
+.blurb,
+.fee {
+  margin: 0;
+  font-size: var(--text-sm);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.go {
+  flex: none;
+}
+
+@media (max-width: 359px) {
+  .card {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .go {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-height: 500px) {
+  .blurb {
+    display: none;
+  }
+}

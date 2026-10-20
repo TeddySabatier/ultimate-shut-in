@@ -75,6 +75,18 @@ import uiMap from './ui/map.svg';
 import uiCompare from './ui/compare.svg';
 import uiList from './ui/list.svg';
 
+// ---- arena (24x24, monochrome, gear slots, lottery buffs, Haven card) ----
+import arenaCard from './arena/card.svg';
+import arenaBlade from './arena/blade.svg';
+import arenaMail from './arena/mail.svg';
+import arenaCharm from './arena/charm.svg';
+import arenaBuffAttack from './arena/buff-attack.svg';
+import arenaBuffDefense from './arena/buff-defense.svg';
+import arenaBuffTime from './arena/buff-time.svg';
+import arenaBuffHint from './arena/buff-hint.svg';
+import arenaBuffRevive from './arena/buff-revive.svg';
+import arenaBuffLuck from './arena/buff-luck.svg';
+
 // ---- outposts (24x24, monochrome, the City Map pin plaques and the add-outpost form) ----
 import outpostGym from './outposts/gym.svg';
 import outpostPark from './outposts/park.svg';
@@ -234,3 +246,18 @@ export const logo = {
   /** 64x64 square app mark (also the favicon and PWA icon source). */
   mark: logoMark,
 } as const;
+
+/** Arena card, Armory slots and lottery buffs (monochrome, `currentColor`). */
+export const arenaIcons = {
+  card: arenaCard,
+  blade: arenaBlade,
+  mail: arenaMail,
+  charm: arenaCharm,
+  buffAttack: arenaBuffAttack,
+  buffDefense: arenaBuffDefense,
+  buffTime: arenaBuffTime,
+  buffHint: arenaBuffHint,
+  buffRevive: arenaBuffRevive,
+  buffLuck: arenaBuffLuck,
+} as const satisfies Readonly<Record<string, string>>;
+export type ArenaIconId = keyof typeof arenaIcons;

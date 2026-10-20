@@ -9,6 +9,7 @@ import { Meter } from '../components/Meter';
 import { RingHeader } from '../components/RingHeader';
 import { SystemWindow } from '../components/SystemWindow';
 import { VassalCard } from '../components/VassalCard';
+import { ArenaCard } from '../components/arena/ArenaCard';
 import styles from './HomeScreen.module.css';
 
 const UTILITY_ICON = { power: uiIcons.utilityPower, water: uiIcons.utilityWater, gas: uiIcons.utilityGas } as const;
@@ -91,6 +92,8 @@ export function HomeScreen() {
           </ul>
         )}
       </SystemWindow>
+
+      <ArenaCard />
 
       <p className={cx('muted', styles.encouragement)}>{encouragementLine(save, now)}</p>
     </>

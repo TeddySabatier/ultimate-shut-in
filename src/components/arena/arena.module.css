@@ -1,0 +1,153 @@
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.intro {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.icon {
+  flex: none;
+}
+
+.body {
+  min-width: 0;
+}
+
+.name {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+}
+
+.price {
+  flex: none;
+}
+
+.vassal {
+  margin: var(--space-3) 0 var(--space-2);
+  font-family: var(--font-heading);
+  font-size: var(--heading-xs);
+  text-transform: uppercase;
+}
+
+.slots {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.slot {
+  min-width: 0;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  background: var(--color-panel-raised);
+}
+
+.slotName {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+  text-transform: uppercase;
+}
+
+.form {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 5.5rem;
+  resize: vertical;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.actions > * {
+  flex: 1 1 8rem;
+  min-width: 0;
+}
+
+.buffs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.buff {
+  min-width: 0;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  text-align: center;
+  padding: var(--space-3) var(--space-2);
+}
+
+.games {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.game {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+
+@media (max-width: 359px) {
+  .slots,
+  .buffs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .price {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-height: 500px) {
+  .intro {
+    margin-bottom: var(--space-2);
+  }
+  .textarea {
+    min-height: 3.5rem;
+  }
+}

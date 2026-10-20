@@ -1,5 +1,6 @@
 import { Component, lazy, Suspense, type ReactNode } from 'react';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { strings } from './game';
 import { AppShell } from './components/AppShell';
 import { useGameTick } from './hooks/useGameTick';
 import { useReducedMotionAttribute } from './hooks/useReducedMotion';
@@ -12,6 +13,8 @@ import { OnboardingScreen } from './screens/OnboardingScreen';
 import { QuestsScreen } from './screens/QuestsScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 
+const ArenaScreen = lazy(() => import('./screens/ArenaScreen'));
+
 /** Tabs and overlays; mounted only once a save exists and onboarding is done. */
 function GameRoutes() {
   useGameTick();
@@ -23,6 +26,14 @@ function GameRoutes() {
         <Route path="map" element={<MapScreen />} />
         <Route path="character" element={<CharacterScreen />} />
         <Route path="settings" element={<SettingsScreen />} />
+        <Route
+          path="arena"
+          element={
+            <Suspense fallback={<p className="muted">{strings.arena.title}</p>}>
+              <ArenaScreen />
+            </Suspense>
+          }
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

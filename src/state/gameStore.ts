@@ -14,9 +14,14 @@ import {
   addCustomQuestToBoard,
   addCustomTemplate,
   applyResurrection,
+  applyRunOutcome,
   archiveCustomTemplate,
   restoreCustomTemplate,
   updateCustomTemplate,
+  bankRun,
+  buyDecor,
+  buyGear,
+  buyTraining,
   changeResetHour,
   completeQuest,
   createOutpost,
@@ -35,6 +40,7 @@ import {
   moveOutpost,
   outpostCap,
   pauseTimer,
+  pickLotteryBuff,
   processBoundaries,
   reRecruitVassal,
   rerollQuest,
@@ -43,13 +49,16 @@ import {
   ringName,
   sanitizeName,
   setBenevolence,
+  startRun,
   startTimer,
+  submitArenaRequest,
   strings,
   tagQuestAtOutpost,
   undoOutpostVisit,
   undoQuest,
   zoneOfCell,
   type ActionResult,
+  type BankChoice,
   type CustomDraft,
   type GameEvent,
   type HabitId,
@@ -57,6 +66,7 @@ import {
   type OutpostInput,
   type OutpostPatch,
   type ResurrectionChoice,
+  type RunOutcomeInput,
   type SaveFile,
   type Settings,
 } from '../game';
@@ -95,6 +105,13 @@ const SHOWN_EVENTS: ReadonlySet<GameEvent['type']> = new Set<GameEvent['type']>(
   'outpostStateReached',
   'outpostRetired',
   'outpostRestored',
+  'arenaRunStarted',
+  'arenaRunEnded',
+  'arenaGearBought',
+  'arenaTrainingBought',
+  'arenaDecorBought',
+  'arenaRequestSent',
+  'arenaBuffPicked',
 ]);
 
 /**
@@ -131,6 +148,35 @@ export function mapNotice(save: SaveFile, code: string, vars: { name?: string; c
 
 export function isShownEvent(e: GameEvent): boolean {
   return SHOWN_EVENTS.has(e.type);
+}
+
+const ARENA_ERROR_KEYS: Record<string, keyof typeof strings.arena.errors> = {
+  shortCoins: 'shortCoins',
+  runActive: 'runActive',
+  noRun: 'noRun',
+  lotteryPending: 'lotteryPending',
+  trainingCap: 'trainingCap',
+  trainingMax: 'trainingMax',
+  trainingDiminished: 'trainingMax',
+  decorOwned: 'alreadyOwned',
+  alreadyOwned: 'alreadyOwned',
+  badGear: 'unknownItem',
+  badDecor: 'unknownItem',
+  badBuff: 'unknownItem',
+  badHabit: 'unknownItem',
+  noRareGear: 'unknownItem',
+  noLottery: 'noRun',
+  requestEmpty: 'emptyRequest',
+  emptyRequest: 'emptyRequest',
+  tooLong: 'tooLong',
+  nothingToBank: 'nothingToBank',
+};
+
+/** Warm copy for an Arena refusal (`strings.arena.errors`). */
+export function arenaNotice(code: string): string {
+  const key = code.startsWith('arena.') ? code.slice('arena.'.length) : code;
+  const mapped = ARENA_ERROR_KEYS[key];
+  return mapped ? strings.arena.errors[mapped] : strings.arena.errors.unknownItem;
 }
 
 export interface GameState {
@@ -192,6 +238,15 @@ export interface GameActions {
   importSave: (raw: unknown) => boolean;
   dismissEvent: () => void;
   clearNotice: () => void;
+  /** Arena (docs/design/ARENA.md). Refusals become warm notices from `strings.arena.errors`. */
+  startArenaRun: () => boolean;
+  applyArenaOutcome: (input: RunOutcomeInput) => boolean;
+  pickArenaBuff: (buffId: string) => boolean;
+  bankArenaRun: (choice: BankChoice) => boolean;
+  buyArenaGear: (habit: HabitId, itemId: string) => boolean;
+  buyArenaTraining: (habit: HabitId) => boolean;
+  buyArenaDecor: (comboId: string) => boolean;
+  submitArenaRequest: (text: string, source?: 'text' | 'voice') => boolean;
 }
 
 export type GameStore = GameState & GameActions;
@@ -303,6 +358,21 @@ export const useGameStore = create<GameStore>()(
         return apply({ save: r.save, events: oneOutpostToast(r.events) });
       };
       const nameOf = (id: string) => (save: SaveFile) => ({ name: save.map.outposts.find((o) => o.id === id)?.name ?? 'it' });
+
+      /** Arena mutators: translate `arena.*` refusal codes into `strings.arena.errors`. */
+      const withArena = (fn: (save: SaveFile, now: number) => ActionResult): boolean => {
+        const save = get().save;
+        if (!save) return false;
+        const r = fn(save, now());
+        if (r.error !== undefined) {
+          const message = arenaNotice(r.error);
+          set((s) => {
+            s.notice = message;
+          });
+          return false;
+        }
+        return apply(r);
+      };
 
       return {
         ...INITIAL_STATE,
@@ -464,6 +534,15 @@ export const useGameStore = create<GameStore>()(
             s.notice = null;
           });
         },
+
+        startArenaRun: () => withArena((save, now) => startRun(save, now)),
+        applyArenaOutcome: (input) => withArena((save, now) => applyRunOutcome(save, input, now)),
+        pickArenaBuff: (buffId) => withArena((save) => pickLotteryBuff(save, buffId)),
+        bankArenaRun: (choice) => withArena((save, now) => bankRun(save, choice, now)),
+        buyArenaGear: (habit, itemId) => withArena((save, now) => buyGear(save, habit, itemId, now)),
+        buyArenaTraining: (habit) => withArena((save, now) => buyTraining(save, habit, now)),
+        buyArenaDecor: (comboId) => withArena((save, now) => buyDecor(save, comboId, now)),
+        submitArenaRequest: (text, source = 'text') => withArena((save, now) => submitArenaRequest(save, text, now, { source })),
       };
     }),
     {

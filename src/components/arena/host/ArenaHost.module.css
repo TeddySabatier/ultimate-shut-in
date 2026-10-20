@@ -1,0 +1,22 @@
+.host {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  min-height: 0;
+}
+
+.stage {
+  min-width: 0;
+  min-height: 0;
+}
+
+.status {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+@media (max-height: 500px) {
+  .host {
+    gap: var(--space-2);
+  }
+}

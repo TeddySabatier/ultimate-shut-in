@@ -220,6 +220,18 @@ Caps: **3 + your ring** active outposts (4 at The Room, 10 at The City), at most
 
 Bonuses are small and capped: XP bonuses total at most +20%, coins +15%, wave DP +10%, flat defense +12.
 
+## The Arena
+
+The Arena is a card on the Haven screen, under the recent log. It is not a sixth tab. Settlement coins are the currency here; Domain Points are never spent.
+
+**Armory.** Each vassal has three slots (Hand, Kit, Charm). Gear and training raise the power the troops take into a mini-game. Training is capped each wave so coins cannot replace habits. Haven decor hangs a combo name in the hall; it is cosmetic.
+
+**Runs.** Entering costs a small fee, never more than a typical day's settlement. Games chain until you bank or the troops come home. A win opens a lottery of three buffs; pick one for the rest of the outing. A loss or a leave clears those buffs. Kit you bought and anything already banked stay.
+
+**Banking.** After a win you can keep going or bank the score as settlement, a one-period wave defense bonus, or (on a high score) a rare Armory piece.
+
+**Ask for a game.** Describe what you want. It is saved on this device. The engineers are reading.
+
 ## Combos
 
 From The Flat on, finishing quests of two particular habits **on the same day** forges a silly improvised weapon that adds defense to the next wave. Each combo forges at most once per week, at most 6 count, and they are all used up when the wave settles. Undoing a quest that breaks the pair removes the item.
