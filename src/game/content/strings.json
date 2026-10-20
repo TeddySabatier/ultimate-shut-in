@@ -253,6 +253,38 @@
         "A good run in the Arena: {wins} wins banked."
       ]
     },
+    "host": {
+      "loading": "The troops are heading out...",
+      "routeFailed": "The Arena did not load",
+      "missing": "That game is not available right now. The troops come home.",
+      "loadFailed": "The game did not load. Check the connection and try again: once loaded, games work offline.",
+      "crashed": "The game stopped working, so the troops come home.",
+      "retry": "Try again",
+      "leave": "Bring the troops home",
+      "left": "Left the game.",
+      "invalid": "That game gave an answer the Arena could not read, so it counts as leaving.",
+      "roomLine": "Room {room}, difficulty {difficulty} of 5",
+      "spoilsLine": "Spoils so far: {coins} coins",
+      "leaveNote": "Leaving a game ends the run: the troops come home with a share of the spoils.",
+      "buffsHeading": "Run buffs",
+      "noBuffs": "No buffs yet. Win a game and the Lottery opens.",
+      "resultHeading": "After the game",
+      "continue": "Continue",
+      "resultWon": "Won",
+      "resultLost": "Lost",
+      "resultFled": "Left early",
+      "scoreLine": "Score {score} of 1000",
+      "coinsLine": "+{coins} coins added to the spoils",
+      "homeLine": "The troops are home. {coins} coins came with them.",
+      "learnedHeading": "What you learned",
+      "logHeading": "What happened"
+    },
+    "toastTitles": {
+      "armory": "Armory",
+      "training": "Training",
+      "decor": "Haven decor",
+      "request": "Arena"
+    },
     "toasts": {
       "gearBought": "{troop} now carries the {item}.",
       "gearEquipped": "{troop} takes the {item}.",
@@ -262,6 +294,180 @@
       "runStarted": "The troops head into the Arena.",
       "banked": "Spoils banked.",
       "runEnded": "The troops are home."
+    },
+    "ui": {
+      "title": "Arena",
+      "back": "Back to the Haven",
+      "purse": "{coins} coins",
+      "purseLabel": "Your purse: {coins} coins",
+      "failed": "That did not work this time. Try again.",
+      "requestThanks": "The engineers are reading.",
+      "card": {
+        "title": "The Arena",
+        "line": "Send the troops out to test what they practise.",
+        "fee": "Entry fee {fee} coins",
+        "stats": "Best chain {best} · {runs} runs today",
+        "waiting": "A run is waiting for you.",
+        "open": "Open the Arena"
+      },
+      "entry": {
+        "heading": "Enter a run",
+        "explain": "Each room is a short game. After a win the Lottery opens, and you can bank the spoils whenever you like. If a room beats the troops, they come home with a quarter of the spoils.",
+        "fee": "Entry fee: {fee} coins",
+        "enter": "Enter the Arena",
+        "short": "You need {missing} more coins. Your habits will fill the purse.",
+        "noGames": "No games yet. The engineers are building them.",
+        "locked": "The games open at a higher ring. Keep up your habits and they will be ready.",
+        "daily": "That is {runs} runs today. Maybe let the troops rest. Every button still works.",
+        "defense": "Wave defense banked for this week: +{amount}"
+      },
+      "games": {
+        "heading": "Games",
+        "locked": "Opens at ring {ring}",
+        "party": "Troops: {min} to {max}",
+        "partyExact": "Troops: {min}",
+        "minutes": "About {minutes} min",
+        "teaches": "Teaches: {skill}",
+        "categories": {
+          "strategy": "Strategy",
+          "ai-learning": "AI learning",
+          "self-development": "Self-development",
+          "puzzle": "Puzzle",
+          "arcade": "Arcade",
+          "defense": "Defense"
+        }
+      },
+      "run": {
+        "heading": "Your run",
+        "spoils": "Spoils: {coins} coins from {wins} wins",
+        "atRisk": "If a room beats the troops, {coins} coins still come home.",
+        "buffsHeading": "Buffs this run",
+        "noBuffs": "No buffs yet.",
+        "decideHeading": "Bank or go on",
+        "decideIntro": "The troops won that room. Go on to the next one, or bank what they carry.",
+        "next": "Next game",
+        "nextNote": "Each room is a little harder and pays a little more.",
+        "lastRoom": "That was the last room. Time to bank the spoils."
+      },
+      "lottery": {
+        "heading": "The Lottery",
+        "intro": "A win. Pick one blessing for the rest of this run.",
+        "rare": "Rare",
+        "skip": "You may also bank now and skip the pick."
+      },
+      "units": {
+        "attack": {
+          "one": "+{amount}% attack",
+          "many": "+{amount}% attack"
+        },
+        "defense": {
+          "one": "+{amount}% defense",
+          "many": "+{amount}% defense"
+        },
+        "luck": {
+          "one": "+{amount}% luck",
+          "many": "+{amount}% luck"
+        },
+        "time": {
+          "one": "+{amount} second",
+          "many": "+{amount} seconds"
+        },
+        "hint": {
+          "one": "{amount} hint",
+          "many": "{amount} hints"
+        },
+        "revive": {
+          "one": "{amount} revive",
+          "many": "{amount} revives"
+        }
+      },
+      "bank": {
+        "heading": "Bank the spoils",
+        "intro": "Banking ends the run. Pick one reward; the other two are given up.",
+        "coins": "Take {coins} coins",
+        "coinsHelp": "The spoils go into your purse.",
+        "defense": "+{amount} wave defense",
+        "defenseHelp": "Helps the walls hold at this week's wave. No coins come with it.",
+        "item": "Take a rare item",
+        "itemHelp": "One rare piece of gear goes to the stash, for a troop to wear.",
+        "itemShort": "A rare item needs {min} wins. The troops have {wins}."
+      },
+      "summary": {
+        "heading": "The troops are home",
+        "banked": "Banked after {wins} wins.",
+        "lost": "A room beat the troops after {wins} wins. They came home safe.",
+        "fled": "The troops left early after {wins} wins.",
+        "coins": "+{coins} coins in the purse",
+        "defense": "+{defense} wave defense this week",
+        "item": "New in the stash: {item}",
+        "nothing": "Nothing came home this time. Gear and training always stay.",
+        "dismiss": "Close"
+      },
+      "armory": {
+        "heading": "Armory",
+        "intro": "What you buy here stays. Gear and training add a little power; habits add the most.",
+        "power": "Power {power}",
+        "trained": "Training {bumps}/{max}",
+        "noGear": "No gear",
+        "slots": {
+          "weapon": "Weapon",
+          "armor": "Armor",
+          "charm": "Charm"
+        },
+        "empty": "Empty",
+        "worn": "{item} (T{tier}), +{power} power",
+        "offer": "Next: {item} (T{tier}), +{power} power, {price} coins",
+        "buy": "Buy",
+        "buyLabel": "Buy {item} for {troop}, {price} coins",
+        "best": "Nothing better is sold for this slot.",
+        "purse": "You have {coins}",
+        "trainHeading": "Training",
+        "trainOffer": "Next session: +{power} power for {price} coins",
+        "trainWeek": "This week: {spent} of {cap} coins, {bumps} of {max} sessions",
+        "train": "Train",
+        "trainLabel": "Train {troop}, {price} coins",
+        "powerNow": "{troop} now has power {power}.",
+        "stashHeading": "Stash",
+        "stashEmpty": "No rare items yet. Bank a run of {min} wins or more to win one.",
+        "stashItem": "{item} (T4), {slot}, +{power} power",
+        "troopFor": "Troop for {item}",
+        "wear": "Wear",
+        "wearLabel": "Give {item} to {troop}",
+        "wearSwap": "{troop} gives up the {item}.",
+        "wearBack": "The {item} goes back to the stash.",
+        "decorHeading": "Haven decor",
+        "decorIntro": "A name from the forge, given a place in the Haven. Just for looks.",
+        "decorPrice": "{price} coins",
+        "decorLabel": "Buy {decor} for the Haven, {price} coins",
+        "decorCount": "{owned} of {total} pieces are in the Haven.",
+        "owned": "In the Haven",
+        "rare": "Rare"
+      },
+      "request": {
+        "heading": "Ask for a game",
+        "intro": "Describe a game you would like to play here. It stays on this device; the engineers read it when you share a save export.",
+        "label": "The game you would like",
+        "placeholder": "e.g. a short chess puzzle where my vassals are the pieces",
+        "count": "{count} of {max} characters",
+        "left": "Requests left today: {left}",
+        "send": "Send",
+        "yoursHeading": "Your requests",
+        "empty": "No requests yet.",
+        "dated": "{date} · {source}"
+      },
+      "runLog": {
+        "heading": "Recent runs",
+        "empty": "No runs yet. The first one is waiting.",
+        "line": "{date} · ring {ring} · {wins} wins",
+        "ends": {
+          "banked": "Banked",
+          "lost": "Came home",
+          "fled": "Left early"
+        },
+        "coins": "{coins} coins",
+        "defense": "+{defense} wave defense",
+        "learnedIn": "Learned in {game}"
+      }
     }
   },
   "benevolence": {

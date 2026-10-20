@@ -1,0 +1,167 @@
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { GameScreenProps, Outcome } from '../../../games/contract';
+import { seedStore, currentSave } from '../../../test/storeUtils';
+import { useGameStore } from '../../../state/gameStore';
+
+const fake = vi.hoisted(() => ({
+  manifest: {
+    id: 'fake',
+    name: { en: 'Fake', fr: 'Faux' },
+    tagline: { en: 'A fake game', fr: 'Un faux jeu' },
+    category: 'puzzle',
+    minRing: 1,
+    rosterSize: { min: 1, max: 3 },
+    estMinutes: 1,
+    supportsReducedMotion: true,
+  },
+  engine: {},
+  strings: { en: {}, fr: {} },
+}));
+
+vi.mock('./catalog', async () => {
+  const React = await import('react');
+  function Screen(props: GameScreenProps) {
+    const ids = props.party.members.map((m) => m.id);
+    const win: Outcome = { result: 'won', score: 700, log: ['Fine.'], troopsUsed: ids.slice(0, 1) };
+    return React.createElement(
+      'div',
+      null,
+      React.createElement('p', { 'data-testid': 'ctx' }, `${ids.length}|${props.run.roomIndex}|${props.run.difficulty}|${props.run.buffs.length}|${props.locale}|${String(props.reducedMotion)}`),
+      React.createElement('button', { type: 'button', onClick: () => props.onFinish(win) }, 'win'),
+      React.createElement('button', { type: 'button', onClick: () => props.onFinish({ ...win, score: 5000, troopsUsed: ['ghost'] }) }, 'bad'),
+      React.createElement('button', { type: 'button', onClick: () => props.onExit() }, 'exit'),
+      React.createElement(
+        'button',
+        {
+          type: 'button',
+          onClick: () => {
+            props.onExit();
+            props.onFinish(win);
+          },
+        },
+        'exit then finish',
+      ),
+    );
+  }
+  return {
+    getGame: (id: string) => (id === 'fake' ? fake : undefined),
+    loadScreen: async () => Screen,
+    listedGames: () => [fake],
+    gameCandidates: () => [{ id: 'fake', minRing: 1, rosterMin: 1 }],
+    gameLocale: () => 'en' as const,
+  };
+});
+
+import { ArenaHost } from './ArenaHost';
+
+const CANDIDATES = [{ id: 'fake', minRing: 1, rosterMin: 1 }];
+
+function startRun(): void {
+  seedStore('Host', { reducedMotion: true });
+  useGameStore.setState((s) => {
+    if (s.save) s.save.player.coins = 500;
+  });
+  expect(useGameStore.getState().arenaEnter(CANDIDATES)).toBe(true);
+}
+
+function mount() {
+  const onHold = vi.fn();
+  const onDone = vi.fn();
+  render(<ArenaHost hostKey="k" onHold={onHold} onDone={onDone} />);
+  return { onHold, onDone };
+}
+
+let errorSpy: ReturnType<typeof vi.spyOn>;
+beforeEach(() => {
+  errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+});
+afterEach(() => {
+  errorSpy.mockRestore();
+});
+
+describe('the Arena host', () => {
+  it('mounts the game with the built party (first rosterSize.max troops), the run context, the language and reduced motion', async () => {
+    startRun();
+    mount();
+    expect(await screen.findByTestId('ctx')).toHaveTextContent('3|0|1|0|en|true');
+    expect(screen.getByTestId('arena-room')).toHaveTextContent('Room 1, difficulty 1 of 5');
+  });
+
+  it('applies a valid win through the store and shows the result panel with the way on', async () => {
+    startRun();
+    const { onHold, onDone } = mount();
+    fireEvent.click(await screen.findByRole('button', { name: 'win' }));
+    expect(onHold).toHaveBeenCalledTimes(1);
+    const run = currentSave().arena.run!;
+    expect(run.phase).toBe('lottery');
+    expect(run.pending.wins).toBe(1);
+    expect(run.games[0]).toMatchObject({ gameId: 'fake', result: 'won', score: 700 });
+    expect(screen.getByTestId('arena-result-title')).toHaveTextContent('Won');
+    // The final board stays on show under the panel.
+    expect(screen.getByRole('button', { name: 'win' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(onDone).toHaveBeenCalledTimes(1);
+  });
+
+  it('records one outcome only: a second finish is ignored', async () => {
+    startRun();
+    mount();
+    const win = await screen.findByRole('button', { name: 'win' });
+    fireEvent.click(win);
+    fireEvent.click(win);
+    expect(currentSave().arena.run!.pending.wins).toBe(1);
+  });
+
+  it('treats an invalid outcome as fled with score 0, logs it, and never pays', async () => {
+    startRun();
+    mount();
+    const coins = currentSave().player.coins;
+    fireEvent.click(await screen.findByRole('button', { name: 'bad' }));
+    const save = currentSave();
+    expect(save.arena.run).toBeNull();
+    expect(save.arena.log[0]).toMatchObject({ end: 'fled', wins: 0 });
+    expect(save.arena.log[0]!.games[0]).toMatchObject({ result: 'fled', score: 0 });
+    expect(save.player.coins).toBe(coins);
+    expect(errorSpy).toHaveBeenCalled();
+    expect(screen.getByTestId('arena-result-title')).toHaveTextContent('Left early');
+  });
+
+  it('leaving before the end records fled', async () => {
+    startRun();
+    mount();
+    fireEvent.click(await screen.findByRole('button', { name: 'exit' }));
+    await waitFor(() => expect(currentSave().arena.run).toBeNull());
+    expect(currentSave().arena.log[0]).toMatchObject({ end: 'fled' });
+  });
+
+  it('a game that finishes right after asking to leave keeps its own outcome', async () => {
+    startRun();
+    mount();
+    const button = await screen.findByRole('button', { name: 'exit then finish' });
+    await act(async () => {
+      fireEvent.click(button);
+      await new Promise((r) => setTimeout(r, 20));
+    });
+    const run = currentSave().arena.run!;
+    expect(run.games[0]).toMatchObject({ result: 'won', score: 700 });
+  });
+
+  it('leaving after the end just moves on', async () => {
+    startRun();
+    const { onDone } = mount();
+    fireEvent.click(await screen.findByRole('button', { name: 'win' }));
+    fireEvent.click(screen.getByRole('button', { name: 'exit' }));
+    expect(onDone).toHaveBeenCalledTimes(1);
+  });
+
+  it('closes a run whose game is no longer listed instead of leaving it stuck', async () => {
+    startRun();
+    useGameStore.setState((s) => {
+      if (s.save?.arena.run?.current) s.save.arena.run.current.gameId = 'gone';
+    });
+    mount();
+    fireEvent.click(await screen.findByRole('button', { name: 'Bring the troops home' }));
+    expect(currentSave().arena.run).toBeNull();
+  });
+});

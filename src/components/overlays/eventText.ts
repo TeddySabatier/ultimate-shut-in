@@ -3,7 +3,7 @@
  * `strings.json` pools (seeded so a re-render shows the same line) or from a
  * content definition; nothing here computes a number.
  */
-import { formatLine, getCombo, getHabit, getOutpostState, getTitle, nextOutpostState, resolveTemplate, strings, TIED_HABIT, vassalName, type GameEvent, type SaveFile } from '../../game';
+import { formatLine, getArenaItem, getCombo, getHabit, getOutpostState, getTitle, nextOutpostState, resolveTemplate, strings, TIED_HABIT, vassalName, type GameEvent, type SaveFile } from '../../game';
 import { seededLine } from '../../state/selectors';
 import type { WindowTone } from '../SystemWindow';
 
@@ -79,7 +79,7 @@ export function eventKey(e: GameEvent): string {
       return `${e.type}:${e.outpostId}:${e.state}`;
     case 'outpostWithinWalls':
       return `${e.type}:${e.outpostId}:${e.ring}`;
-    // Arena events (brief G1): G2 gives them their own toasts.
+    // Arena events (brief G).
     case 'arenaRunStarted':
     case 'arenaGameResolved':
     case 'arenaBuffPicked':
@@ -179,6 +179,16 @@ export function toastCopy(save: SaveFile, e: GameEvent): ToastCopy | null {
       return { title: 'Retired', line: formatLine(strings.map.toasts.retired, { name: outpostName(save, e.outpostId) }), tone: 'default' };
     case 'outpostRestored':
       return { title: 'Restored', line: formatLine(strings.map.toasts.restored, { name: outpostName(save, e.outpostId) }), tone: 'success' };
+    case 'arenaGearBought':
+      return { title: strings.arena.toastTitles.armory, line: formatLine(strings.arena.toasts.gearBought, { troop: vassalName(e.habit), item: getArenaItem(e.itemId)?.name ?? 'the gear' }), tone: 'success' };
+    case 'arenaGearEquipped':
+      return { title: strings.arena.toastTitles.armory, line: formatLine(strings.arena.toasts.gearEquipped, { troop: vassalName(e.habit), item: getArenaItem(e.itemId)?.name ?? 'the gear' }), tone: 'accent' };
+    case 'arenaTrained':
+      return { title: strings.arena.toastTitles.training, line: formatLine(strings.arena.toasts.trained, { troop: vassalName(e.habit), bumps: e.bumps }), tone: 'success' };
+    case 'arenaDecorBought':
+      return { title: strings.arena.toastTitles.decor, line: formatLine(strings.arena.toasts.decorBought, { decor: getCombo(e.decorId)?.name ?? 'The decor' }), tone: 'success' };
+    case 'arenaRequestSaved':
+      return { title: strings.arena.toastTitles.request, line: strings.arena.toasts.requestSaved, tone: 'accent' };
     default:
       return null;
   }
