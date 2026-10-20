@@ -11,8 +11,8 @@ export default defineGame({
     id: 'decision-dungeon',
     name: { en: 'Decision Dungeon', fr: 'Donjon des choix' },
     tagline: {
-      en: 'Everyday friction, four doors. Practise a kinder next step.',
-      fr: 'Un accroc du quotidien, quatre portes. Entraîne un geste plus juste.',
+      en: 'Everyday snags, three or four doors. Practise a kinder next step.',
+      fr: "Un accroc du quotidien, trois ou quatre portes. Entraîne-toi à un geste plus juste.",
     },
     category: 'self-development',
     minRing: 1,
