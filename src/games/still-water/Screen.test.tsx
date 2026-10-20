@@ -266,6 +266,26 @@ describe('Still Water screen: reduced motion, leaving and the end', () => {
     expect(screen.getByRole('button', { name: 'Leave' })).toBeInTheDocument();
   });
 
+  it('a perfect player holds with the keys through the whole game and wins with a full score', () => {
+    const p = props({ run: emptyRun(1), party: noMove });
+    render(<StillWaterScreen {...p} />);
+    begin();
+    wait(LEAD_TICKS * 50 + 200);
+    for (let cycle = 0; cycle < 5; cycle++) {
+      fireEvent.keyDown(window, { key: ' ' });
+      wait(6000);
+      fireEvent.keyUp(window, { key: ' ' });
+      wait(6000);
+    }
+    wait(300);
+    expect(p.onFinish).toHaveBeenCalledTimes(1);
+    const got = vi.mocked(p.onFinish).mock.calls[0]![0] as Outcome;
+    expect(got.result).toBe('won');
+    expect(got.score).toBe(1000);
+    expect(screen.getByTestId('still-water-banner')).toHaveTextContent('The pond is still');
+    expect(screen.getByTestId('still-water-banner')).toHaveTextContent('Breath matched 100 %. Ripples let go: 1 of 1.');
+  });
+
   it('writes French when the locale is fr, with tu', () => {
     const p = props({ locale: 'fr' });
     render(<StillWaterScreen {...p} />);

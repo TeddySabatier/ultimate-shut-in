@@ -1,81 +1,113 @@
 # Still Water (`still-water`)
 
-A still pond. A soft ring expands and contracts with a slow breath. Hold with the inhale and the peak, release with the exhale. Small ripples (a leaf, a fish, a flicker) pass after the first two cycles: let them go. The water level is a running score, never a failure state.
+A still pond. A soft ring grows while you breathe in, rests at the top, and shrinks while you breathe out. You hold a button (or Space, or Enter) with the breath and let go as it falls, as closely in time as you can. Small ripples (a leaf, a fish, a flicker of light) drift past after the first two cycles: let them go, do not touch them. The pond fills as your breathing matches. It is a short, forgiving attention exercise for the Arena, never a test you can fail in a way that matters.
 
-This is a short practice for sustained attention and calm pacing. **It is not therapy and not a medical tool.**
+**This is a practice for sustained attention and calm pacing. It is not therapy and not a medical tool.** It makes no health claim, gives no diagnosis and is no substitute for professional care. The same one-line note ("A short attention practice. Not therapy, not a medical tool.") is on screen all the time, in English and French.
 
 | Field | Value |
 | --- | --- |
 | Category | self-development |
 | Minimum ring | 1 |
 | Roster | 1 to 8 |
-| Length | about 2 minutes |
+| Length | about 1 to 1.5 minutes (62 to 92 s) |
+| Practised | sustained attention, slow pacing |
 
 ## How to play
 
-Touch: press and hold the large **Hold with the breath** button while the ring grows (and while it rests at the peak); release while it shrinks. Keyboard: Space or Enter do the same. Every control is a real button.
+1. **Ready.** The first screen shows the rhythm, what your party brings and a **Begin** button. A troop of Move lets you pick the pace here (below).
+2. **Get ready.** Two seconds of lead-in (cue "Get ready"). Nothing is scored.
+3. **Breathe.** Hold with the breath in and with the rest at the top ("Hold"), let go during the breath out. Each cycle is scored on its own and a short line under the pond reports it ("Cycle 2: the breath matched 84 %.").
+4. **Ripples.** A leaf, a fish or a flicker shows in a reserved row, for 1.5 to 2.5 seconds. Ignore it: that adds to your **steadiness** (shown as "Ripples let go: 1 of 2"). Touch it and you lose a little **calm**. Only one ripple is on the water at a time and none appears in the first two cycles.
+5. **The end.** After the last cycle the pond shows its words and the score. You can **Step away** at any time (the game's own leave action: it ends as `fled`, keeps the pond on screen and scores the cycles you did), and **Leave** is a separate button.
 
-An optional **Tap each phase** mode (off by default) lets you press once at the start of breathe in, hold, and breathe out instead of holding. An optional **Pulse on phase change** uses `navigator.vibrate` when the browser supports it; it is off by default. There is no sound.
+Controls (every one is a real button of at least 44 px):
 
-**Pause** stops the clock. **Step away** is the engine's forfeit and ends as `fled` while keeping the board. **Leave** is a separate button.
+- **Hold with the breath**: press and hold the big button with a finger or the mouse, or press and hold **Space** or **Enter** (the button has the focus once you begin). A key held when the window loses focus lets go by itself.
+- **Pause** stops the clock and releases the breath. A hidden browser tab pauses by itself.
+- **Tap each phase** (off by default): for people who cannot hold. Press once when the breath in starts and once when the breath out starts; a press during the breath in or the rest means "hold", a press during the breath out means "let go". It is the same score, only the way of telling it differs.
+- **Pulse on phase change** (off by default, shown only where the browser has `navigator.vibrate`): a 12 ms vibration at each phase change. There is **no sound** and no setting for one. Both options reset at every game; nothing is stored.
 
-Reduced motion: the ring is replaced by a progress bar. The same text cue (`Breathe in` / `Hold` / `Breathe out`) stays in an `aria-live` region, so a screen reader can follow the game.
-
-A game lasts 5 to 8 cycles, always under two minutes.
+**Reduced motion** (the OS setting, or the Lab's switch): the ring is replaced by a plain progress bar and the same text cue ("Breathe in", "Hold", "Breathe out") in a polite `aria-live` region, so a screen reader announces every phase. The bar has the role `progressbar`, a name and a text value that changes only at a phase change (no number is read twenty times a second). The ring itself is hidden from assistive technology, since the cue says everything. Nothing flashes or changes brightness suddenly; the game plays the same.
 
 ## Rhythm table
 
-One tick is 50 ms (`FIXED_DT_MS`). Difficulty 1 is the brief's 4-2-6. Difficulty 2 is 5-3-7. Difficulties 3 to 5 are faster, shorter cycles.
+One tick is 50 ms (`FIXED_DT_MS`), the engine counts ticks and never reads a clock. Times are inhale, hold (the rest at the top) and exhale. The cycle count is fixed per difficulty; the lead-in adds 2 s.
 
-| Difficulty | Inhale | Hold | Exhale | Cycles | Base grace | About |
-| --- | --- | --- | --- | --- | --- | --- |
-| 1 | 4 s | 2 s | 6 s | 5 | 8 ticks (400 ms) | gentle |
-| 2 | 5 s | 3 s | 7 s | 6 | 6 ticks | longer hold |
-| 3 | 4 s | 2 s | 5 s | 6 | 5 ticks | a little faster |
-| 4 | 3 s | 2 s | 4 s | 7 | 3 ticks | fast |
-| 5 | 3 s | 1 s | 3.5 s | 8 | 2 ticks | fastest |
+| Difficulty | Inhale | Hold | Exhale | Cycle | Cycles | Game length | Base grace |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 4 s | 2 s | 6 s | 12 s | 5 | 62 s | 8 ticks (0.4 s) |
+| 2 | 5 s | 3 s | 7 s | 15 s | 6 | 92 s | 6 ticks (0.3 s) |
+| 3 | 4 s | 2 s | 5 s | 11 s | 6 | 68 s | 5 ticks (0.25 s) |
+| 4 | 3 s | 2 s | 4 s | 9 s | 7 | 65 s | 3 ticks (0.15 s) |
+| 5 | 3 s | 1 s | 3.5 s | 7.5 s | 8 | 62 s | 2 ticks (0.1 s) |
 
-The Move troop adds `floor(power / 10)` ticks to every phase. Sleep and the `time` buff widen the grace window around each boundary (capped so a core of each phase remains).
+Difficulty 1 is the brief's 4-2-6; difficulty 2 is 5-3-7, the longest and slowest; 3 to 5 are shorter cycles with a narrower grace. The Arena's difficulty maps straight on (`run.difficulty`).
+
+**Pace (Move troop).** A party with at least one `move` vassal can choose, before it begins, a **Brisk** (80 % of every phase), **Steady** (100 %, the table above) or **Slow** (125 %) pace. There is no score multiplier: the grace and the scoring are the same, only the length of the breath changes (a slow game at difficulty 2 lasts 114 s, still under two minutes). The choice is the engine's `pace` action, accepted only before the first tick.
 
 ## Score
 
-Accuracy is the overlap between the player's hold and the ideal hold (inhale + peak). Grace ticks at the boundaries are ignored. A cycle that lands under 50 percent can be forgiven once by a `revive` (counted as 70 percent).
+Each tick of a cycle is one of three kinds. The first and last `grace` ticks of a cycle and `grace` ticks on each side of the release point are **grace**: not scored, so a late press, an early press or a late release inside the grace costs nothing. A **hold tick** is where the ideal is held; a **release tick** is where it is not.
 
-Final score, clamped to 0..1000:
+`cycle accuracy = floor(100 × max(0, hits − false holds) / ideal)`, where `hits` is the hold ticks in which you were holding, `false holds` the release ticks in which you were holding, and `ideal` the number of hold ticks in a cycle (`inhale + hold − 2 × grace`).
 
-`averageAccuracy * 10 + steadiness * 8 + (hint ? 10 : 0) - (100 - calm)`
+- Perfect: 100. Never held: 0. Always held: hits equal the ideal and false holds nearly equal it, so it scores 0 to 21 percent (it never gets near the win line).
+- Press or release `L` ticks late, past the grace: `L` hits are lost and `L` false holds counted. Release `E` ticks early: `E` hits lost.
+- A cycle under 50 percent is forgiven by a `revive` buff and counts as 70.
 
-Calm starts at 100; tapping a ripple costs 15. Each ignored ripple adds 1 to steadiness. **Won** at 600 or more. **Lost** otherwise, with warm copy: "The pond is still here. Try again whenever you like." **Fled** on Step away. Never shame.
+`score = round(mean cycle accuracy × ceiling / 100)`, where cycles you did not play count as 0 and `ceiling = 850 + floor(100 × ripples let go / ripples) + floor(50 × calm / 100)` (with no ripples the whole 100 is kept). `calm` starts at 100 and every ripple touched costs 15. The ceiling is why ignoring the ripples matters: perfect breathing and no touch scores 1000, perfect breathing and every ripple touched is at most 892.
 
-`learned` is a one-line note about slow exhales, phrased as a general practice tip, not advice.
+**Won** at 600 or more (60 percent). **Lost** below that, with warm words: "The pond is still here. Try again whenever you like." (French: "L'étang est toujours là. Reviens quand tu veux."). **Fled** when you step away. Nothing in the copy blames the player: the troops simply come home.
+
+The **water** of the pond is a smooth running score: `hits − false holds` over all the ideal ticks so far, never below 0, filling over the first cycle. It is a picture of how the breath matches, never a failure state. The final `Outcome.stats` carry the cycle count, mean accuracy, water, steadiness, ripples, taps, calm, revives used, grace in ticks, hint cycles and pace.
+
+`learned`: topic "Slow exhales" (French "Expirations lentes") and a one-line general practice tip: "A common practice tip: letting the out-breath run a little longer than the in-breath can help you feel steadier. A general tip, not advice." (French in the same spirit, with "tu".)
 
 ## Party
 
-- **Sleep**: rest helps. `floor(power / 8)` extra grace ticks. A level-12 Sleep vassal (power 44) is clearly more forgiving than a party with no Sleep.
-- **Eat**: leaves a faint ideal-timing guide on the water (`showHint`) and the +10 hint bonus.
-- **Move**: eases the rhythm. `floor(power / 10)` extra ticks on every phase, so a practised mover gives the body more time.
-- Every member sits by the pond and is listed in `troopsUsed`. Titles are not used. Playable with three level-1 vassals and with a citizen (`habit: null`).
+The party is how much rest, food and movement the player really put in, and each of the three habits changes the pond in a way you can see before you begin:
+
+- **Sleep** ("Rest helps"): the timing grace widens by one tick per 8 power of Sleep troops (`floor(power / 8)`). Level 12 and loyalty 80 (power 44) gives 5 more ticks (0.25 s) on each side of every boundary; the ready screen says the grace in seconds.
+- **Eat**: a gentle line under the cue says what comes next and when ("In 3 s: hold"), for the whole game. It is visual only (it does not repeat in the screen reader, which gets the phase change).
+- **Move**: the pace choice above, and the troop is named on the ready screen.
+- Every member sits by the pond and is listed in `troopsUsed`. Members with no habit (citizens) and the other habits (Outside, Clean, Social, Study, Hygiene) take no part in the rules, but the game is playable with any party, even one troop. Titles (`traits`) are not used. With the three starter vassals (Move, Outside, Clean, level 1) the game is fully playable and a fresh player simply has the base grace.
 
 ## Buffs
 
-- `time`: +1 grace tick per second of buff.
-- `hint`: the same guide as Eat, and the +10 bonus.
-- `revive`: forgives one missed cycle.
-- `luck`: removes one planned ripple.
-- `attack` and `defense` are ignored: there is no combat.
+- `time` (seconds): one extra grace tick per 2 seconds of buff (20 s is 10 ticks, half a second). The grace is capped at the shortest phase minus 2 ticks, so a scored core always remains.
+- `hint` (count): the "what comes next" line for that many cycles (all of them with an Eat troop).
+- `revive` (count): that many cycles under 50 percent count as 70 percent.
+- `luck`: removes one ripple from the pond for any amount (the planned count is 1, 1, 2, 2, 3 by difficulty).
+- `attack` and `defense` are ignored: there is no combat and no damage in a breathing exercise.
 
 ## Determinism
 
-Setup (gusts that the bot sits out, and the ripples) comes from `mulberry32(fnv1a('still-water:<seed>'))`. Time is only `{ type: 'tick' }`. The same seed, party and run always give the same game. The locale changes only the language of the log.
+Setup comes from `mulberry32(fnv1a('still-water:<seed>'))`: only the ripples (kind and time, one slot each after the first two cycles). The pace rebuilds that layout from the same seed. Time is only `{ type: 'tick' }`; the score is integer arithmetic over ticks, so a seed replays identically on any device. The locale changes only the language of the log. The engine files use no clock, no `Math.random` and no `navigator`; the vibration and the focus handling live in `Screen.tsx`.
 
 ## Bot
 
-`botPlay` holds late by a difficulty-dependent number of ticks and skips gust cycles. It never taps a ripple and never forfeits. On difficulty 1 it usually wins; on 5 it wins less often.
+`botPlay` presses `p` ticks after each cycle starts and lets go within `r` ticks of the ideal point, where `p` and `r` are drawn per cycle from the seed (`turnRng(seed, 1000 + cycle)`) and scaled by the difficulty; with a seeded chance the cycle is a lapse of attention and the errors triple. It also taps, with a seeded chance, a ripple a few ticks after it appears. It never steps away. The table is tuned so that the bot's win rate falls with the difficulty (400 seeds each, full party and starter party):
+
+| Difficulty | Bot error (spread / lapse % / ripple tap %) | Starter party wins | Full party wins |
+| --- | --- | --- | --- |
+| 1 | 40 ticks / 20 / 0 | 91 % | 94 % |
+| 2 | 52 / 40 / 10 | 58 % | 66 % |
+| 3 | 42 / 40 / 15 | 49 % | 59 % |
+| 4 | 36 / 40 / 20 | 39 % | 56 % |
+| 5 | 32 / 40 / 25 | 24 % | 44 % |
+
+The bot is a clumsy breather on purpose (its press is up to 2 seconds late at difficulty 1) so that normal difficulty sits in the 40 to 70 percent band; a person following the ring is much more precise than that.
+
+## Known limits
+
+- Real-time play from the keyboard or a touch needs the tab to be visible; a hidden tab pauses the game.
+- A screen reader user hears the phases and one report per cycle, not a running water level. The pond's water is a visual bonus.
+- Tap each phase keys off the engine's phase at the moment of the press, so a very early press for the next phase counts for the current one.
 
 ## Screenshots
 
 Written by `e2e/games/still-water.spec.ts` (`shootGame`, mobile project).
 
-| Start | Reduced motion | End |
+| Start | Playing | Reduced motion |
 | --- | --- | --- |
-| ![Still Water at the start](img/still-water-start.png) | ![Still Water with reduced motion](img/still-water-reduced.png) | ![Still Water at the end](img/still-water-end.png) |
+| ![Still Water ready to begin](img/still-water-start.png) | ![Still Water mid-breath](img/still-water-play.png) | ![Still Water with reduced motion](img/still-water-reduced.png) |
