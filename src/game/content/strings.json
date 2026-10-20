@@ -242,16 +242,16 @@
     },
     "log": {
       "lost": [
-        "The troops came home from the Arena after {wins} wins. {coins} coins in their packs.",
-        "A run ended and the troops came home. {wins} wins, {coins} coins carried back."
+        "The troops came home from the Arena. Wins: {wins}. Coins in their packs: {coins}.",
+        "A run ended and the troops came home. Wins: {wins}. Coins carried back: {coins}."
       ],
       "fled": [
-        "The troops left the Arena early: {wins} wins, {coins} coins carried home.",
-        "The troops stepped out of the Arena. {wins} wins, {coins} coins in their packs."
+        "The troops left the Arena early. Wins: {wins}. Coins carried home: {coins}.",
+        "The troops stepped out of the Arena. Wins: {wins}. Coins in their packs: {coins}."
       ],
       "banked": [
-        "The troops banked their spoils: {wins} wins, {coins} coins.",
-        "A good run in the Arena: {wins} wins banked."
+        "The troops banked their spoils. Wins: {wins}. Coins: {coins}.",
+        "A good run in the Arena. Wins banked: {wins}."
       ]
     },
     "host": {

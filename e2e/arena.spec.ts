@@ -5,7 +5,7 @@
  * bank, send a game request, and let axe look at the hub and the Lottery.
  *
  * The save is seeded the way map.spec.ts does it (an init script writes the persist
- * envelope, one reload), with strong troops so a win is the likely outcome and a few
+ * envelope, one reload), with strong troops (level 24, below the power cap so gear still helps) so a win is the likely outcome and a few
  * thousand coins. A run is retried when a duel is lost; each test stays under 20 s.
  */
 import AxeBuilder from '@axe-core/playwright';
@@ -26,7 +26,7 @@ interface ArenaSave {
 
 const arenaSave = async (page: Page) => (await getSave(page)) as unknown as ArenaSave;
 
-/** Onboard, then reload with coins, ring 2 and level-30 troops (power 100 beats any first-room rival most flips). */
+/** Onboard, then reload with coins, ring 2 and level-24 troops (power 82, short of the cap so gear still adds power). */
 async function seed(page: Page, patch: { coins?: number; ring?: number } = {}): Promise<void> {
   await freshApp(page);
   await onboard(page, { name: 'Tester' });
@@ -38,7 +38,7 @@ async function seed(page: Page, patch: { coins?: number; ring?: number } = {}): 
     next.player.ring = p.ring ?? 2;
     next.player.highestRing = p.ring ?? 2;
     for (const v of Object.values(next.vassals) as { level: number; loyalty: number }[]) {
-      v.level = 30;
+      v.level = 24;
       v.loyalty = 100;
     }
     // The persisted envelope (STORAGE_VERSION 3 in gameStore).
@@ -91,7 +91,7 @@ async function enterAndWin(page: Page): Promise<void> {
     const close = page.getByRole('button', { name: 'Close' });
     if (await close.isVisible().catch(() => false)) await close.click();
   }
-  throw new Error('eight lost duels in a row with level-30 troops');
+  throw new Error('eight lost duels in a row with level-24 troops');
 }
 
 test('the Haven card opens the Arena hub with the entry, the games, the Armory and the request form', async ({ page }) => {

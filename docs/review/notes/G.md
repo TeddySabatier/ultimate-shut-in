@@ -32,3 +32,18 @@ None so far.
 ## Open questions for the morning reviewer
 
 - Balance numbers (fees, win payouts, training curve) are in `src/game/content/arena.json` and proved in `src/game/arena/economy.test.ts`; the playtest is the real check.
+
+## G2 decisions
+
+11. **The host keeps the game on show after its end.** `ArenaHost` (in `src/components/arena/host/`) shows the game's final board and a results panel (result, score, coins added, the game's log, the learned note in the player's language) until the player presses Continue; the screen holds the host by key while the save's run has already moved on to the lottery or ended. Leaving after the end means Continue; leaving before any outcome records `fledOutcome()` one task later, so an `onFinish` in the same task wins.
+12. **Invalid outcomes** (`outcomeProblems`, with the fitted party's ids) are logged with `console.error` and applied as `fled`, score 0. `src/components/arena/host/games.test.ts` plays every registered game (the dev sample included, and every game that merges later) with the Lab's bot in English and French, with the party and run the Arena builds, and checks the outcome passes the host and the engine accepts it.
+13. **Toasts** only for purchases and requests (`arenaGearBought`, `arenaGearEquipped`, `arenaTrained`, `arenaDecorBought`, `arenaRequestSaved`); the run flow speaks through the screen itself. Refusals become warm notices from `strings.arena.errors`.
+14. **e2e** seeds the save with an init script (the persist envelope, one reload) and level-24 troops: level 30 with loyalty 100 is power 100, where gear and training are refused as useless. A lost duel retries (a loss ends the run). The Arena hub is one more tile in `e2e/responsive.spec.ts`. The regenerated contact sheets were **not** committed (they would add about 1.5 MB, over the 0.5 MB rule); the screenshots in the PR are three small dedicated ones in `docs/review/responsive/arena-*.png` (about 130 KB).
+15. **No wide frame on `#/arena`.** `AppShell` widens only `/map`; changing it is outside this brief, so the hub is one column at 30rem on tablets and desktops (its two-column layout is ready for a wider frame: one `wide` class away).
+16. Engine log lines say "Wins: {n}" to avoid "1 wins".
+
+## Requests for files I do not own (G2)
+
+- `src/screens/CharacterScreen.tsx` (the Ledger wave breakdown) and `src/screens/HomeScreen.tsx` (the Defense breakdown list) do not show the new `arena` term; one line each: `Arena +{n}` next to Outposts when `breakdown.arena > 0`. The wave window log already says it.
+- `src/components/AppShell.tsx`: add `/arena` to the `wide` class condition (item 15).
+- `docs/ARCHITECTURE.md` paragraph for the maintainer: the Arena is a lazy route (`#/arena`) whose host (`src/components/arena/host/`) is the only importer of the game registry; engine in `src/game/arena/`; save v5 adds `arena`; `docs/design/ARENA.md` has the rest.

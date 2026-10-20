@@ -5,7 +5,7 @@
  * the store, and shows a results panel under the final board.
  *
  * Rules it keeps (docs/design/games/CONTRACT.md 5):
- * - Props are read once at mount; the screen remounts it (new `hostKey`) for the next game.
+ * - Props are read once at mount; the screen remounts it (a new React key) for the next game.
  * - An outcome is validated with `outcomeProblems` before the engine sees it; an invalid
  *   one is logged and counts as `fled` with score 0.
  * - `onExit` before any outcome records `fledOutcome()` one task later, so an `onFinish`
@@ -102,8 +102,6 @@ interface Result {
 }
 
 interface Props {
-  /** Identifies this game; the screen passes a new one for the next game so the host remounts. */
-  hostKey: string;
   /** Called just before the outcome is applied, so the screen keeps the host on show after the run's phase moves on. */
   onHold: () => void;
   /** The player is done with the results panel. */

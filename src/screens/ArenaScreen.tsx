@@ -83,7 +83,7 @@ export default function ArenaScreen() {
 
   let view;
   if (hostKey !== null) {
-    view = <ArenaHost key={hostKey} hostKey={hostKey} onHold={onHold} onDone={onDone} />;
+    view = <ArenaHost key={hostKey} onHold={onHold} onDone={onDone} />;
   } else if (run?.phase === 'lottery') {
     view = <LotteryPick save={save} onBanked={onBanked} />;
   } else if (run?.phase === 'decide') {

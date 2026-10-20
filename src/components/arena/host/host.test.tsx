@@ -68,7 +68,7 @@ function startRun(): void {
 function mount() {
   const onHold = vi.fn();
   const onDone = vi.fn();
-  render(<ArenaHost hostKey="k" onHold={onHold} onDone={onDone} />);
+  render(<ArenaHost onHold={onHold} onDone={onDone} />);
   return { onHold, onDone };
 }
 
