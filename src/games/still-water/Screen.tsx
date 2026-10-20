@@ -21,6 +21,7 @@ import {
   phaseOf,
   phaseTicksLeft,
   steadiness,
+  tapTarget,
   visibleDecoys,
   waterLevel,
   type Pace,
@@ -37,9 +38,10 @@ function keepsKeys(target: EventTarget | null): boolean {
   return target.isContentEditable || target.closest('button, a, input, select, textarea, summary, [role="button"]') !== null;
 }
 
-/** Seconds with one decimal for the rhythm lines ("4 s", "3.5 s"). */
-function seconds(ticks: number, template: string): string {
-  return formatText(template, { n: Math.round((ticks * FIXED_DT_MS) / 100) / 10 });
+/** Seconds with one decimal for the rhythm lines ("4 s", "3.5 s", and "3,5 s" in French). */
+function seconds(ticks: number, template: string, locale: 'en' | 'fr'): string {
+  const n = String(Math.round((ticks * FIXED_DT_MS) / 100) / 10);
+  return formatText(template, { n: locale === 'fr' ? n.replace('.', ',') : n });
 }
 
 const PACES: readonly { pace: Pace; key: 'paceBrisk' | 'paceSteady' | 'paceSlow' }[] = [
@@ -67,6 +69,7 @@ export default function StillWaterScreen(props: GameScreenProps) {
   const ringRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
   const holdRef = useRef<HTMLButtonElement>(null);
+  const bannerRef = useRef<HTMLDivElement>(null);
   const live = useRef({ state, running, tapMode, phase, reducedMotion });
   useEffect(() => {
     live.current = { state, running, tapMode, phase, reducedMotion };
@@ -101,13 +104,32 @@ export default function StillWaterScreen(props: GameScreenProps) {
   /** Tap mode: one press says "this phase has started": hold on the breath in and the rest, off on the breath out. */
   const tapPhase = useCallback(() => {
     if (!live.current.running) return;
-    dispatch({ type: 'hold', down: live.current.phase !== 'exhale' });
+    dispatch({ type: 'hold', down: tapTarget(live.current.state) });
   }, [dispatch]);
 
   // Releasing: when the game pauses or ends, nothing stays held.
   useEffect(() => {
     if (!running) dispatch({ type: 'hold', down: false });
   }, [running, dispatch]);
+
+  // Switching the tap mode on or off never leaves the breath held with nothing pressed.
+  useEffect(() => {
+    dispatch({ type: 'hold', down: false });
+  }, [tapMode, dispatch]);
+
+  // A hidden tab pauses the game (the clock already stops; this says so when the player comes back).
+  useEffect(() => {
+    const onHidden = () => {
+      if (document.hidden) setPaused(true);
+    };
+    document.addEventListener('visibilitychange', onHidden);
+    return () => document.removeEventListener('visibilitychange', onHidden);
+  }, []);
+
+  // When the game ends, the buttons it was driven by go away: the focus moves to the result.
+  useEffect(() => {
+    if (over) bannerRef.current?.focus({ preventScroll: true });
+  }, [over]);
 
   // Keyboard: Space or Enter hold the breath unless a control has the key.
   useEffect(() => {
@@ -151,6 +173,9 @@ export default function StillWaterScreen(props: GameScreenProps) {
   };
 
   const cue = s.phase[phase];
+  const phaseTicks = phase === 'inhale' ? state.inhaleTicks : phase === 'hold' ? state.holdTicks : phase === 'exhale' ? state.exhaleTicks : 0;
+  // With a hint, the cue also tells a screen reader how long the phase lasts (spoken once per phase).
+  const spokenLength = hintActive(state) && phaseTicks > 0 ? formatText(s.phaseLength, { n: seconds(phaseTicks, '{n}', locale) }) : null;
   const next = nextPhase(state);
   const left = Math.max(1, Math.ceil((phaseTicksLeft(state) * FIXED_DT_MS) / 1000));
   const nextLine = next ? formatText(s.next, { n: left, phase: s.phaseLower[next] }) : formatText(s.nextEnd, { n: left });
@@ -202,6 +227,7 @@ export default function StillWaterScreen(props: GameScreenProps) {
 
           <p className={styles.cue} aria-live="polite" data-testid="still-water-phase">
             {paused ? s.paused : cue}
+            {spokenLength && !paused ? <span className="srOnly">, {spokenLength}</span> : null}
           </p>
           {state.hintCycles > 0 ? (
             <p className={cx('muted', styles.next)} data-testid="still-water-next" aria-hidden="true">
@@ -217,9 +243,9 @@ export default function StillWaterScreen(props: GameScreenProps) {
               <p className={styles.intro}>{s.intro}</p>
               <p className={cx('mono', styles.rhythm)} data-testid="still-water-rhythm">
                 {formatText(s.rhythm, {
-                  in: seconds(state.inhaleTicks, s.seconds),
-                  hold: seconds(state.holdTicks, s.seconds),
-                  out: seconds(state.exhaleTicks, s.seconds),
+                  in: seconds(state.inhaleTicks, s.seconds, locale),
+                  hold: seconds(state.holdTicks, s.seconds, locale),
+                  out: seconds(state.exhaleTicks, s.seconds, locale),
                 })}
               </p>
               <p className={cx('muted', styles.line)}>{s.keys}</p>
@@ -272,7 +298,10 @@ export default function StillWaterScreen(props: GameScreenProps) {
               }}
               onContextMenu={(e) => e.preventDefault()}
             >
-              {tapMode ? s.holdTap : s.hold}
+              <span>{tapMode ? s.holdTap : s.hold}</span>
+              <span className={styles.holdState} aria-hidden="true">
+                {state.holding ? s.holdOn : s.holdOff}
+              </span>
             </button>
           ) : null}
 
@@ -321,7 +350,7 @@ export default function StillWaterScreen(props: GameScreenProps) {
             </>
           ) : null}
 
-          <div className={styles.banner} role="status" data-result={outcome?.result ?? ''} data-testid="still-water-banner">
+          <div ref={bannerRef} tabIndex={-1} className={styles.banner} role="status" data-result={outcome?.result ?? ''} data-testid="still-water-banner">
             {endText ? (
               <>
                 <p className={styles.bannerTitle}>{endText}</p>

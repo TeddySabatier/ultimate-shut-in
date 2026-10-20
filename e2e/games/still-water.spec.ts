@@ -117,6 +117,9 @@ test('plays with the keyboard, in French, and steps away with a partial score', 
   await stage(page).getByRole('button', { name: "S'éloigner" }).click();
   expect((await readOutcome(page)).result).toBe('fled');
   await expect(page.getByTestId('still-water-banner')).toContainText('Tu as quitté la berge');
+  // The buttons are gone: the focus moves to the result, and the cue no longer gives an instruction.
+  await expect(page.getByTestId('still-water-banner')).toBeFocused();
+  await expect(page.getByTestId('still-water-phase')).toHaveText('Terminé');
   await expectValidOutcome(page);
 });
 

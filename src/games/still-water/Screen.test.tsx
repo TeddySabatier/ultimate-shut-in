@@ -154,6 +154,55 @@ describe('Still Water screen: playing', () => {
     expect(hold()).toHaveAttribute('aria-pressed', 'false');
   });
 
+  it('Tap each phase: a tap a little before the breath out already lets go', () => {
+    render(<StillWaterScreen {...props({ run: emptyRun(1), party: noMove })} />);
+    begin();
+    fireEvent.click(screen.getByRole('button', { name: 'Tap each phase' }));
+    wait(LEAD_TICKS * 50 + 200);
+    fireEvent.pointerDown(hold(), { pointerId: 1 });
+    expect(hold()).toHaveAttribute('aria-pressed', 'true');
+    wait(5400);
+    expect(screen.getByTestId('still-water-phase')).toHaveTextContent('Hold');
+    fireEvent.pointerDown(hold(), { pointerId: 1 });
+    expect(hold()).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('turning Tap each phase off while holding lets go', () => {
+    render(<StillWaterScreen {...props({ run: emptyRun(1) })} />);
+    begin();
+    const toggle = screen.getByRole('button', { name: 'Tap each phase' });
+    fireEvent.click(toggle);
+    wait(LEAD_TICKS * 50 + 200);
+    fireEvent.pointerDown(hold(), { pointerId: 1 });
+    expect(hold()).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(toggle);
+    expect(hold()).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('holding shows in words and a shape as well as in colour', () => {
+    render(<StillWaterScreen {...props({ reducedMotion: true })} />);
+    begin();
+    expect(hold()).toHaveTextContent('○ Let go');
+    fireEvent.keyDown(window, { key: ' ' });
+    expect(hold()).toHaveTextContent('● Holding');
+  });
+
+  it('a hidden tab pauses the game and says so', () => {
+    render(<StillWaterScreen {...props()} />);
+    begin();
+    Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+    act(() => void document.dispatchEvent(new Event('visibilitychange')));
+    Reflect.deleteProperty(document, 'hidden');
+    expect(screen.getByTestId('still-water-phase')).toHaveTextContent('Paused');
+  });
+
+  it('with a hint, the cue also says how long the phase lasts, once per phase, for a screen reader', () => {
+    render(<StillWaterScreen {...props({ run: emptyRun(1) })} />);
+    begin();
+    wait(LEAD_TICKS * 50 + 200);
+    expect(screen.getByTestId('still-water-phase')).toHaveTextContent('Breathe in, 4 seconds');
+  });
+
   it('Pause stops the clock and the keys; Resume starts them again', () => {
     render(<StillWaterScreen {...props({ run: emptyRun(1) })} />);
     begin();
@@ -252,6 +301,22 @@ describe('Still Water screen: reduced motion, leaving and the end', () => {
     expect(p.onFinish).toHaveBeenCalledTimes(1);
   });
 
+  it('after the end the cue says Done, never an instruction to breathe', () => {
+    render(<StillWaterScreen {...props({ run: emptyRun(1), party: noMove })} />);
+    begin();
+    wait((LEAD_TICKS + 5 * 240) * 50 + 1500);
+    expect(screen.getByTestId('still-water-phase')).toHaveTextContent('Done');
+    expect(screen.getByTestId('still-water-phase')).not.toHaveTextContent(/Breathe/);
+  });
+
+  it('when the game ends the focus moves to the result, not to the page', () => {
+    render(<StillWaterScreen {...props()} />);
+    begin();
+    fireEvent.click(screen.getByRole('button', { name: 'Step away' }));
+    expect(screen.getByTestId('still-water-banner')).toHaveFocus();
+    expect(screen.getByTestId('still-water-phase')).toHaveTextContent('Done');
+  });
+
   it('plays a whole game with the clock: one outcome, warm words, the final board stays', () => {
     const p = props({ run: emptyRun(1), party: noMove });
     render(<StillWaterScreen {...p} />);
@@ -282,7 +347,7 @@ describe('Still Water screen: reduced motion, leaving and the end', () => {
     const got = vi.mocked(p.onFinish).mock.calls[0]![0] as Outcome;
     expect(got.result).toBe('won');
     expect(got.score).toBe(1000);
-    expect(screen.getByTestId('still-water-banner')).toHaveTextContent('The pond is still');
+    expect(screen.getByTestId('still-water-banner')).toHaveTextContent('Still water. Well breathed.');
     expect(screen.getByTestId('still-water-banner')).toHaveTextContent('Breath matched 100 %. Ripples let go: 1 of 1.');
   });
 

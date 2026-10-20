@@ -45,6 +45,8 @@ export const CALM_START = 100;
 export const TAP_CALM_COST = 15;
 /** A missed cycle (under this accuracy) is forgiven by a `revive` buff. */
 export const REVIVE_BELOW = 50;
+/** A `revive` buff forgives at most one cycle in this many, so it never turns no play into a win. */
+export const REVIVE_SHARE = 3;
 /** A forgiven cycle counts as this accuracy. */
 export const REVIVE_ACCURACY = 70;
 export const DECOY_KINDS = ['leaf', 'fish', 'light'] as const;
@@ -64,7 +66,9 @@ export const PACE_PERCENT = { '-1': 80, '0': 100, '1': 125 } as const;
 
 export type Difficulty = 1 | 2 | 3 | 4 | 5;
 export type Pace = -1 | 0 | 1;
-export type Phase = 'ready' | 'inhale' | 'hold' | 'exhale';
+export type Phase = 'ready' | 'inhale' | 'hold' | 'exhale' | 'done';
+/** The phases of a breath (not the get-ready lead, not the end). */
+export type BreathPhase = 'inhale' | 'hold' | 'exhale';
 export type DecoyKind = (typeof DECOY_KINDS)[number];
 /** What one tick is worth: not scored (grace), should be held, should be released. */
 export type TickKind = 'grace' | 'hold' | 'release';
@@ -145,9 +149,11 @@ export interface StillWaterState {
   /** The running cycle: ideal ticks held, and ticks held when they should not be. */
   cycleHits: number;
   cycleFalse: number;
-  /** The whole game so far, for the water level. */
-  netAll: number;
-  idealSeen: number;
+  /** The whole game so far, for the water level: hits, false holds, and the hold and release ticks seen. */
+  hitsAll: number;
+  falseAll: number;
+  holdSeen: number;
+  releaseSeen: number;
   revivesLeft: number;
   forfeited: boolean;
   troopIds: string[];
@@ -202,7 +208,7 @@ export function tickInCycle(state: Pick<StillWaterState, 'tick' | 'cycleTicks'>)
   return state.tick % state.cycleTicks;
 }
 
-export function phaseAt(state: Pick<StillWaterState, 'inhaleTicks' | 'holdTicks' | 'cycleTicks'>, tick: number): Exclude<Phase, 'ready'> {
+export function phaseAt(state: Pick<StillWaterState, 'inhaleTicks' | 'holdTicks' | 'cycleTicks'>, tick: number): BreathPhase {
   const t = tick % state.cycleTicks;
   if (t < state.inhaleTicks) return 'inhale';
   if (t < state.inhaleTicks + state.holdTicks) return 'hold';
@@ -210,6 +216,7 @@ export function phaseAt(state: Pick<StillWaterState, 'inhaleTicks' | 'holdTicks'
 }
 
 export function phaseOf(state: StillWaterState): Phase {
+  if (isOver(state)) return 'done';
   if (state.leadLeft > 0) return 'ready';
   return phaseAt(state, state.tick);
 }
@@ -233,15 +240,25 @@ export function idealTicksPerCycle(state: Pick<StillWaterState, 'inhaleTicks' | 
   return Math.max(1, state.inhaleTicks + state.holdTicks - 2 * state.tolerance);
 }
 
-/** Accuracy 0 to 100 of a cycle: matched ticks minus wrongly held ticks, over the ideal. */
-export function accuracyOf(hits: number, falseHolds: number, ideal: number): number {
-  if (ideal <= 0) return 0;
-  return Math.floor((100 * Math.max(0, hits - falseHolds)) / ideal);
+/** Ticks per cycle that should be let go and are not grace: what a perfect cycle leaves alone. */
+export function releaseTicksPerCycle(state: Pick<StillWaterState, 'exhaleTicks' | 'tolerance'>): number {
+  return Math.max(1, state.exhaleTicks - 2 * state.tolerance);
 }
 
-/** Accuracy of the running cycle so far, against the whole cycle's ideal. */
+/**
+ * Accuracy 0 to 100: the share of the hold ticks that were held, minus the
+ * share of the release ticks that were held anyway, each on its own scale.
+ * Holding all the time is 100 - 100 = 0 and never holding is 0, however wide
+ * the grace is.
+ */
+export function accuracyOf(hits: number, falseHolds: number, hold: number, release: number): number {
+  if (hold <= 0 || release <= 0) return 0;
+  return Math.max(0, Math.floor((100 * (hits * release - falseHolds * hold)) / (hold * release)));
+}
+
+/** Accuracy of the running cycle so far, against the whole cycle's hold and release ticks. */
 export function currentAccuracy(state: StillWaterState): number {
-  return accuracyOf(state.cycleHits, state.cycleFalse, idealTicksPerCycle(state));
+  return accuracyOf(state.cycleHits, state.cycleFalse, idealTicksPerCycle(state), releaseTicksPerCycle(state));
 }
 
 /**
@@ -249,9 +266,28 @@ export function currentAccuracy(state: StillWaterState): number {
  * It fills over the first cycle instead of jumping, then follows the running
  * accuracy of the whole game. Smooth, and never a failure state.
  */
-export function waterLevel(state: Pick<StillWaterState, 'netAll' | 'idealSeen' | 'inhaleTicks' | 'holdTicks' | 'tolerance'>): number {
-  const base = Math.max(state.idealSeen, idealTicksPerCycle(state));
-  return Math.min(100, Math.floor((100 * Math.max(0, state.netAll)) / base));
+export function waterLevel(state: Pick<StillWaterState, 'hitsAll' | 'falseAll' | 'holdSeen' | 'releaseSeen' | 'inhaleTicks' | 'holdTicks' | 'exhaleTicks' | 'tolerance'>): number {
+  const hold = Math.max(state.holdSeen, idealTicksPerCycle(state));
+  const release = Math.max(state.releaseSeen, releaseTicksPerCycle(state));
+  return Math.min(100, accuracyOf(state.hitsAll, state.falseAll, hold, release));
+}
+
+/** Ticks before a phase change in which a press already counts for the new phase. */
+export const EARLY_TAP_TICKS = 10;
+
+/**
+ * What a press means in "tap each phase" mode: hold or let go. A press says
+ * "this phase starts now", so one just before the breath out lets go and one
+ * just before the breath in holds. It never toggles, so a missed tap cannot
+ * turn every later one around.
+ */
+export function tapTarget(state: StillWaterState): boolean {
+  if (state.leadLeft > 0) return true;
+  const t = tickInCycle(state);
+  const holdEnd = state.inhaleTicks + state.holdTicks;
+  if (t >= holdEnd - EARLY_TAP_TICKS && t < holdEnd) return false;
+  if (t >= state.cycleTicks - EARLY_TAP_TICKS) return cycleIndex(state) < state.cycleCount - 1;
+  return t < holdEnd;
 }
 
 /**
@@ -259,7 +295,7 @@ export function waterLevel(state: Pick<StillWaterState, 'netAll' | 'idealSeen' |
  * between two ticks, for a smooth ring). Linear in each phase.
  */
 export function breathAt(state: StillWaterState, alpha = 0): number {
-  if (state.leadLeft > 0) return 0;
+  if (state.leadLeft > 0 || isOver(state)) return 0;
   const pos = Math.min(state.totalTicks, state.tick + alpha);
   const t = pos % state.cycleTicks;
   if (t < state.inhaleTicks) return t / state.inhaleTicks;
@@ -278,8 +314,9 @@ export function phaseTicksLeft(state: StillWaterState): number {
 }
 
 /** What comes after the current phase, or null after the very last exhale. */
-export function nextPhase(state: StillWaterState): Exclude<Phase, 'ready'> | null {
+export function nextPhase(state: StillWaterState): BreathPhase | null {
   const p = phaseOf(state);
+  if (p === 'done') return null;
   if (p === 'ready') return 'inhale';
   if (p === 'inhale') return 'hold';
   if (p === 'hold') return 'exhale';
@@ -436,9 +473,11 @@ function initial(seed: number, party: Party, run: RunContext, locale: Locale): S
     cycleScores: [],
     cycleHits: 0,
     cycleFalse: 0,
-    netAll: 0,
-    idealSeen: 0,
-    revivesLeft: buffAmount(run, 'revive'),
+    hitsAll: 0,
+    falseAll: 0,
+    holdSeen: 0,
+    releaseSeen: 0,
+    revivesLeft: Math.min(buffAmount(run, 'revive'), Math.floor(spec.cycles / REVIVE_SHARE)),
     forfeited: false,
     troopIds: party.members.map((m) => m.id),
     sleepName: habitName(party, 'sleep'),
@@ -472,16 +511,11 @@ function finalizeCycle(state: StillWaterState): StillWaterState {
 function scoreTick(state: StillWaterState): StillWaterState {
   const kind = tickKind(state, state.tick);
   if (kind === 'grace') return state;
+  const held = state.holding ? 1 : 0;
   if (kind === 'hold') {
-    return {
-      ...state,
-      idealSeen: state.idealSeen + 1,
-      cycleHits: state.cycleHits + (state.holding ? 1 : 0),
-      netAll: state.netAll + (state.holding ? 1 : 0),
-    };
+    return { ...state, holdSeen: state.holdSeen + 1, cycleHits: state.cycleHits + held, hitsAll: state.hitsAll + held };
   }
-  if (!state.holding) return state;
-  return { ...state, cycleFalse: state.cycleFalse + 1, netAll: state.netAll - 1 };
+  return { ...state, releaseSeen: state.releaseSeen + 1, cycleFalse: state.cycleFalse + held, falseAll: state.falseAll + held };
 }
 
 /** Whether a pace can still be chosen: before the first tick, with a Move troop. */
