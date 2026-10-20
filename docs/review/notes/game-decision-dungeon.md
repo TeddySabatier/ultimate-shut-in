@@ -98,7 +98,12 @@ Every one of the 18 situations, 66 doors (20 constructive, 17 reactive, 16 avoid
 
 ## 6. Files needed that I do not own
 
-None. The lab, helpers, kit and lint were enough. (Observation only: `expectResponsiveGame` checks 320x568 and 844x390, not 150 percent text; 390x844 at 150 percent was checked by hand, see section 7.)
+Nothing in my own folder, the lab, the kit or lint blocked this game. But the CI end-to-end shards are red for reasons in files I may not edit, and they are red on the base PR (#25) too:
+
+1. **`e2e/arena.spec.ts` assumes Coin Duel is the only game.** `enterAndWin` enters a run and expects the host heading `Coin Duel` (line 86). As soon as a real, non-dev game is registered, the Arena draws it too (`listGames`), so four tests fail (`a run: play the sample game...`, both `banking` tests and the Arena axe test). It fails on #25 (Hold the Haven) for the same reason. Suggested fix for a maintainer: have the spec pick the run's game explicitly, or make `enterAndWin` play whatever game the host shows (for example through the Lab's Bot play), or reserve the first draw for the sample under the debug flag.
+2. **Racy tap loops in `e2e/games/sample.spec.ts` and `e2e/games/tower-defense.spec.ts`** (`replaying the same seed gives the same outcome`, `plays a full game to an outcome`): they read `count()` of the next button right after a click and stop at the first moment nothing matches, so a render in between ends the loop early and the outcome never shows (`lab-outcome-result` not found). I hit the same flake in my own first draft of this spec and fixed it by waiting for either the next button or the end (`step.or(result)`), see `playByTapping` in `e2e/games/decision-dungeon.spec.ts`.
+
+My own spec is green on both CI projects. Observation: `expectResponsiveGame` checks 320x568 and 844x390, not 150 percent text; 390x844 at 150 percent was checked by hand (section 7). Another: after a local Playwright run on Windows a `vite preview` stayed on port 4273 (the webServer of the config); it keeps serving that build to the next suite until killed.
 
 ## 7. Verification
 
