@@ -502,7 +502,7 @@ export function validateArenaContent(): string[] {
   if (!(a.run.reward.base >= 0 && a.run.reward.perScore >= 0 && a.run.reward.growthPerRoom >= 0)) errors.push('arena run.reward: negative term');
   if (!(a.run.carryHome >= 0 && a.run.carryHome < 1)) errors.push('arena run.carryHome: must be in [0, 1)');
   if (!(a.run.feeAdherence > 0 && a.run.feeAdherence <= 1)) errors.push('arena run.feeAdherence: must be in (0, 1]');
-  if (!(a.bank.defensePerWin >= 0 && a.bank.defenseCapPerPeriod >= a.bank.defensePerWin && a.bank.itemMinWins >= 1)) errors.push('arena bank: inconsistent limits');
+  if (!(a.bank.defensePerWin >= 0 && a.bank.defenseCapPerPeriod >= a.bank.defensePerWin && a.bank.itemMinWins >= 1 && a.bank.itemMinWins <= a.run.maxRooms)) errors.push('arena bank: inconsistent limits');
 
   const seenBuffs = new Set<string>();
   for (const b of a.lottery.buffs) {

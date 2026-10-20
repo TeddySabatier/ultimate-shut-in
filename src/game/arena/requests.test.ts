@@ -66,4 +66,12 @@ describe('ask for a game', () => {
     const r = requestGame(save, at(0), 'A quiet idea').save;
     expect({ ...r, arena: save.arena }).toEqual(save);
   });
+
+  it('counts requests from their time stamps, so a changed reset hour cannot give the limit back', () => {
+    let save = fresh();
+    for (let i = 0; i < arenaContent.requests.perDay; i++) save = requestGame(save, at(0, 12), `Idea number ${i}`).save;
+    save = { ...save, settings: { ...save.settings, resetHour: 0 } };
+    expect(requestsLeft(save, at(0, 13))).toBe(0);
+    expect(requestGame(save, at(0, 13), 'One more').error).toBe('request limit');
+  });
 });

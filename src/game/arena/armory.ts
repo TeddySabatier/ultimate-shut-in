@@ -9,6 +9,7 @@
 import { arenaContent, getArenaItem, getCombo, type ArenaGearItem } from '../content';
 import { clone, ok, refuse } from '../draft';
 import { decorPrice, gearPrice, trainingPower, trainingPrice, trainingWeeklyCap } from './economics';
+import { derivePower } from '../../games/contract';
 import { ownedRareItems } from './state';
 import type { ActionResult, GameEvent, GearSlot, HabitId, SaveFile } from '../types';
 import { GEAR_SLOTS, HABIT_IDS } from '../types';
@@ -87,6 +88,12 @@ export function trainingStatus(save: SaveFile, habit: HabitId): TrainingStatus {
   };
 }
 
+/** True when a troop already reaches the contract's top power (100) without what is being bought: more gear or training would change nothing. */
+export function powerFull(save: SaveFile, habit: HabitId, replacedPower = 0): boolean {
+  const v = save.vassals[habit];
+  return derivePower(v.level, Math.round(v.loyalty)) + gearPower(save, habit) - replacedPower + trainingBonus(save, habit) >= 100;
+}
+
 /** Why a sold item cannot be bought for a vassal right now, or null when it can. */
 export function gearRefusal(save: SaveFile, habit: HabitId, itemId: string): string | null {
   const item = getArenaItem(itemId);
@@ -97,6 +104,7 @@ export function gearRefusal(save: SaveFile, habit: HabitId, itemId: string): str
   const worn = save.arena.gear[habit][item.slot];
   const wornItem = worn === null ? undefined : getArenaItem(worn);
   if (wornItem && wornItem.tier >= item.tier) return 'not an upgrade';
+  if (powerFull(save, habit, wornItem?.power ?? 0)) return 'power full';
   if (save.player.coins < gearPrice(item, save.player.ring)) return 'not enough coins';
   return null;
 }
@@ -138,6 +146,7 @@ export function trainingRefusal(save: SaveFile, habit: HabitId): string | null {
   if (!HABIT_IDS.includes(habit)) return 'unknown troop';
   const s = trainingStatus(save, habit);
   if (s.price === null) return 'training maxed';
+  if (powerFull(save, habit)) return 'power full';
   if (s.weekBumps >= s.weekBumpsMax) return 'training week full';
   if (s.weekSpent + s.price > s.weekCap) return 'training week cap';
   if (save.player.coins < s.price) return 'not enough coins';

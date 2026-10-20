@@ -23,7 +23,7 @@ import { entryFee, roomDifficulty, winCoins } from './economics';
 import { unownedRareItems } from './armory';
 import { drawOffers } from './lottery';
 import { rosterFor } from './roster';
-import { arenaDefense, dayOf, sanitizeLearned } from './state';
+import { arenaDefense, dayOf, sanitizeLearned, STARTS_KEPT } from './state';
 import type {
   ActionResult,
   ArenaBankChoice,
@@ -119,7 +119,7 @@ export function enterRun(save: SaveFile, now: number, candidates: readonly GameC
   const day = dayOf(draft, now, opts);
   draft.player.coins -= fee;
   draft.arena.nextSeq += 1;
-  draft.arena.today = draft.arena.today.day === day ? { day, runs: draft.arena.today.runs + 1 } : { day, runs: 1 };
+  draft.arena.starts = [...draft.arena.starts, now].slice(-STARTS_KEPT);
   draft.arena.stats.runs += 1;
   draft.arena.run = {
     id: `r${seq}`,

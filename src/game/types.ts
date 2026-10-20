@@ -492,8 +492,8 @@ export interface ArenaState {
   /** Finished runs, newest last, capped at 30. */
   log: ArenaRunRecord[];
   stats: ArenaStats;
-  /** Runs started today, for the suggested daily cap (never enforced). */
-  today: { day: number; runs: number };
+  /** When the latest runs started (Unix ms, newest last, at most 40): the suggested daily cap counts today's, so a changed reset hour never shifts it. */
+  starts: number[];
   /** "Ask for a game" requests, newest last. */
   requests: ArenaRequest[];
   /** Next run and request sequence number. */

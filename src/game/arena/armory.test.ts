@@ -186,3 +186,27 @@ describe('decor', () => {
     expect(r.vassals).toEqual(s.vassals);
   });
 });
+
+describe('purchases that would change nothing', () => {
+  it('refuses gear and training for a troop already at full power, and says so', () => {
+    const s = save(100_000, 4);
+    s.vassals.move.level = 30;
+    s.vassals.move.loyalty = 100; // derivePower is 100 already
+    expect(buyGear(s, T0, 'move', 'practice_baton').error).toBe('power full');
+    expect(trainVassal(s, T0, 'move').error).toBe('power full');
+    expect(buyGear(s, T0, 'outside', 'practice_baton').error).toBeUndefined();
+  });
+
+  it('allows an upgrade that still adds power, refuses one once the troop is full', () => {
+    const s = save(100_000, 4);
+    s.vassals.study.level = 28; // 84 + 5 (loyalty 50) = 89
+    let cur = ok(buyGear(s, T0, 'study', 'practice_baton')); // +2 = 91
+    cur = ok(buyGear(cur, T0, 'study', 'walking_staff')); // replaces +2 with +4 = 93
+    cur = ok(buyGear(cur, T0, 'study', 'quilted_vest')); // 95
+    cur = ok(buyGear(cur, T0, 'study', 'waxed_cloak')); // 97
+    cur = ok(buyGear(cur, T0, 'study', 'lantern_mantle')); // 99
+    expect(buyGear(cur, T0, 'study', 'starlit_pike').error).toBeUndefined(); // 99 -> 101: still helps at 99
+    const full = ok(buyGear(cur, T0, 'study', 'starlit_pike'));
+    expect(buyGear(full, T0, 'study', 'knotted_cord').error).toBe('power full');
+  });
+});

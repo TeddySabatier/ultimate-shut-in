@@ -73,7 +73,7 @@ describe('migrate: v5 (arena)', () => {
     };
     s.arena.log = [{ id: 'r1', day: s.lastOpenDay, at: T0, ring: 1, fee: 20, wins: 2, end: 'banked', bank: 'coins', coins: 40, defense: 0, itemId: null, games: [] }];
     s.arena.stats = { runs: 2, gamesWon: 3, gamesLost: 1, bestChain: 2, coinsBanked: 40 };
-    s.arena.today = { day: s.lastOpenDay, runs: 2 };
+    s.arena.starts = [T0 - 5000, T0];
     s.arena.requests = [{ id: 'q3', at: T0, day: s.lastOpenDay, text: 'A game about tea', source: 'voice' }];
     s.arena.nextSeq = 4;
     const back = migrate(JSON.parse(exportSave(s)), T0 + 99, TZ);
@@ -99,7 +99,7 @@ describe('migrate: v5 (arena)', () => {
         { id: 'r8', end: 'lost', wins: 3, itemId: 'ghost', games: [{ gameId: 'a', result: 'won', score: 5000, coins: 3 }, { result: 'won' }] },
       ],
       stats: { runs: -4, gamesWon: 'many', bestChain: 99 },
-      today: { day: 'x', runs: 7 },
+      starts: [5, 'x', -3, 0, 1e12],
       requests: [
         { id: 'q1', text: '  Tea   time  ', source: 'smoke' },
         { id: 'q1', text: 'duplicate id' },
@@ -116,13 +116,13 @@ describe('migrate: v5 (arena)', () => {
     expect(s.arena.trainingWeek.spent).toBe(0);
     expect(s.arena.trainingWeek.bumps).toBe(1000);
     expect(s.arena.decor).toEqual(['sprinting_umbrella']);
-    expect(s.arena.defense).toEqual({ period: 2, amount: 6 });
+    expect(s.arena.defense).toEqual({ period: 1, amount: 6 }); // a bonus for a period that is not even next is brought back to the next one
     expect(s.arena.run).toBeNull(); // playing without a game cannot be resumed
     expect(s.arena.log).toHaveLength(1);
     expect(s.arena.log[0]).toMatchObject({ id: 'r8', end: 'lost', wins: 3, itemId: null });
     expect(s.arena.log[0]!.games).toEqual([{ gameId: 'a', room: 0, result: 'won', score: 1000, coins: 3 }]);
     expect(s.arena.stats).toEqual({ runs: 0, gamesWon: 0, gamesLost: 0, bestChain: 10, coinsBanked: 0 });
-    expect(s.arena.today).toEqual({ day: 0, runs: 7 });
+    expect(s.arena.starts).toEqual([5, 1e12]);
     expect(s.arena.requests.map((r) => [r.id, r.text.length, r.source])).toEqual([
       ['q1', 8, 'text'],
       ['q5', 400, 'voice'],
@@ -165,5 +165,26 @@ describe('migrate: v5 (arena)', () => {
     const raw = createNewSave(T0, 'Run', TZ) as unknown as Record<string, unknown>;
     raw.arena = { run: { id: 'r1', phase: 'lottery', offers: [] } };
     expect(migrate(raw, T0, TZ).arena.run).toBeNull();
+  });
+
+  it('enforces the buff caps, the offer count and the id format on a stored run', () => {
+    const raw = createNewSave(T0, 'Caps', TZ) as unknown as Record<string, unknown>;
+    raw.arena = {
+      run: {
+        id: 'r1',
+        phase: 'lottery',
+        buffs: Array.from({ length: 9 }, (_, i) => ({ id: `attack-l@${i + 1}`, kind: 'attack', amount: 20 })).concat([{ id: 'attack-l', kind: 'attack', amount: 20 }]),
+        offers: ['time-s', 'luck-s', 'hint-s', 'attack-s', 'revive-s'].map((d) => ({ id: `${d}@2`, kind: d.split('-')[0], amount: 1 })),
+      },
+    };
+    const run = migrate(raw, T0, TZ).arena.run!;
+    expect(run.buffs.map((b) => b.id)).toEqual(['attack-l@1', 'attack-l@2', 'attack-l@3']); // 60 is the cap
+    expect(run.offers).toHaveLength(3);
+  });
+
+  it('derives the room and difficulty of the game in progress instead of reading them', () => {
+    const raw = createNewSave(T0, 'Room', TZ) as unknown as Record<string, unknown>;
+    raw.arena = { run: { id: 'r1', phase: 'playing', ring: 1, room: 4, current: { gameId: 'alpha', seed: 3, roomIndex: 0, difficulty: 5 } } };
+    expect(migrate(raw, T0, TZ).arena.run!.current).toEqual({ gameId: 'alpha', seed: 3, roomIndex: 4, difficulty: 3 });
   });
 });

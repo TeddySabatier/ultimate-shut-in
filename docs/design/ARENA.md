@@ -14,7 +14,7 @@ Tone rules, all enforced by the engine:
 
 - **Never punitive.** Losing is "the troops come home", with a quarter of the spoils. Gear, training, decor and anything banked earlier always stay.
 - **No real money**, ever. The only currency is settlement coins earned from habits.
-- **Domain Points are untouchable.** The Arena never writes DP, the ring or `highestRing`. Banked defense can help a wave, which awards its own DP as before.
+- **Domain Points are untouchable.** The Arena never writes DP, the ring or `highestRing`. Banked defense (at most +6 per wave period) adds to the wave's defense, and the wave's result decides its own DP as before: this is the only, indirect, route from a run to DP, it needs a non-quiet week, and it can move a result up by at most one step. A quiet week never gets DP from it.
 - **Results never touch streaks, loyalty or utilities** (`run.test.ts`: "never touches streaks, loyalty, utilities, Domain Points, XP or the board").
 - **Coins cannot replace habits.** Every price is a share of what habits earn (section 3); training is capped at a quarter of a habit week.
 - **A daily cap is suggested, never forced** (5.5).
@@ -260,7 +260,7 @@ Difficulty (`roomDifficulty`) is `1 + floor(room / 2)`, plus 1 from ring 4, capp
 
 ### 5.5 The daily suggestion
 
-`arena.today` counts runs started per game day. `overDailySuggestion(save, day)` is true from the fifth run of the day (`suggestedRunsPerDay: 5`). The screen shows a soft line and keeps every button working. Nothing in the engine refuses a sixth run.
+`arena.starts` keeps the start times of the latest runs (at most 40); the runs of a game day are counted from them, so changing the reset hour never shifts the count. `overDailySuggestion(save, day)` is true from the fifth run of the day (`suggestedRunsPerDay: 5`). The screen shows a soft line and keeps every button working. Nothing in the engine refuses a sixth run.
 
 ## 6. Data model
 
@@ -330,7 +330,7 @@ export interface ArenaState {
   run: ArenaRun | null;
   log: ArenaRunRecord[];       // newest last, capped at 30
   stats: ArenaStats;
-  today: { day: number; runs: number };
+  starts: number[];
   requests: ArenaRequest[];
   nextSeq: number;             // shared by runs (r1) and requests (q2)
 }
@@ -372,9 +372,9 @@ Mutators follow `(save, now, ...) => { save, events, error? }`. Refusal codes ha
 | `pickBuff(save, now, buffId)` | run | Keeps one offer, moves to `decide` | `no lottery open`, `not on offer` |
 | `continueRun(save, now, candidates)` | run | Picks and mounts the next game | `nothing to continue`, `chain complete`, `no games` |
 | `bankRun(save, now, choice, opts?)` | run | Ends the run with coins, defense or a rare item | `nothing to bank`, `defense capped`, `chain too short`, `no rare item left` |
-| `buyGear(save, now, habit, itemId)` | armory | Buys a sold item for one vassal's slot | `unknown item`, `rare item`, `unknown troop`, `ring too low`, `not an upgrade`, `not enough coins` |
+| `buyGear(save, now, habit, itemId)` | armory | Buys a sold item for one vassal's slot | `unknown item`, `rare item`, `unknown troop`, `ring too low`, `not an upgrade`, `power full`, `not enough coins` |
 | `equipRare(save, now, habit, itemId)` | armory | Wears a stash item | `unknown item`, `unknown troop`, `not in the stash` |
-| `trainVassal(save, now, habit)` | armory | Buys one training bump | `unknown troop`, `training maxed`, `training week full`, `training week cap`, `not enough coins` |
+| `trainVassal(save, now, habit)` | armory | Buys one training bump | `unknown troop`, `training maxed`, `power full`, `training week full`, `training week cap`, `not enough coins` |
 | `buyDecor(save, now, comboId)` | armory | Buys decor | `unknown decor`, `already owned`, `not enough coins` |
 | `requestGame(save, now, text, source = 'text', opts?)` | requests | Saves a game request | `request too short`, `request limit` |
 
@@ -386,7 +386,7 @@ Selectors (no refusals):
 - **requests**: `requestsOn(save, day)`, `requestsLeft(save, now, opts?)`, `cleanRequestText(text)`.
 - **roster, party**: `rosterFor`, `vassalMembers`, `titleTraitsOf(save, habit)`, `troopLabel(member)`, `ROSTER_SOURCES`; `buildParty(save)`, `equipMember(save, member)`, `POWER_MIN` (1), `POWER_MAX` (100).
 - **economics**: `expectedQuestCoins`, `typicalDailyCoins`, `typicalWeeklyCoins`, `entryFee`, `trainingWeeklyCap`, `gearPrice`, `trainingPrice`, `trainingPower`, `decorPrice`, `winCoins`, `roomDifficulty`.
-- **state**: `emptyArena()`, `migrateArena(raw)`, `arenaDefense(save, period?)`, `runsToday(save, day)`, `overDailySuggestion(save, day)`, `ownedRareItems(arena)`.
+- **state**: `emptyArena()`, `migrateArena(raw)`, `arenaDefense(save, period?)`, `runsToday(save, day, opts?)`, `overDailySuggestion(save, day, opts?)`, `ownedRareItems(arena)`.
 
 Integrations: `wave.ts` adds `arenaDefense(save, period)` to `waveDefense` and handles the carry-over in `settleWaveDraft`; `save.ts` creates and migrates `arena`.
 

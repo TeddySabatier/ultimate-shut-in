@@ -177,6 +177,7 @@ export {
   trainingStatus,
   gearRefusal,
   trainingRefusal,
+  powerFull,
   buyGear,
   equipRare,
   trainVassal,
