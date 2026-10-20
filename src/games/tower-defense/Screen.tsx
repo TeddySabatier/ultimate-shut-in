@@ -4,11 +4,12 @@
  * turns real time into ticks (useFixedStep), draws (draw.ts) and maps keys, taps
  * and buttons to engine actions.
  *
- * Keys (on the game root, ignored in text fields): arrows move the pad cursor,
- * 1 to 8 pick the n-th tower (and place it on the cursor pad when it is free and
- * affordable), Enter or Space place the picked tower or upgrade the one under the
- * cursor, S or Delete sell it, Escape clears the pick, P pauses, N calls the next
- * wave, X changes the speed. Every key has a button.
+ * One flow for touch, mouse and keyboard: pick a tower card (tap, or 1 to 8), then put
+ * it on a free pad (tap the pad, or move the cursor with the arrows and press Enter or
+ * Space, or press the Build button). Keys (on the game root, ignored in text fields):
+ * arrows move the pad cursor, Enter or Space place the picked tower on a free cursor pad
+ * or upgrade the tower under it, S or Delete sell it, Escape clears the pick, P pauses,
+ * N calls the next wave, X changes the speed. Every key has a button.
  *
  * Drawing reads two states that this file keeps itself, `cur` and `prev`: every
  * action goes to React (`dispatch`) and, at the same moment, to a copy of the state
@@ -152,33 +153,26 @@ export default function TowerDefenseScreen(props: GameScreenProps) {
       // A hint is spent only on the pad the player was shown: the star of the picked card.
       const hinted = st.hintsLeft > 0 && pickedRef.current === member.id && bestPad(st, member.id) === pad;
       send(hinted ? { type: 'place', pad, member: member.id, hinted: true } : { type: 'place', pad, member: member.id });
+      select(null);
     },
-    [note, s, send],
+    [note, s, select, send],
   );
 
+  // A card only picks the tower: the pad comes next (a tap on it, Enter, or the Build button).
   const pickCard = useCallback(
     (member: Member) => {
       const st = cur.current;
       if (st.result !== null || member.kind === null) return;
       const name = s.towers[member.kind].name;
-      if (st.hintsLeft > 0) {
-        const best = bestPad(st, member.id);
-        if (best !== null && pickedRef.current !== member.id) {
-          // First tap with a hint left: pick the card and show the star, place nothing yet.
-          select(member.id);
-          moveTo(best);
-          note(formatText(s.feed.hint, { tower: name, n: best + 1 }));
-          return;
-        }
-        select(member.id);
-        placeOn(member, cursorRef.current);
-        return;
-      }
       select(member.id);
-      if (st.towers.some((t) => t.pad === cursorRef.current)) note(formatText(s.feed.picked, { tower: name }));
-      else placeOn(member, cursorRef.current);
+      const best = st.hintsLeft > 0 ? bestPad(st, member.id) : null;
+      if (best !== null) {
+        // A hint is left: the cursor jumps to the starred pad.
+        moveTo(best);
+        note(formatText(s.feed.hint, { tower: name, n: best + 1 }));
+      } else note(formatText(s.feed.picked, { tower: name }));
     },
-    [moveTo, note, placeOn, s, select],
+    [moveTo, note, s, select],
   );
 
   const upgradeHere = useCallback(() => {
@@ -269,7 +263,7 @@ export default function TowerDefenseScreen(props: GameScreenProps) {
       const x = (e.clientX - rect.left - ox) / cell;
       const y = (e.clientY - rect.top - oy) / cell;
       let best = -1;
-      let bestD = 0.8 * 0.8;
+      let bestD = 1;
       cur.current.pads.forEach((c, i) => {
         const dx = x - ((c % COLS) + 0.5);
         const dy = y - (Math.floor(c / COLS) + 0.5);
@@ -278,9 +272,13 @@ export default function TowerDefenseScreen(props: GameScreenProps) {
           best = i;
         }
       });
-      if (best >= 0) moveTo(best);
+      if (best < 0) return;
+      moveTo(best);
+      // With a tower picked, a tap on a free pad builds it there.
+      const picked = pickedRef.current === null ? undefined : cur.current.members.find((m) => m.id === pickedRef.current);
+      if (picked && !cur.current.towers.some((t) => t.pad === best)) placeOn(picked, best);
     },
-    [canvasRef, moveTo],
+    [canvasRef, moveTo, placeOn],
   );
 
   // ---- the clock and the drawing -------------------------------------------
@@ -290,7 +288,7 @@ export default function TowerDefenseScreen(props: GameScreenProps) {
   const fx = useState(newFx)[0];
   const prevPos = useState(() => new Map<number, number>())[0];
   const base = useRef<HTMLCanvasElement | null>(null);
-  const baseKey = useRef('');
+  const baseKey = useRef({ w: -1, h: -1, dpr: -1 });
   const view = useRef<View>({ alpha: 1, reduced: reducedMotion, cursor, pickedKind: null, pickedPower: 0, hintPad: -1, prevPos, fx });
 
   useEffect(() => {
@@ -306,8 +304,8 @@ export default function TowerDefenseScreen(props: GameScreenProps) {
       const ctx = canvasRef.current?.getContext('2d');
       if (!ctx || size.width === 0) return;
       // The static layer (grass, road, Haven, pads) is drawn once per size into an offscreen canvas.
-      const key = `${size.width}x${size.height}@${size.dpr}`;
-      if (baseKey.current !== key || !base.current) {
+      const k = baseKey.current;
+      if (k.w !== size.width || k.h !== size.height || k.dpr !== size.dpr || !base.current) {
         const off = base.current ?? document.createElement('canvas');
         off.width = Math.round(size.width * size.dpr);
         off.height = Math.round(size.height * size.dpr);
@@ -317,7 +315,9 @@ export default function TowerDefenseScreen(props: GameScreenProps) {
           drawStatic(octx, size.width, size.height, cur.current, palette);
         }
         base.current = off;
-        baseKey.current = key;
+        k.w = size.width;
+        k.h = size.height;
+        k.dpr = size.dpr;
       }
       ctx.setTransform(size.dpr, 0, 0, size.dpr, 0, 0);
       view.current.alpha = reducedMotion ? 1 : alpha;
@@ -351,7 +351,7 @@ export default function TowerDefenseScreen(props: GameScreenProps) {
   // ---- text -----------------------------------------------------------------
   const left = state.waveAt >= 0 ? Math.max(0, Math.ceil((state.waveAt - state.tick) / 20)) : -1;
   const hud = [
-    formatText(s.hud.wave, { n: state.started, total: state.total }),
+    state.started === 0 ? formatText(s.hud.ready, { total: state.total }) : formatText(s.hud.wave, { n: state.started, total: state.total }),
     formatText(s.hud.haven, { hp: state.havenHp, max: state.havenMax }),
     formatText(s.hud.glow, { n: state.glow }),
     state.hintsLeft > 0 ? formatText(s.hud.hints, { n: state.hintsLeft }) : null,
@@ -375,7 +375,15 @@ export default function TowerDefenseScreen(props: GameScreenProps) {
   const info = infoKind ? formatText(s.pad.blurb, { tower: s.towers[infoKind].name, blurb: s.towers[infoKind].blurb }) : '';
   const boardHint = hintPad >= 0 && pickedMember?.kind ? formatText(s.pad.boardHint, { tower: s.towers[pickedMember.kind].name, n: hintPad + 1 }) : '';
   const upCost = towerHere ? upgradeCost(towerHere) : null;
-  const upLabel = !towerHere ? s.controls.upgradeNone : upCost === null ? s.controls.upgradeMax : formatText(s.controls.upgrade, { cost: upCost });
+  // One button for the pad under the cursor: build the picked tower on a free pad, upgrade a built one.
+  const pickedCost = pickedMember ? placeCost(pickedMember) : 0;
+  const upLabel = !towerHere
+    ? pickedMember
+      ? formatText(s.controls.build, { cost: pickedCost })
+      : s.controls.buildNone
+    : upCost === null
+      ? s.controls.upgradeMax
+      : formatText(s.controls.upgrade, { cost: upCost });
   const sellLabel = towerHere && !jammed ? formatText(s.controls.sell, { glow: refund(towerHere) }) : s.controls.sellNone;
   const bonus = callWaveBonus(state);
   const nextLabel = bonus ? formatText(s.controls.nextWave, { glow: bonus }) : s.controls.nextWaveNone;
@@ -408,7 +416,7 @@ export default function TowerDefenseScreen(props: GameScreenProps) {
           </>
         }
       >
-        <p className={styles.intro}>{s.intro}</p>
+        {state.started === 0 && !over ? <p className={styles.intro}>{s.intro}</p> : null}
         <p className={styles.hud} data-testid="td-hud">
           {hud}
         </p>
@@ -427,7 +435,7 @@ export default function TowerDefenseScreen(props: GameScreenProps) {
               <canvas ref={canvasRef} className={styles.canvas} role="img" aria-label={formatText(s.board, { pad: padStatus, hint: boardHint, n: cards.length })} />
             </div>
 
-            <div className={styles.padBar}>
+            <div className={styles.padText}>
               <p className={styles.padStatus} aria-live="polite" data-testid="td-pad">
                 {padStatus}
               </p>
@@ -436,18 +444,6 @@ export default function TowerDefenseScreen(props: GameScreenProps) {
                   {info}
                 </p>
               ) : null}
-              <button type="button" className="btn" onClick={() => step(-1)}>
-                {s.controls.prev}
-              </button>
-              <button type="button" className="btn" onClick={() => step(1)}>
-                {s.controls.next}
-              </button>
-              <button type="button" className="btn" onClick={upgradeHere} disabled={over}>
-                {upLabel}
-              </button>
-              <button type="button" className="btn" onClick={sellHere} disabled={over}>
-                {sellLabel}
-              </button>
             </div>
           </div>
 
@@ -486,6 +482,21 @@ export default function TowerDefenseScreen(props: GameScreenProps) {
               </ul>
             )}
 
+            <div className={styles.padBar}>
+              <button type="button" className="btn" onClick={() => step(-1)} aria-label={s.controls.prevLabel}>
+                {s.controls.prev}
+              </button>
+              <button type="button" className="btn" onClick={() => step(1)} aria-label={s.controls.nextLabel}>
+                {s.controls.next}
+              </button>
+              <button type="button" className="btn" onClick={confirmHere} disabled={over}>
+                {upLabel}
+              </button>
+              <button type="button" className="btn" onClick={sellHere} disabled={over}>
+                {sellLabel}
+              </button>
+            </div>
+
             {over ? null : (
               <div className={styles.controls}>
                 <button type="button" className="btn" aria-pressed={paused} onClick={togglePause}>
@@ -494,7 +505,7 @@ export default function TowerDefenseScreen(props: GameScreenProps) {
                 <button type="button" className="btn" onClick={toggleSpeed}>
                   {formatText(s.controls.speed, { n: state.speed })}
                 </button>
-                <button type="button" className={cx('btn', styles.wide)} onClick={callNext}>
+                <button type="button" className={cx('btn', styles.wide)} onClick={callNext} disabled={state.started >= state.total}>
                   {nextLabel}
                 </button>
               </div>
