@@ -33,7 +33,7 @@ test('eight full days: wave window after the 7th boundary, DP rises, a level-up 
         const log = dialog.getByRole('list', { name: 'Battle log' });
         await expect(log.getByRole('listitem').first()).toBeVisible();
         expect(await log.getByRole('listitem').count()).toBeGreaterThanOrEqual(3);
-        await expect(dialog.getByText(/Wave repelled|Decisive|Held/)).toBeVisible();
+        await expect(dialog.getByText(/Wave repelled|Decisive|Held/).first()).toBeVisible();
         await dialog.getByRole('button', { name: 'Continue' }).click();
         await expect(dialog).toBeHidden();
         const save = await getSave(page);
