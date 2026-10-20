@@ -84,6 +84,25 @@ export async function replaySameSeed(page: Page, play: () => Promise<void>): Pro
   return first;
 }
 
+/**
+ * The timing-proof replay check: no input loop at all, only Bot play and explicit waits.
+ * 1. Bot play twice: the Lab compares the second outcome with the first and says "Matches the previous run."
+ * 2. "Replay same seed" remounts the game (the panel goes back to "No outcome yet"), then Bot play a third time must give the very same outcome.
+ * Use it for any game whose real play is long, real-time or hard to repeat identically; `replaySameSeed` keeps driving the real UI.
+ */
+export async function replaySameSeedWithBot(page: Page): Promise<{ result: string; score: string; log: string }> {
+  const first = await botPlayToOutcome(page);
+  await page.getByRole('button', { name: 'Bot play' }).click();
+  await expect(page.getByTestId('lab-compare')).toHaveText('Matches the previous run.');
+  expect(await readOutcome(page)).toEqual(first);
+
+  await page.getByRole('button', { name: 'Replay same seed' }).click();
+  await expect(outcomePanel(page)).toContainText('No outcome yet');
+  await expect(outcomePanel(page).getByTestId('lab-outcome-result')).toHaveCount(0);
+  expect(await botPlayToOutcome(page)).toEqual(first);
+  return first;
+}
+
 /** No outcome problem was reported by the Lab (an invalid outcome shows in red). */
 export async function expectValidOutcome(page: Page): Promise<void> {
   await expect(outcomePanel(page).getByTestId('lab-outcome-problems')).toHaveCount(0);

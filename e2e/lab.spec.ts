@@ -9,7 +9,12 @@ import { expectNoSeriousA11yViolations, openLab, outcomePanel, readOutcome } fro
 /** Send the first ally until the duel ends. */
 async function playDuel(page: Page): Promise<void> {
   const allies = page.getByTestId('lab-stage').getByRole('button', { name: /^Send / });
-  for (let i = 0; i < 5 && (await allies.count()) > 0; i++) await allies.first().click();
+  const result = outcomePanel(page).getByTestId('lab-outcome-result');
+  await expect(allies.first()).toBeVisible(); // the duel has mounted: never read an empty stage as "nothing to play"
+  for (let i = 0; i < 5 && !(await result.isVisible()); i++) {
+    await allies.first().click();
+    await expect(allies.first().or(result)).toBeVisible(); // the next round, or the end of the duel
+  }
 }
 
 test('the Lab lists the sample game and opens it', async ({ page }) => {

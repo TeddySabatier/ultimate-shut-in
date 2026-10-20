@@ -10,12 +10,18 @@ import type { GameCandidate } from '../../../game';
 import type { GameModule, Locale } from '../../../games/contract';
 import { getGame, listGames, loadScreen } from '../../../games/registry';
 import { debugEnabled } from '../../../state/debug';
+import { readDebugGamesValue, restrictToDebugGames } from './debugGames';
 
 export { getGame, loadScreen };
 
-/** What a player may be offered: dev-only games (the sample) show only with the debug flag, so tests see them and players never do. */
+/**
+ * What a player may be offered: dev-only games (the sample) show only with the debug flag, so tests see them and players never do.
+ * With the debug flag on, `localStorage['haven.debug.games']` (comma-separated ids) narrows the catalog to those games (see `debugGames.ts`); it is ignored without the flag.
+ */
 export function listedGames(): GameModule[] {
-  return listGames({ includeDev: debugEnabled() });
+  const debug = debugEnabled();
+  const games = listGames({ includeDev: debug });
+  return debug ? restrictToDebugGames(games, readDebugGamesValue(), true) : games;
 }
 
 /** The listing, reduced to what the engine needs to pick a game. */
