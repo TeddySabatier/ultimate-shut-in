@@ -59,7 +59,7 @@ export function gearPrice(item: Pick<ArenaGearItem, 'price' | 'rare'>, ring: num
 /** Price of the next training bump of a vassal that already has `bumps` of them. */
 export function trainingPrice(bumps: number, ring: number): number {
   const t = arenaContent.training;
-  return tidy((t.costBase + t.costStep * bumps + t.costSquare * bumps * bumps) * ringFactor(ring, t.ringPriceStep));
+  return Math.max(1, Math.round((t.costBase + t.costStep * bumps + t.costSquare * bumps * bumps) * ringFactor(ring, t.ringPriceStep)));
 }
 
 /** Power added by `bumps` training bumps: the sum of the first entries of the curve. */

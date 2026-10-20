@@ -57,7 +57,7 @@ describe('migrate', () => {
     s.combos.push({ comboId: 'sprinting_umbrella', power: 4, forgedDay: DAY0 });
     s.log.push({ at: T0, day: DAY0, kind: 'x', text: 'y' });
     s.board = { day: DAY0, seed: 1, quests: [], bonusId: '', rerolledToday: true };
-    s.week.history.push({ index: 0, ring: 1, attack: 1, defense: 2, breakdown: { vassals: 0, trust: 0, walls: 0, combos: 0, titles: 0, wellKept: 0, outposts: 0 }, result: 'win', dpAwarded: 15, log: [], settledAt: T0 });
+    s.week.history.push({ index: 0, ring: 1, attack: 1, defense: 2, breakdown: { vassals: 0, trust: 0, walls: 0, combos: 0, titles: 0, wellKept: 0, outposts: 0, arena: 0 }, result: 'win', dpAwarded: 15, log: [], settledAt: T0 });
     const back = migrate(JSON.parse(exportSave(s)), T0 + 99, TZ);
     expect(back).toEqual(s);
   });

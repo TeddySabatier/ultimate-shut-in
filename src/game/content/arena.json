@@ -55,10 +55,10 @@
     ]
   },
   "training": {
-    "bumpPower": [2, 2, 1, 1, 1, 1, 1, 1],
-    "costBase": 25,
-    "costStep": 12,
-    "costSquare": 2,
+    "bumpPower": [2, 2, 1, 1, 1, 1],
+    "costBase": 14,
+    "costStep": 2,
+    "costSquare": 0.5,
     "ringPriceStep": 0.08,
     "maxBumpsPerWeek": 2,
     "weeklyShareOfHabitCoins": 0.25,

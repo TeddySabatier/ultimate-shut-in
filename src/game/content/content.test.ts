@@ -10,6 +10,9 @@ import {
   getQuest,
   getRing,
   getTitle,
+  arenaContent,
+  getArenaBuff,
+  getArenaItem,
   habitForUtility,
   habits,
   outpostRules,
@@ -22,6 +25,7 @@ import {
   tierDefaults,
   titles,
   utilityForHabit,
+  validateArenaContent,
   validateContent,
 } from './index';
 import { HABIT_IDS, OUTPOST_TYPE_IDS } from '../types';
@@ -121,3 +125,40 @@ describe('outposts content', () => {
     }
   });
 });
+
+describe('arena content', () => {
+  it('validates with no problems', () => {
+    expect(validateArenaContent()).toEqual([]);
+  });
+
+  it('ships three tiers of gear per slot, rare items, eleven buffs of every kind', () => {
+    expect(arenaContent.armory.items.filter((i) => i.rare !== true)).toHaveLength(9);
+    expect(arenaContent.armory.items.filter((i) => i.rare === true).length).toBeGreaterThanOrEqual(6);
+    expect(arenaContent.lottery.buffs).toHaveLength(11);
+    expect(getArenaItem('practice_baton')?.slot).toBe('weapon');
+    expect(getArenaItem('nope')).toBeUndefined();
+    expect(getArenaBuff('luck-s')?.kind).toBe('luck');
+  });
+
+  it('every error code the engine can raise has a warm line, and every line has a code', () => {
+    const codes = [
+      'run in progress', 'no troops', 'no games', 'not enough coins', 'no game in progress', 'no lottery open', 'not on offer', 'nothing to continue',
+      'chain complete', 'nothing to bank', 'defense capped', 'chain too short', 'no rare item left', 'unknown item', 'rare item', 'unknown troop',
+      'ring too low', 'not an upgrade', 'not in the stash', 'training maxed', 'training week full', 'training week cap', 'unknown decor', 'already owned',
+      'request too short', 'request limit',
+    ];
+    const lines = strings.arena.errors as Record<string, string>;
+    for (const c of codes) expect(lines[c], c).toBeTruthy();
+    expect(Object.keys(lines).sort()).toEqual([...codes].sort());
+  });
+
+  it('breaks a validation on purpose: a buff above its cap and a missing slot tier are caught', () => {
+    const buff = arenaContent.lottery.buffs[0]!;
+    const saved = buff.amount;
+    buff.amount = 9999;
+    expect(validateArenaContent().some((e) => e.includes('above the cap'))).toBe(true);
+    buff.amount = saved;
+    expect(validateArenaContent()).toEqual([]);
+  });
+});
+
