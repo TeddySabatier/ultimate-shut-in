@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="miter" stroke-linecap="square">
+  <!-- hint buff: a lit lamp -->
+  <path d="M9 15c-2-1.5-3-3-3-5a6 6 0 0 1 12 0c0 2-1 3.5-3 5z"/>
+  <path d="M9 18h6M10 21h4"/>
+</svg>

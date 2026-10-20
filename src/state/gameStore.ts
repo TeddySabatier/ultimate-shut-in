@@ -13,8 +13,19 @@ import {
   acceptProposal,
   addCustomQuestToBoard,
   addCustomTemplate,
+  abandonRun,
   applyResurrection,
   archiveCustomTemplate,
+  bankRun,
+  buyDecor,
+  buyGear,
+  continueRun,
+  enterRun,
+  equipRare,
+  pickBuff,
+  requestGame,
+  resolveGame,
+  trainVassal,
   restoreCustomTemplate,
   updateCustomTemplate,
   changeResetHour,
@@ -50,13 +61,18 @@ import {
   undoQuest,
   zoneOfCell,
   type ActionResult,
+  type ArenaBankChoice,
+  type ArenaRequest,
+  type ArenaRunRecord,
   type CustomDraft,
+  type GameCandidate,
   type GameEvent,
   type HabitId,
   type MapCell,
   type OutpostInput,
   type OutpostPatch,
   type ResurrectionChoice,
+  type RunOutcome,
   type SaveFile,
   type Settings,
 } from '../game';
@@ -95,6 +111,12 @@ const SHOWN_EVENTS: ReadonlySet<GameEvent['type']> = new Set<GameEvent['type']>(
   'outpostStateReached',
   'outpostRetired',
   'outpostRestored',
+  // The Arena: purchases and requests get a toast; run progress is shown by the Arena screen itself.
+  'arenaGearBought',
+  'arenaGearEquipped',
+  'arenaTrained',
+  'arenaDecorBought',
+  'arenaRequestSaved',
 ]);
 
 /**
@@ -127,6 +149,11 @@ export function mapNotice(save: SaveFile, code: string, vars: { name?: string; c
     ring: ringName(save.player.ring),
     zone: zone >= 1 && zone <= 7 ? getRing(zone).name : 'That zone',
   });
+}
+
+/** Warm copy for an Arena refusal (`strings.arena.errors`); an unknown code is shown as is. */
+export function arenaNotice(code: string): string {
+  return (strings.arena.errors as Record<string, string | undefined>)[code] ?? code;
 }
 
 export function isShownEvent(e: GameEvent): boolean {
@@ -192,6 +219,25 @@ export interface GameActions {
   importSave: (raw: unknown) => boolean;
   dismissEvent: () => void;
   clearNotice: () => void;
+  /**
+   * The Arena (docs/design/ARENA.md 7). Every action returns whether the engine accepted it; a refusal
+   * becomes a warm notice. The games the host lists are passed in (`GameCandidate[]`) because the engine
+   * never imports the registry.
+   */
+  arenaEnter: (candidates: readonly GameCandidate[]) => boolean;
+  /** Apply the outcome of the game in progress (already validated by the host). `ended` is the run's record when it just ended. */
+  arenaResolve: (outcome: RunOutcome) => { applied: boolean; ended: ArenaRunRecord | null };
+  arenaPickBuff: (buffId: string) => boolean;
+  arenaContinue: (candidates: readonly GameCandidate[]) => boolean;
+  /** Bank the spoils; returns the finished run's record, or null when refused. */
+  arenaBank: (choice: ArenaBankChoice) => ArenaRunRecord | null;
+  /** Leave the game in progress: the run ends like a loss. */
+  arenaAbandon: () => { applied: boolean; ended: ArenaRunRecord | null };
+  arenaBuyGear: (habit: HabitId, itemId: string) => boolean;
+  arenaEquipRare: (habit: HabitId, itemId: string) => boolean;
+  arenaTrain: (habit: HabitId) => boolean;
+  arenaBuyDecor: (comboId: string) => boolean;
+  arenaRequest: (text: string, source: ArenaRequest['source']) => boolean;
 }
 
 export type GameStore = GameState & GameActions;
@@ -303,6 +349,29 @@ export const useGameStore = create<GameStore>()(
         return apply({ save: r.save, events: oneOutpostToast(r.events) });
       };
       const nameOf = (id: string) => (save: SaveFile) => ({ name: save.map.outposts.find((o) => o.id === id)?.name ?? 'it' });
+
+      /** Arena mutators: translate the engine's short refusal codes into the warm lines of `strings.arena.errors`. */
+      const withArena = (fn: (save: SaveFile, now: number) => ActionResult): boolean => {
+        const save = get().save;
+        if (!save) return false;
+        const r = fn(save, now());
+        if (r.error !== undefined) {
+          const message = arenaNotice(r.error);
+          set((s) => {
+            s.notice = message;
+          });
+          return false;
+        }
+        return apply(r);
+      };
+      /** Like `withArena`, and also returns the run record the action just closed (if any). */
+      const withArenaEnd = (fn: (save: SaveFile, now: number) => ActionResult): { applied: boolean; ended: ArenaRunRecord | null } => {
+        const before = get().save?.arena.run?.id ?? null;
+        const applied = withArena(fn);
+        const after = get().save;
+        const last = after?.arena.log[after.arena.log.length - 1] ?? null;
+        return { applied, ended: applied && before !== null && last !== null && last.id === before ? last : null };
+      };
 
       return {
         ...INITIAL_STATE,
@@ -464,6 +533,24 @@ export const useGameStore = create<GameStore>()(
             s.notice = null;
           });
         },
+
+        arenaEnter: (candidates) => withArena((save, now) => enterRun(save, now, candidates)),
+        arenaResolve: (outcome) => withArenaEnd((save, now) => resolveGame(save, now, outcome)),
+        arenaPickBuff: (buffId) => withArena((save, now) => pickBuff(save, now, buffId)),
+        arenaContinue: (candidates) => withArena((save, now) => continueRun(save, now, candidates)),
+        arenaBank: (choice) => {
+          const before = get().save?.arena.run?.id ?? null;
+          if (!withArena((save, now) => bankRun(save, now, choice))) return null;
+          const after = get().save;
+          const last = after?.arena.log[after.arena.log.length - 1] ?? null;
+          return last !== null && last.id === before ? last : null;
+        },
+        arenaAbandon: () => withArenaEnd((save, now) => abandonRun(save, now)),
+        arenaBuyGear: (habit, itemId) => withArena((save, now) => buyGear(save, now, habit, itemId)),
+        arenaEquipRare: (habit, itemId) => withArena((save, now) => equipRare(save, now, habit, itemId)),
+        arenaTrain: (habit) => withArena((save, now) => trainVassal(save, now, habit)),
+        arenaBuyDecor: (comboId) => withArena((save, now) => buyDecor(save, now, comboId)),
+        arenaRequest: (text, source) => withArena((save, now) => requestGame(save, now, text, source)),
       };
     }),
     {

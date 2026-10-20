@@ -261,6 +261,13 @@ test.describe('responsive sweep', () => {
       await gotoTab(page, 'Settings');
       await check('settings', { tabBar: true });
 
+      // The Arena hub (brief G2), reached from the card on the Haven: the games list shows the dev sample, the Armory one troop open.
+      await gotoTab(page, 'Haven');
+      await page.getByRole('link', { name: 'Open the Arena' }).click();
+      await expect(page.getByRole('heading', { name: 'Arena', level: 1 })).toBeVisible({ timeout: 20_000 }); // a lazy chunk, cold on the first visit
+      await page.getByTestId('arena-troop-move').click();
+      await check('arena', { tabBar: true });
+
       // The wave window: the first period closes at the 7th boundary.
       await advanceToDay(page, 7);
       const tally = await settleOverlays(page, { keepWave: true });

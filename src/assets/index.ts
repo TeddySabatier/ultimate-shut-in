@@ -88,6 +88,18 @@ import outpostPool from './outposts/pool.svg';
 import outpostClass from './outposts/class.svg';
 import outpostOther from './outposts/other.svg';
 
+// ---- arena (brief G2: 24x24, monochrome currentColor; gear slots, Lottery buffs, the Haven card) ----
+import arenaWeapon from './arena/weapon.svg';
+import arenaArmor from './arena/armor.svg';
+import arenaCharm from './arena/charm.svg';
+import arenaBuffAttack from './arena/buff-attack.svg';
+import arenaBuffDefense from './arena/buff-defense.svg';
+import arenaBuffTime from './arena/buff-time.svg';
+import arenaBuffHint from './arena/buff-hint.svg';
+import arenaBuffRevive from './arena/buff-revive.svg';
+import arenaBuffLuck from './arena/buff-luck.svg';
+import arenaCard from './arena/card.svg';
+
 // ---- logo ----
 import logoTitle from './logo/logo.svg';
 import logoMark from './logo/mark.svg';
@@ -234,3 +246,19 @@ export const logo = {
   /** 64x64 square app mark (also the favicon and PWA icon source). */
   mark: logoMark,
 } as const;
+
+// ---- arena (brief G2) ----
+/** The Arena's icons: one per gear slot, one per Lottery buff kind, and the Haven card's mark. All drawn with `currentColor`. */
+export const arenaIcons = {
+  weapon: arenaWeapon,
+  armor: arenaArmor,
+  charm: arenaCharm,
+  buffAttack: arenaBuffAttack,
+  buffDefense: arenaBuffDefense,
+  buffTime: arenaBuffTime,
+  buffHint: arenaBuffHint,
+  buffRevive: arenaBuffRevive,
+  buffLuck: arenaBuffLuck,
+  card: arenaCard,
+} as const satisfies Readonly<Record<string, string>>;
+export type ArenaIconId = keyof typeof arenaIcons;

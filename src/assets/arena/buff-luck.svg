@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="miter" stroke-linecap="square">
+  <!-- luck buff: a four-leaf sprig -->
+  <path d="M12 12L8 8a3 3 0 0 1 4-4 3 3 0 0 1 4 4zM12 12l4 4a3 3 0 0 1-4 4 3 3 0 0 1-4-4z"/>
+  <path d="M12 12l6-2M12 12l-6 2M12 12v9"/>
+</svg>
