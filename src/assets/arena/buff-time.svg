@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="miter" stroke-linecap="square">
+  <!-- time buff: an hourglass -->
+  <path d="M6 3h12M6 21h12"/>
+  <path d="M7 3v3l5 6 5-6V3M7 21v-3l5-6 5 6v3"/>
+</svg>

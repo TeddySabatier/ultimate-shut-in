@@ -306,7 +306,7 @@
         "title": "The Arena",
         "line": "Send the troops out to test what they practise.",
         "fee": "Entry fee {fee} coins",
-        "stats": "Best chain {best} · {runs} runs today",
+        "stats": "Best chain {best} · runs today: {runs}",
         "waiting": "A run is waiting for you.",
         "open": "Open the Arena"
       },
@@ -339,7 +339,7 @@
       },
       "run": {
         "heading": "Your run",
-        "spoils": "Spoils: {coins} coins from {wins} wins",
+        "spoils": "Spoils: {coins} coins. Wins: {wins}",
         "atRisk": "If a room beats the troops, {coins} coins still come home.",
         "buffsHeading": "Buffs this run",
         "noBuffs": "No buffs yet.",
@@ -394,9 +394,9 @@
       },
       "summary": {
         "heading": "The troops are home",
-        "banked": "Banked after {wins} wins.",
-        "lost": "A room beat the troops after {wins} wins. They came home safe.",
-        "fled": "The troops left early after {wins} wins.",
+        "banked": "Banked. Wins this run: {wins}.",
+        "lost": "A room beat the troops, and they came home safe. Wins this run: {wins}.",
+        "fled": "The troops left early. Wins this run: {wins}.",
         "coins": "+{coins} coins in the purse",
         "defense": "+{defense} wave defense this week",
         "item": "New in the stash: {item}",
@@ -421,6 +421,7 @@
         "buyLabel": "Buy {item} for {troop}, {price} coins",
         "best": "Nothing better is sold for this slot.",
         "purse": "You have {coins}",
+        "needMore": "{missing} more coins needed.",
         "trainHeading": "Training",
         "trainOffer": "Next session: +{power} power for {price} coins",
         "trainWeek": "This week: {spent} of {cap} coins, {bumps} of {max} sessions",
@@ -458,7 +459,7 @@
       "runLog": {
         "heading": "Recent runs",
         "empty": "No runs yet. The first one is waiting.",
-        "line": "{date} · ring {ring} · {wins} wins",
+        "line": "{date} · ring {ring} · wins: {wins}",
         "ends": {
           "banked": "Banked",
           "lost": "Came home",

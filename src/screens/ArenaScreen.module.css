@@ -1,0 +1,86 @@
+/* The Arena screen (docs/design/ARENA.md 10, 11). Safe areas are applied by AppShell, never here. */
+.screen {
+  /* The hub goes to two columns when the frame gives it the room (a wide frame), not by viewport alone. */
+  container-type: inline-size;
+  min-width: 0;
+}
+
+.top {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0 0 var(--space-3);
+}
+
+.back {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--touch-target);
+  padding: 0 var(--space-1);
+  margin-left: calc(-1 * var(--space-1));
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.titleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.h1 {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--heading-md);
+}
+
+.purse {
+  flex: none;
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-panel);
+  border: var(--border-pixel);
+  box-shadow: 2px 2px 0 #000;
+}
+
+.hub {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
+.col {
+  min-width: 0;
+}
+
+/* Two columns once the frame is wide enough (a 768px+ viewport with a wide frame). */
+@container (min-width: 40rem) {
+  .hub {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0 var(--space-4);
+  }
+}
+
+@media (min-width: 768px) {
+  .top {
+    margin-bottom: var(--space-4);
+  }
+}
+
+/* Landscape phones and the keyboard: a tighter header. */
+@media (max-height: 500px) {
+  .top {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: var(--space-3);
+    margin-bottom: var(--space-2);
+  }
+}
+
+@media (max-width: 359px) {
+  .purse {
+    padding: var(--space-1);
+  }
+}
