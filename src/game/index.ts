@@ -145,6 +145,63 @@ export {
 export type { OutpostInput, OutpostPatch } from './outposts';
 export { SNAPSHOT_MAX, COMPARE_DAYS, RESIDUE_DAYS, FLAG_DAYS, markMapSeen, compareSnapshot, wallsHeld, waveResidue } from './map';
 export type { WaveResidue } from './map';
+export {
+  emptyArena,
+  migrateArena,
+  arenaDefense,
+  runsToday,
+  overDailySuggestion,
+  ownedRareItems,
+} from './arena/state';
+export {
+  expectedQuestCoins,
+  typicalDailyCoins,
+  typicalWeeklyCoins,
+  entryFee,
+  trainingWeeklyCap,
+  gearPrice,
+  trainingPrice,
+  trainingPower,
+  decorPrice,
+  winCoins,
+  roomDifficulty,
+} from './arena/economics';
+export {
+  soldItems,
+  rareItems,
+  wornItems,
+  gearPower,
+  trainingBonus,
+  armoryTraits,
+  trainingWeek,
+  trainingStatus,
+  gearRefusal,
+  trainingRefusal,
+  buyGear,
+  equipRare,
+  trainVassal,
+  buyDecor,
+  unownedRareItems,
+} from './arena/armory';
+export type { TrainingStatus } from './arena/armory';
+export { buffFromDef, eligibleBuffs, buffWeight, drawOdds, drawOffers } from './arena/lottery';
+export { requestsOn, requestsLeft, cleanRequestText, requestGame } from './arena/requests';
+export { rosterFor, vassalMembers, titleTraitsOf, troopLabel, ROSTER_SOURCES } from './arena/roster';
+export { buildParty, equipMember, POWER_MIN, POWER_MAX } from './arena/party';
+export {
+  eligibleGames,
+  pickGame,
+  bankOptions,
+  carriedHome,
+  runContext,
+  enterRun,
+  resolveGame,
+  abandonRun,
+  pickBuff,
+  continueRun,
+  bankRun,
+} from './arena/run';
+export type { BankOptions, GameCandidate, RunOutcome } from './arena/run';
 export { processBoundaries, changeResetHour, newBoundaryCaps } from './tick';
 export type { BoundaryCaps } from './tick';
 export {

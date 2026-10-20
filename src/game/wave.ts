@@ -12,6 +12,7 @@ import { wellKeptBonus } from './utilities';
 import { activeVassals, resetTrustDraft, vassalName } from './vassals';
 import { outpostDefense, strongholdOutposts } from './outposts';
 import { appendSnapshotDraft } from './map';
+import { arenaDefense } from './arena/state';
 import type { ActionResult, Difficulty, GameEvent, HabitId, SaveFile, WaveBreakdown, WaveRecord, WaveResult } from './types';
 
 /* ------------------------------ Monsters ------------------------------ */
@@ -69,8 +70,12 @@ export interface DefenseDetail {
   combos: Array<{ name: string; power: number }>;
 }
 
-/** defense = sum(level + 2*trust) + walls + combos + titles + wellKept + outposts (GDD 9.3, CITY-MAP 3.3). */
-export function waveDefense(save: SaveFile): DefenseDetail {
+/**
+ * defense = sum(level + 2*trust) + walls + combos + titles + wellKept + outposts + arena
+ * (GDD 9.3, CITY-MAP 3.3, ARENA 5.3). `period` is the wave being settled; the Arena term is
+ * what was banked for that period, never for another.
+ */
+export function waveDefense(save: SaveFile, period: number = save.week.index): DefenseDetail {
   const vassals = activeVassals(save).map((v) => ({ habit: v.habit, level: v.level, trust: v.trust, contribution: v.level + 2 * v.trust }));
   const levelSum = vassals.reduce((s, v) => s + v.level, 0);
   const trustSum = vassals.reduce((s, v) => s + 2 * v.trust, 0);
@@ -80,8 +85,9 @@ export function waveDefense(save: SaveFile): DefenseDetail {
   const titles = titleDefenseFlat(save);
   const wellKept = wellKeptBonus(save);
   const outposts = outpostDefense(save);
-  const breakdown: WaveBreakdown = { vassals: levelSum, trust: trustSum, walls, combos: comboSum, titles, wellKept, outposts };
-  return { total: levelSum + trustSum + walls + comboSum + titles + wellKept + outposts, breakdown, vassals, combos };
+  const arena = arenaDefense(save, period);
+  const breakdown: WaveBreakdown = { vassals: levelSum, trust: trustSum, walls, combos: comboSum, titles, wellKept, outposts, arena };
+  return { total: levelSum + trustSum + walls + comboSum + titles + wellKept + outposts + arena, breakdown, vassals, combos };
 }
 
 export function classifyWave(attack: number, defense: number): Exclude<WaveResult, 'quiet'> {
@@ -139,6 +145,7 @@ function buildLog(save: SaveFile, week: number, attack: number, detail: DefenseD
         : `${holds.length >= 3 ? 'Three' : 'Two'} strongholds hold the outer line. +${detail.breakdown.outposts}`,
     );
   }
+  if ((detail.breakdown.arena ?? 0) > 0) lines.push(`The Arena spoils reinforce the gate. +${detail.breakdown.arena}`);
 
   const pool = result === 'decisive' ? strings.waveDecisive : result === 'win' ? strings.waveWin : strings.waveLoss;
   lines.push(formatLine(pickLine(pool, seed), { defense: detail.total, attack }));
@@ -168,7 +175,7 @@ export function settleWaveDraft(draft: SaveFile, periodIndex: number, now: numbe
       ring: ringAtSettlement,
       attack: 0,
       defense: 0,
-      breakdown: { vassals: 0, trust: 0, walls: 0, combos: 0, titles: 0, wellKept: 0, outposts: 0 },
+      breakdown: { vassals: 0, trust: 0, walls: 0, combos: 0, titles: 0, wellKept: 0, outposts: 0, arena: 0 },
       result: 'quiet',
       dpAwarded: 0,
       log: [pickLine(strings.waveQuiet, seed)],
@@ -176,7 +183,7 @@ export function settleWaveDraft(draft: SaveFile, periodIndex: number, now: numbe
     };
   } else {
     const attack = waveAttack(week, ringAtSettlement, draft.settings.difficulty);
-    const detail = waveDefense(draft);
+    const detail = waveDefense(draft, periodIndex);
     const result = classifyWave(attack, detail.total);
     const dp = waveDpAward(result, titleDpMult(draft));
     draft.player.domainPoints += dp;
@@ -200,6 +207,9 @@ export function settleWaveDraft(draft: SaveFile, periodIndex: number, now: numbe
     };
   }
 
+  // Arena spoils bank for one wave. A quiet week keeps them for the next; a settled one spends them.
+  const banked = draft.arena.defense;
+  if (banked !== null && banked.period <= periodIndex) draft.arena.defense = record.result === 'quiet' && banked.period === periodIndex ? { period: periodIndex + 1, amount: banked.amount } : null;
   draft.week.history.push(record);
   if (draft.week.history.length > WAVE_HISTORY_MAX) draft.week.history.splice(0, draft.week.history.length - WAVE_HISTORY_MAX);
   draft.week.index = periodIndex + 1;

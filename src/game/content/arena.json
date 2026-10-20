@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "run": {
+    "feeByRing": [20, 26, 32, 38, 44, 50, 56],
+    "feeAdherence": 0.9,
+    "maxRooms": 10,
+    "roomsPerDifficultyStep": 2,
+    "ringBoostFrom": 4,
+    "suggestedRunsPerDay": 5,
+    "reward": { "base": 0.4, "perScore": 0.6, "growthPerRoom": 0.25 },
+    "carryHome": 0.25
+  },
+  "bank": {
+    "defensePerWin": 1,
+    "defenseCapPerPeriod": 6,
+    "itemMinWins": 3
+  },
+  "lottery": {
+    "offers": 3,
+    "luckBoostPer": 50,
+    "caps": { "attack": 60, "defense": 60, "time": 90, "hint": 5, "revive": 2, "luck": 50 },
+    "buffs": [
+      { "id": "attack-s", "kind": "attack", "amount": 10, "weight": 12, "rare": false, "name": "Sharpened Resolve", "blurb": "The troops hit harder in the next games." },
+      { "id": "attack-l", "kind": "attack", "amount": 20, "weight": 5, "rare": true, "name": "Battle Hymn", "blurb": "A song the whole party knows. Hits land much harder." },
+      { "id": "defense-s", "kind": "defense", "amount": 10, "weight": 12, "rare": false, "name": "Steady Footing", "blurb": "The troops take less from every blow." },
+      { "id": "defense-l", "kind": "defense", "amount": 20, "weight": 5, "rare": true, "name": "Shield Wall", "blurb": "Shoulder to shoulder. Very little gets through." },
+      { "id": "time-s", "kind": "time", "amount": 10, "weight": 10, "rare": false, "name": "A Few Extra Minutes", "blurb": "Ten more seconds on every clock." },
+      { "id": "time-l", "kind": "time", "amount": 25, "weight": 4, "rare": true, "name": "The Long Afternoon", "blurb": "Twenty-five more seconds on every clock." },
+      { "id": "hint-s", "kind": "hint", "amount": 1, "weight": 10, "rare": false, "name": "A Whispered Tip", "blurb": "One hint when you are stuck." },
+      { "id": "hint-l", "kind": "hint", "amount": 2, "weight": 4, "rare": true, "name": "Margin Notes", "blurb": "Two hints when you are stuck." },
+      { "id": "revive-s", "kind": "revive", "amount": 1, "weight": 5, "rare": true, "name": "Second Wind", "blurb": "One fall is forgiven, once." },
+      { "id": "luck-s", "kind": "luck", "amount": 10, "weight": 8, "rare": false, "name": "Lucky Penny", "blurb": "The dice lean your way a little." },
+      { "id": "luck-l", "kind": "luck", "amount": 25, "weight": 3, "rare": true, "name": "Four-Leaf Banner", "blurb": "The dice lean your way, and the Lottery notices." }
+    ]
+  },
+  "armory": {
+    "ringPriceStep": 0.12,
+    "slots": ["weapon", "armor", "charm"],
+    "items": [
+      { "id": "practice_baton", "slot": "weapon", "tier": 1, "minRing": 1, "price": 60, "power": 2, "name": "Practice Baton", "flavor": "Wrapped grip, no edge. Pell says it still counts." },
+      { "id": "walking_staff", "slot": "weapon", "tier": 2, "minRing": 2, "price": 150, "power": 4, "name": "Tempered Walking Staff", "flavor": "Two summers of oiling. It knows the way home." },
+      { "id": "starlit_pike", "slot": "weapon", "tier": 3, "minRing": 4, "price": 320, "power": 6, "name": "Starlit Pike", "flavor": "The tip catches whatever light there is." },
+      { "id": "quilted_vest", "slot": "armor", "tier": 1, "minRing": 1, "price": 60, "power": 2, "name": "Quilted Vest", "flavor": "Stitched by someone who worries. Warm in the right places." },
+      { "id": "waxed_cloak", "slot": "armor", "tier": 2, "minRing": 2, "price": 150, "power": 4, "name": "Waxed Cloak", "flavor": "Rain slides off. So do most opinions." },
+      { "id": "lantern_mantle", "slot": "armor", "tier": 3, "minRing": 4, "price": 320, "power": 6, "name": "Lantern-Plate Mantle", "flavor": "Plates hung with tiny lanterns. Loud, bright, reassuring." },
+      { "id": "knotted_cord", "slot": "charm", "tier": 1, "minRing": 1, "price": 40, "power": 1, "name": "Knotted Cord", "flavor": "One knot for every promise kept." },
+      { "id": "brass_compass", "slot": "charm", "tier": 2, "minRing": 2, "price": 100, "power": 2, "name": "Brass Compass", "flavor": "Points at home, whatever home turns out to be." },
+      { "id": "haven_seal", "slot": "charm", "tier": 3, "minRing": 4, "price": 220, "power": 3, "name": "Haven Seal", "flavor": "Stamped once, kept forever." },
+      { "id": "moonlit_pike", "slot": "weapon", "tier": 4, "minRing": 1, "price": 0, "power": 9, "rare": true, "name": "Moonlit Pike", "flavor": "Found at the bottom of a run nobody planned to finish." },
+      { "id": "ladle_of_ages", "slot": "weapon", "tier": 4, "minRing": 1, "price": 0, "power": 8, "rare": true, "name": "Ladle of Ages", "flavor": "Stirred a thousand pots. Has opinions about spoons." },
+      { "id": "dawnbreak_mantle", "slot": "armor", "tier": 4, "minRing": 1, "price": 0, "power": 9, "rare": true, "name": "Dawnbreak Mantle", "flavor": "Only fits people who went out this morning." },
+      { "id": "quiet_plate", "slot": "armor", "tier": 4, "minRing": 1, "price": 0, "power": 8, "rare": true, "name": "Quiet Plate", "flavor": "Muffles every worry to a murmur." },
+      { "id": "heart_of_the_haven", "slot": "charm", "tier": 4, "minRing": 1, "price": 0, "power": 5, "rare": true, "name": "Heart of the Haven", "flavor": "Warm to the touch. It beats a little slower than yours." },
+      { "id": "sun_crow_feather", "slot": "charm", "tier": 4, "minRing": 1, "price": 0, "power": 5, "rare": true, "name": "Sun-Crow Feather", "flavor": "Dropped by something that only flies at noon." }
+    ]
+  },
+  "training": {
+    "bumpPower": [2, 2, 1, 1, 1, 1, 1, 1],
+    "costBase": 25,
+    "costStep": 12,
+    "costSquare": 2,
+    "ringPriceStep": 0.08,
+    "maxBumpsPerWeek": 2,
+    "weeklyShareOfHabitCoins": 0.25,
+    "weeklyAdherence": 0.9
+  },
+  "decor": {
+    "pricePerPower": 30
+  },
+  "requests": {
+    "textMax": 400,
+    "perDay": 3,
+    "keep": 30
+  },
+  "log": {
+    "keep": 30,
+    "learnedKeep": 8,
+    "noteMax": 240
+  }
+}

@@ -32,7 +32,7 @@ describe('wave formulas', () => {
       { titleId: 'decisive', earnedAt: T0 },
     ];
     const d = waveDefense(save);
-    expect(d.breakdown).toEqual({ vassals: 4, trust: 10, walls: 5, combos: 9, titles: 6, wellKept: 5, outposts: 0 });
+    expect(d.breakdown).toEqual({ vassals: 4, trust: 10, walls: 5, combos: 9, titles: 6, wellKept: 5, outposts: 0, arena: 0 });
     expect(d.total).toBe(39);
     expect(d.vassals.map((v) => v.habit)).toEqual(['move', 'clean']);
     expect(d.combos[0]?.name).toBe('Tandem Kettlebell');
