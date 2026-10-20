@@ -4,7 +4,7 @@ Monsters walk a winding path to the Haven; the troops are the towers. Each vassa
 
 Category `defense`, minimum ring 2, roster 3 to 8, about 5 minutes.
 
-Build spec and player doc. *Tunable* numbers get their balanced values written back here.
+Build spec and player doc. The balanced values of the *tunable* numbers are written back here (HP and count percentages in sections 4 and 5).
 
 ## 1. Conventions
 
@@ -107,9 +107,9 @@ Ids and names from `MONSTERS` in `src/game/wave.ts`. Speed in u per tick.
 | `snooze-golem` | 170 | 18 | 4 | 9 | 2 | |
 | `silence-specter` | 85 | 38 | 1 | 6 | 1 | cannot be slowed |
 | `doomscroll-wyrm` | 320 | 24 | 2 | 18 | 3 | mid-boss |
-| `the-static` | 800 *tunable* | 16 | 3 | 0 | 5 | boss, see below |
+| `the-static` | 800 (kept) | 16 | 3 | 0 | 5 | boss, see below |
 
-**HP at spawn:** `hp = max(1, floor(floor(base * HP_PCT[d] / 100) * (100 + 6 * (n - 1)) / 100))`, `n` = the wave's number in this game (1..total); in wave 1, then `hp = max(1, floor(hp * 80 / 100))`. `HP_PCT = [70, 85, 100, 115, 135]` *tunable*.
+**HP at spawn:** `hp = max(1, floor(floor(base * HP_PCT[d] / 100) * (100 + 6 * (n - 1)) / 100))`, `n` = the wave's number in this game (1..total); in wave 1, then `hp = max(1, floor(hp * 80 / 100))`. `HP_PCT = [150, 300, 530, 600, 680]` *balanced*: tower damage at power 44 is generous, and a leaking monster is simply removed (the Haven's hit points are the only loss), so only large hit-point multipliers put the bot's difficulty 3 win rate near 50 percent.
 
 **Speed at spawn:** waves 1 and 2: `floor(speed * (100 - min(40, timeSeconds)) / 100)`. Each tick: `eff = max(1, floor(speed * (100 - slow) / 100))`; `pos += eff`. Net progress stays positive: a fully slowed Golem gains 360 u per 40-tick knock-back cooldown against 350 u of push.
 
@@ -133,7 +133,7 @@ Total waves: `[5, 6, 8, 8, 8][d-1]`. A game plays the templates d1 `1,2,3,4,8`; 
 | 8 | Clutter Blob 4, Dust Bunny 6, The Static 1 | 24 |
 
 - A pick is `rngInt(rng, options)` on the setup rng, in order. Template 7: `a = rngInt(rng, 4)`, `b = rngInt(rng, 3)`, and `b >= a` means `b + 1`.
-- Count at difficulty `d`: `ceil(count * CNT_PCT[d] / 100)`, `CNT_PCT = [70, 85, 100, 115, 130]` *tunable*; the Static and the Wyrm stay 1.
+- Count at difficulty `d`: `ceil(count * CNT_PCT[d] / 100)`, `CNT_PCT = [90, 100, 110, 115, 120]` *balanced*; the Static and the Wyrm stay 1.
 - Interval at `d`: `interval + [6, 3, 0, -2, -4][d-1]`.
 - Spawn offsets: first enemy at 0, each next at `previous + interval` (a Dust Bunny: `previous + floor(interval / 2)`).
 - Waves are generated in `initial` and stored in the state.
@@ -144,7 +144,7 @@ Total waves: `[5, 6, 8, 8, 8][d-1]`. A game plays the templates d1 `1,2,3,4,8`; 
 
 ## 6. Economy
 
-- Start glow: `[120, 110, 100, 95, 90][d-1]` *tunable*.
+- Start glow: `[120, 110, 100, 95, 90][d-1]` (kept as first written).
 - Trickle: `+1` glow every tick where `tick % 20 === 0`, until the end.
 - Kill: `floor(glow * (100 + luckPct) / 100)`, doubled for wave-1 enemies.
 - Place and upgrade are refused (state unchanged) when `glow < cost`, so glow is never negative. `glowEarned` sums income.
