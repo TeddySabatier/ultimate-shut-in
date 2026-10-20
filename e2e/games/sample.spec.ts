@@ -7,14 +7,19 @@
  * (botPlayToOutcome) and use the real UI for a few inputs only.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { botPlayToOutcome, expectNoSeriousA11yViolations, expectResponsiveGame, expectValidOutcome, openLab, readOutcome, replaySameSeed, shootGame } from './lab-helpers';
+import { botPlayToOutcome, expectNoSeriousA11yViolations, expectResponsiveGame, expectValidOutcome, openLab, outcomePanel, readOutcome, replaySameSeedWithBot, shootGame } from './lab-helpers';
 
 const ID = 'sample';
 
 /** One full game through the real UI: send the first ally until the duel ends. */
 async function playByTapping(page: Page): Promise<void> {
   const allies = page.getByTestId('lab-stage').getByRole('button', { name: /^Send / });
-  for (let i = 0; i < 5 && (await allies.count()) > 0; i++) await allies.first().click();
+  const result = outcomePanel(page).getByTestId('lab-outcome-result');
+  await expect(allies.first()).toBeVisible(); // the duel has mounted: never read an empty stage as "nothing to play"
+  for (let i = 0; i < 5 && !(await result.isVisible()); i++) {
+    await allies.first().click();
+    await expect(allies.first().or(result)).toBeVisible(); // the next round, or the end of the duel
+  }
 }
 
 // 1. Required: it loads, and axe finds no serious violation (the audit runs on the mobile project only).
@@ -39,10 +44,10 @@ test('plays a full game to an outcome', async ({ page }, testInfo) => {
   await expectValidOutcome(page);
 });
 
-// 3. Required: replaying the same seed gives the same outcome.
+// 3. Required: replaying the same seed gives the same outcome. Bot play and explicit waits, no tap loop: it cannot depend on timing.
 test('replaying the same seed gives the same outcome', async ({ page }) => {
   await openLab(page, ID, { seed: 42 });
-  const outcome = await replaySameSeed(page, () => playByTapping(page));
+  const outcome = await replaySameSeedWithBot(page);
   expect(outcome.log).toMatch(/Round 1: /);
 });
 
