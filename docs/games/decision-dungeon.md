@@ -1,6 +1,6 @@
 # Decision Dungeon (`decision-dungeon`)
 
-A short practice of choosing a kinder next step in everyday friction. Each room is an ordinary situation: a bus that left a minute early, a blunt message, a form that has sat on the table for days. You pick one of three or four doors, read a warm reflection, and walk on. The monsters are only first reactions in disguise.
+A short practice of choosing a kinder next step in everyday friction. Each room is an ordinary situation: a bus that left a minute early, a blunt message, an appointment you keep not booking. You pick one of three or four doors, read a warm reflection, and walk on. The monsters are only first reactions in disguise.
 
 **This is a game, not therapy.** It gives no diagnosis, no treatment and no advice about your health, your money or the law, and it cannot tell you anything about who you are. It is a few minutes of practising small ideas (noticing the first reaction, looking at the facts, saying what you can and cannot do, taking one small step). If something in your life feels heavy, talk to someone you trust or to a professional. The game says so on screen, and nothing here replaces that. There are no phone numbers in the game or in this page on purpose.
 
@@ -42,7 +42,7 @@ Every scenario has three or four doors, **one or two constructive**, never only 
 
 `run.difficulty` 1 to 5 changes four things:
 
-- **Plain cues.** At 1 and 2 every door shows a short plain description of the move ("In short: send an update"). From 3 the cue is gone, so the wording is all you have.
+- **Plain cues.** At 1 and 2 every door shows a short plain description of the move ("In short: send an update"). From 3 the cue is gone, so the wording is all you have. Door labels themselves never carry a tone word ("loudly", "sarcastic", "calmly", "politely" and their French equivalents are banned by a test): the tone lives in the reflection, so elimination by adverb is not possible at any difficulty.
 - **Subtler rooms.** At 1 and 2 only the gentler scenes are drawn (ease 1 and 2). From 3 at least two of the subtlest scenes (ease 3) join the run, three at difficulty 5.
 - **Length.** 5, 5, 6, 6, 7 rooms.
 - **The bot** slips more often (below).
@@ -51,7 +51,7 @@ Every scenario has three or four doors, **one or two constructive**, never only 
 
 Score 0 to 1000, all integers: `floor(900 * good / rooms) + 50 * tools`, where `good` counts `constructive` and `boundary` doors and `tools` counts how many of `constructive`, `boundary` and `curious` you used at least once (practise the whole toolbox). A run of only good doors using both tools scores 1000. Reactive and avoidant doors never add to the score, and one more good door always beats any variety bonus (a test checks it for every possible run of 1 to 7 rooms).
 
-- **Won:** 60 percent good doors or better (`good * 5 >= rooms * 3`, exact integers). The troops come home with a lighter bag.
+- **Won:** 60 percent good doors or better (`good * 5 >= rooms * 3`, exact integers). The troops come home in good spirits.
 - **Lost:** under 60 percent. The troops still come home; another run is waiting. Never a punishment.
 - **Fled:** you stepped away. The score counts the rooms already answered (0 before the first door); the troops come home early.
 
@@ -100,7 +100,7 @@ The room draw uses `mulberry32(fnv1a('decision-dungeon:<seed>'))`, door order `t
 ## Content rules (how to add or change a scene)
 
 - The shape of a scenario (id, mood, topic, ease, and the style of each option in order) lives in `src/games/decision-dungeon/content.ts`. The words live in `texts-en.ts` and `texts-fr.ts`, in the same option order; only the Screen reads them, so the engine stays small.
-- Situation 25 to 50 words; reflection 20 to 40 words; 3 or 4 options; one or two constructive; warm, concrete, original; never a shaming word, a topic from the list above, a digit or a link. French is written for French (tutoiement, no gendered adjectives about the player), not translated.
+- Situation 25 to 50 words; reflection 20 to 40 words; 3 or 4 options; one or two constructive; warm, concrete, original; never a shaming word, a topic from the list above, a digit or a link. French is written for French (tutoiement, no masculine or feminine form addressing the player, guarded by a test with a small allow-list for idioms), not translated. Door labels carry no tone word.
 - `content.test.ts` enforces all of it.
 
 ## Screenshots

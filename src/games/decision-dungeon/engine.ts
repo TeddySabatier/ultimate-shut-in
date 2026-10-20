@@ -392,9 +392,12 @@ export function outcomeLog(state: DungeonState, s: DungeonStrings): string[] {
     lines.push(formatText(s.log.room, { n: i + 1, style: s.styles[c.style], kind: isGoodStyle(c.style) ? s.log.kindGood : s.log.kindOther }));
   });
   const good = goodCount(state.choices);
-  if (state.forfeited) lines.push(formatText(s.log.endFled, { n: state.choices.length, total: state.rooms.length }));
-  else if (isWin(state.choices)) lines.push(formatText(s.log.endWon, { n: good, total: state.choices.length }));
-  else lines.push(formatText(s.log.endLost, { n: good, total: state.choices.length }));
+  const answered = state.choices.length;
+  if (state.forfeited) {
+    const total = state.rooms.length;
+    lines.push(answered === 0 ? s.log.endFledNone : formatText(answered === 1 ? s.log.endFledOne : s.log.endFled, { n: answered, total }));
+  } else if (isWin(state.choices)) lines.push(formatText(s.log.endWon, { n: good, total: answered }));
+  else lines.push(formatText(good === 0 ? s.log.endLostNone : good === 1 ? s.log.endLostOne : s.log.endLost, { n: good, total: answered }));
   return lines;
 }
 

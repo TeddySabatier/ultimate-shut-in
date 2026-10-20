@@ -190,6 +190,46 @@ describe('Decision Dungeon screen', () => {
     expect(screen.getByRole('button', { name: 'See the result' })).toBeTruthy();
   });
 
+  it('moves the focus to the result line when the run ends, after the last room and after Step away', () => {
+    const { unmount } = render(<DecisionDungeonScreen {...props()} />);
+    playFirstDoors();
+    expect(document.activeElement).toBe(screen.getByRole('status'));
+    unmount();
+    render(<DecisionDungeonScreen {...props()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Step away' }));
+    expect(document.activeElement).toBe(screen.getByRole('status'));
+  });
+
+  it('hands the focus to the first door when the last hint removes its own button', () => {
+    const hint = { ...emptyRun(2), buffs: [{ id: 'h', kind: 'hint' as const, amount: 1 }] };
+    render(<DecisionDungeonScreen {...props({ run: hint })} />);
+    const button = screen.getByRole('button', { name: /Reveal a style/ });
+    button.focus();
+    fireEvent.click(button);
+    expect(screen.queryByRole('button', { name: /Reveal a style/ })).toBeNull();
+    expect(document.activeElement).toBe(doors()[0]);
+  });
+
+  it('says that the keys preview a door while sleeping on it', () => {
+    const sleep = { members: [makeMember({ id: 'sleep', name: 'Nyx', habit: 'sleep', level: 1, loyalty: 50 })] };
+    render(<DecisionDungeonScreen {...props({ party: sleep })} />);
+    expect(screen.getByText(/Keys 1 to \d choose a door/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /Sleep on it/ }));
+    expect(screen.getByText(/Keys 1 to \d preview a door/)).toBeTruthy();
+  });
+
+  it('adds a "Checking first" line to the result when a curious door was taken', () => {
+    let seed = 1;
+    for (; seed < 200; seed++) {
+      let s = engine.initial(seed, parties.starter, runs.plain, 'en');
+      while (!engine.outcome(s)) s = engine.reduce(s, s.phase === 'choose' ? { type: 'choose', index: 0 } : { type: 'continue' });
+      if (s.choices.some((c) => c.style === 'curious')) break;
+    }
+    render(<DecisionDungeonScreen {...props({ seed })} />);
+    playFirstDoors();
+    expect(screen.getByTestId('decision-dungeon-result')).toHaveTextContent(/Checking first: \d \(part of your toolbox/);
+  });
+
   it('keeps every control a labelled button', () => {
     render(<DecisionDungeonScreen {...props()} />);
     for (const button of screen.getAllByRole('button')) expect(button.textContent?.trim().length).toBeGreaterThan(0);

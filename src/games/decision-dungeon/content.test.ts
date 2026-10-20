@@ -162,7 +162,7 @@ describe('Decision Dungeon content: topics and tone', () => {
     });
   });
 
-  it('acknowledges the feeling before anything else in the reflection of a reactive or avoidant door, and never praises it as the best move', () => {
+  it('never opens the reflection of a reactive or avoidant door with praise', () => {
     const praise: Record<Locale, RegExp> = { en: /^(Well done|Nicely done|Great job|Perfect)/, fr: /^(Bien joué|Bravo|Parfait)/ };
     eachScenario((locale, id, t) => {
       for (const o of t.options) if (o.style === 'reactive' || o.style === 'avoidant') expect(o.reflection, `${locale} ${id}`).not.toMatch(praise[locale]);
@@ -193,6 +193,53 @@ describe('Decision Dungeon content: topics and tone', () => {
       const t = TEXTS.fr[s.id]!;
       for (const text of [t.situation, t.reframe, ...t.options.flatMap((o) => [o.label, o.cue, o.reflection])]) expect(text, s.id).not.toMatch(/ [?!:;]/);
     }
+  });
+});
+
+/** Forms that address the player in the masculine (or feminine). Third parties ("un collègue", "un ami", "une voisine") and idioms are not in this list. */
+const GENDERED_FR: RegExp[] = [
+  /(?<!\p{L})(déçu|venu|poli|courtois|franc|curieux|inclus|froissé|hôte|tiraillé|serviable|fatigué|énervé|gêné|vexé|stressé|content|désolé|reconnaissant|prêt|seul|sûr|resté|arrivé|parti|occupé|excusé|blessé|dernier|coincé|bloqué|perdu|gâté|surpris|choqué|rassuré|soulagé)(?!\p{L})/iu,
+  /(?<!\p{L})(tu|t')\s?(es|étais|seras|serais|as été|t'es|t'étais) [\p{L}-]+(é|ée|i|ie|u|ue|és|ées)(?!\p{L})/iu,
+];
+/** Phrases that are fine: a thing or an idiom, not the player. They are removed before the check. */
+const ALLOWED_FR = ['presque prêt', 'premier agent venu', 'Les invités', 'un seul', 'le seul', 'est perdu'];
+const genderedForm = (text: string): string | null => {
+  let t = text;
+  for (const ok of ALLOWED_FR) t = t.split(ok).join(' ');
+  for (const rule of GENDERED_FR) {
+    const m = rule.exec(t);
+    if (m) return m[0];
+  }
+  return null;
+};
+
+describe('Decision Dungeon content: the French never gives the player a gender', () => {
+  it('uses no masculine or feminine form that addresses the player, in any scene', () => {
+    for (const s of SCENARIOS) {
+      const t = TEXTS.fr[s.id]!;
+      const texts = [t.situation, t.reframe, ...t.options.flatMap((o) => [o.label, o.cue, o.reflection])];
+      for (const text of texts) expect(genderedForm(text), `fr ${s.id}: "${text}"`).toBeNull();
+    }
+  });
+
+  it('catches a gendered form (the guard itself), and lets neutral French through', () => {
+    for (const bad of ['Tu es venu trop tard', 'tu rentres le dernier', 'Tu as été poli', 'Tu peux être franc', 'rester un excellent hôte', 'Tu es resté calme', 'être déçu'])
+      expect(genderedForm(bad), bad).not.toBeNull();
+    for (const ok of ['Tu as pris soin de toi', 'Garde ta politesse', 'Le serveur arrive avec un balai', 'ton brouillon est presque prêt', 'le premier agent venu', 'Les invités arrivent'])
+      expect(genderedForm(ok), ok).toBeNull();
+  });
+});
+
+describe('Decision Dungeon content: the labels carry no tone word', () => {
+  const TONE: Record<Locale, RegExp> = {
+    en: /\b(loudly|sharply|sarcastic|curt|slam\w*|sigh\w*|irritated|angrily|angry|calmly|politely|kindly|gently|firmly|warmly|rudely|bitterly)\b/i,
+    fr: /\b(sèchement|sec|ironique|claque\w*|soupire\w*|fort|fermement|poliment|gentiment|calmement|doucement|agacé\w*|violemment|brusquement)\b/i,
+  };
+
+  it('keeps the tone in the reflection: no adverb of manner in a door label, on any door, in both languages', () => {
+    eachScenario((locale, id, t) => {
+      for (const o of t.options) expect(o.label, `${locale} ${id}`).not.toMatch(TONE[locale]);
+    });
   });
 });
 

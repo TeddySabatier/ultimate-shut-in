@@ -476,6 +476,51 @@ describe('outcome', () => {
   });
 });
 
+describe('the log has the right plural', () => {
+  /** Play a run where room i takes a good door when plan[i] is true, a reactive or avoidant one otherwise. */
+  function plan(seed: number, locale: 'en' | 'fr', good: boolean[], leaveAfter?: number): string {
+    let s = start(seed, NO_PERKS, emptyRun(2), locale);
+    let room = 0;
+    while (!isOver(s)) {
+      if (leaveAfter !== undefined && room >= leaveAfter && s.phase === 'choose') {
+        s = act(s, { type: 'forfeit' });
+        break;
+      }
+      if (s.phase === 'choose') {
+        const want = good[room] ?? false;
+        const n = currentRoom(s)!.optionOrder.length;
+        let d = 0;
+        for (let i = 0; i < n; i++) {
+          const style = styleAt(s, i)!;
+          if (want ? style === 'constructive' || style === 'boundary' : style === 'reactive' || style === 'avoidant') {
+            d = i;
+            break;
+          }
+        }
+        s = act(s, { type: 'choose', index: d });
+        room += 1;
+      } else s = act(s, { type: 'continue' });
+    }
+    return engine.outcome(s)!.log.at(-1)!;
+  }
+
+  it('says "salle" for 0 and 1 and "salles" from 2 in French, and never "1 rooms" in English', () => {
+    expect(plan(3, 'fr', [], 0)).toMatch(/avant la première salle/);
+    expect(plan(3, 'fr', [false], 1)).toMatch(/après 1 salle sur 5\./);
+    expect(plan(3, 'fr', [false, false], 2)).toMatch(/après 2 salles sur 5\./);
+    expect(plan(3, 'en', [], 0)).toMatch(/before the first room/);
+    expect(plan(3, 'en', [false], 1)).toMatch(/after 1 of 5 rooms/);
+    expect(plan(3, 'en', [false, false], 2)).toMatch(/after 2 of 5 rooms/);
+    expect(plan(3, 'fr', [false, false, false, false, false])).toMatch(/^Aucune porte constructive ou de limite cette fois, sur 5 salles\./);
+    expect(plan(3, 'fr', [true, false, false, false, false])).toMatch(/dans 1 salle sur 5\./);
+    expect(plan(3, 'fr', [true, true, false, false, false])).toMatch(/dans 2 salles sur 5\./);
+    expect(plan(3, 'fr', [true, true, true, false, false])).toMatch(/dans 3 salles sur 5\./);
+    expect(plan(3, 'en', [false, false, false, false, false])).toMatch(/^No constructive or boundary door this time, in 5 rooms\./);
+    expect(plan(3, 'en', [true, false, false, false, false])).toMatch(/in 1 of 5 rooms/);
+    expect(plan(3, 'fr', [true, true, true, true, true])).toMatch(/le cœur léger/);
+  });
+});
+
 describe('determinism and the bot', () => {
   it('replays the same seed to the same actions and outcome, in both languages', () => {
     for (const locale of ['en', 'fr'] as const) {

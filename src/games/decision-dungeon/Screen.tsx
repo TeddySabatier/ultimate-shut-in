@@ -9,7 +9,7 @@ import { SystemWindow } from '../../components/SystemWindow';
 import { cx } from '../../utils/cx';
 import { formatText, type GameScreenProps } from '../contract';
 import { useEngine } from '../ui/useEngine';
-import { currentRoom, engine, goodCount, isOver, styleAt } from './engine';
+import { currentRoom, engine, goodCount, isOver, styleAt, styleCounts } from './engine';
 import game from './manifest';
 import { strings } from './strings';
 import { getText } from './texts';
@@ -36,7 +36,10 @@ export default function DecisionDungeonScreen(props: GameScreenProps) {
 
   const situationRef = useRef<HTMLDivElement>(null);
   const nextRef = useRef<HTMLButtonElement>(null);
+  const bannerRef = useRef<HTMLParagraphElement>(null);
+  const doorsRef = useRef<HTMLUListElement>(null);
   const mounted = useRef(false);
+  const mountedTools = useRef(false);
 
   // Keep focus where the player is: the next button after a choice, the new room after "Next room".
   useEffect(() => {
@@ -47,6 +50,21 @@ export default function DecisionDungeonScreen(props: GameScreenProps) {
     if (state.phase === 'reflect') nextRef.current?.focus();
     else if (state.phase === 'choose') situationRef.current?.focus();
   }, [state.phase, state.roomIndex]);
+
+  // The end of the run: the control that was focused is gone, so the result line takes the focus.
+  useEffect(() => {
+    if (over) bannerRef.current?.focus();
+  }, [over]);
+
+  // The last hint or the last sleep removed its own button: hand the focus to the first door instead of the page.
+  const toolsLeft = state.hintsLeft + state.sleepsLeft + (state.peekedDisplay >= 0 ? 1 : 0);
+  useEffect(() => {
+    if (!mountedTools.current) {
+      mountedTools.current = true;
+      return;
+    }
+    if (choosing && (document.activeElement === document.body || document.activeElement === null)) doorsRef.current?.querySelector('button')?.focus();
+  }, [toolsLeft, choosing]);
 
   // Number keys choose a door (or preview it while sleeping on it). Ignored while a field has focus.
   useEffect(() => {
@@ -133,7 +151,7 @@ export default function DecisionDungeonScreen(props: GameScreenProps) {
 
       {outcome ? (
         <>
-          <p className={styles.banner} role="status" data-result={outcome.result}>
+          <p ref={bannerRef} tabIndex={-1} className={styles.banner} role="status" data-result={outcome.result}>
             {s.end[outcome.result]}
           </p>
           {state.choices.length > 0 && strongest ? (
@@ -142,6 +160,7 @@ export default function DecisionDungeonScreen(props: GameScreenProps) {
               <ul className={styles.resultList}>
                 <li>{formatText(s.resultScore, { good: goodCount(state.choices), total: state.choices.length })}</li>
                 <li>{formatText(s.resultStrongest, { style: s.styles[strongest] })}</li>
+                {styleCounts(state.choices).curious > 0 ? <li>{formatText(s.resultCurious, { n: styleCounts(state.choices).curious })}</li> : null}
                 <li>{formatText(s.resultTip, { tip: outcome.learned?.note[locale] ?? '' })}</li>
               </ul>
             </div>
@@ -150,7 +169,7 @@ export default function DecisionDungeonScreen(props: GameScreenProps) {
       ) : choosing && text && room ? (
         <>
           <h3 className={styles.subtitle}>{s.doors}</h3>
-          <ul className={styles.doors} data-testid="decision-dungeon-options">
+          <ul ref={doorsRef} className={styles.doors} data-testid="decision-dungeon-options">
             {room.optionOrder.map((source, display) => {
               const option = text.options[source]!;
               const revealed = state.revealed.includes(display);
@@ -192,7 +211,7 @@ export default function DecisionDungeonScreen(props: GameScreenProps) {
             ) : null}
           </div>
           {sleeping ? <p className={styles.hint}>{s.sleepHelp}</p> : null}
-          <p className={cx('muted', styles.hint)}>{formatText(s.keys, { n: room.optionOrder.length })}</p>
+          <p className={cx('muted', styles.hint)}>{formatText(sleeping ? s.keysSleep : s.keys, { n: room.optionOrder.length })}</p>
         </>
       ) : state.phase === 'reflect' ? (
         <div className={styles.tools}>
