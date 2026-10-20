@@ -1,0 +1,312 @@
+/* Still Water. Tokens only (src/styles/tokens.css); rules from docs/RESPONSIVE-RULES.md. */
+
+.game {
+  width: 100%;
+  min-width: 0;
+}
+
+.disclaimer {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.stage,
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+/* The pond: water level behind, the ring on top. Decorative; the text cue carries the meaning. */
+.pond {
+  position: relative;
+  flex: none;
+  width: min(100%, 14rem, 26dvh);
+  aspect-ratio: 1;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 50%;
+  border: 3px solid var(--color-info);
+  background: var(--color-panel);
+}
+
+.waterFill {
+  position: absolute;
+  inset: auto 0 0;
+  height: var(--water, 0%);
+  background: var(--color-info);
+  opacity: 0.28;
+  transition: height var(--duration-med) linear;
+  pointer-events: none;
+}
+
+.ring {
+  --breath: 0;
+  position: absolute;
+  inset: 8%;
+  border: 5px solid var(--color-info);
+  border-radius: 50%;
+  transform: scale(calc(0.3 + 0.7 * var(--breath)));
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* Holding fills the ring and thickens its edge: not only a colour change. */
+.ring::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--color-success);
+  opacity: 0;
+}
+
+.ringHeld {
+  border-color: var(--color-success);
+  border-width: 8px;
+}
+
+.ringHeld::before {
+  opacity: 0.4;
+}
+
+/* Reduced motion: a plain bar and the same text cue. */
+.barTrack {
+  flex: none;
+  height: 1.75rem;
+  border: 2px solid var(--color-border-light);
+  background: var(--color-panel);
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  width: 0;
+  background: var(--color-info);
+}
+
+.cue {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: var(--heading-md);
+  line-height: 1.4;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--color-accent-text);
+  overflow-wrap: anywhere;
+}
+
+.next,
+.report {
+  margin: 0;
+  min-height: 1.4em;
+  font-size: var(--text-sm);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.water {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  font-size: var(--text-sm);
+}
+
+.water > span {
+  flex: none;
+}
+
+.waterTrack {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 0.75rem;
+  border: 2px solid var(--color-border-light);
+  background: var(--color-panel);
+}
+
+.waterBar {
+  height: 100%;
+  background: var(--color-info);
+  transition: width var(--duration-med) linear;
+}
+
+.intro {
+  margin: 0;
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.rhythm {
+  margin: 0;
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.line {
+  margin: 0;
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.ready {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.paces,
+.options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 6rem), 1fr));
+  gap: var(--space-2);
+}
+
+.paces button[aria-pressed='true'],
+.options button[aria-pressed='true'] {
+  background: var(--color-bg);
+  border-color: var(--color-accent-2);
+  box-shadow: inset 0 0 0 2px var(--color-accent-2);
+  color: var(--color-accent-2);
+}
+
+.begin {
+  width: 100%;
+  min-height: 3.5rem;
+}
+
+/* One row, always reserved, so a ripple coming and going never moves the hold button. */
+.ripples {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 4rem;
+  min-width: 0;
+  margin-top: var(--space-3);
+  text-align: center;
+}
+
+.decoy {
+  width: 100%;
+  text-transform: none;
+  border-color: var(--color-border-light);
+}
+
+.hold {
+  flex-direction: column;
+  width: 100%;
+  min-height: 4.5rem;
+  font-size: var(--heading-md);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.holdState {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  text-transform: none;
+}
+
+.hold[aria-pressed='true'] {
+  background: var(--color-success);
+  border-color: var(--color-success);
+}
+
+.banner:empty {
+  display: none;
+}
+
+.banner {
+  padding: var(--space-3);
+  border: 2px solid var(--color-accent-2);
+  border-radius: var(--radius-sm);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.banner[data-result='won'] {
+  border-color: var(--color-success);
+}
+
+.bannerTitle {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-heading);
+  font-size: var(--heading-sm);
+  line-height: 1.5;
+  text-transform: uppercase;
+  color: var(--color-accent-2);
+}
+
+.banner[data-result='won'] .bannerTitle {
+  color: var(--color-success);
+}
+
+.bannerLine {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+/* Reduced motion: same layout, nothing eased. */
+.still .waterFill,
+.still .waterBar {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .waterFill,
+  .waterBar {
+    transition: none;
+  }
+}
+
+@media (max-width: 359px) {
+  .pond {
+    width: min(100%, 11rem);
+  }
+}
+
+@media (min-width: 768px) {
+  .pond {
+    width: min(100%, 16rem);
+  }
+}
+
+/* Landscape phones: the pond beside the controls, so both stay in view. */
+@media (max-height: 500px) and (min-width: 560px) {
+  .layout {
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    align-items: start;
+  }
+  .pond {
+    width: min(100%, 9rem, 38dvh);
+  }
+  .hold {
+    min-height: 3.5rem;
+  }
+  .ripples {
+    min-height: 3rem;
+  }
+}

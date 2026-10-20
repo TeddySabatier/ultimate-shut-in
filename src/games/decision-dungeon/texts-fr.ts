@@ -1,0 +1,613 @@
+/**
+ * Scènes françaises de Donjon des choix. Écrites pour le français (tutoiement,
+ * sans formes genrées), pas traduites phrase à phrase : même structure que
+ * l'anglais (mêmes ids, mêmes styles dans le même ordre), pas les mêmes mots.
+ * Lues par l'écran seulement.
+ */
+import type { OptionText, ScenarioText } from './content';
+
+/** Typographie française : espace insécable avant ? ! : ; et à l'intérieur des guillemets. */
+function nb(text: string): string {
+  return text.replace(/ ([?!:;»])/g, ' $1').replace(/« /g, '« ');
+}
+
+function fr(text: ScenarioText): ScenarioText {
+  return {
+    situation: nb(text.situation),
+    reframe: nb(text.reframe),
+    options: text.options.map((o): OptionText => ({ style: o.style, label: nb(o.label), cue: nb(o.cue), reflection: nb(o.reflection) })),
+  };
+}
+
+const RAW: Record<string, ScenarioText> = {
+  s01: {
+    situation:
+      "Tu arrives à l'arrêt juste à temps pour voir ton bus s'éloigner. Le suivant passe dans vingt minutes, et tu avais promis d'être là pour l'apéro chez des amis. Tes épaules se crispent et tu regardes l'heure deux fois.",
+    reframe: "Qu'est-ce que tu peux encore changer dans ces vingt minutes ?",
+    options: [
+      {
+        style: 'constructive',
+        label: 'Préviens tes amis que tu auras vingt minutes de retard, et prends le prochain bus qui passe.',
+        cue: 'envoie un message',
+        reflection:
+          "Bien joué : tu ne peux pas changer l'horaire du bus, mais tu as pu prévenir tes amis. Un message court et une nouvelle heure transforment un bus raté en petit retard.",
+      },
+      {
+        style: 'reactive',
+        label: "Écris au groupe que les transports sont nuls et qu'ils n'ont qu'à commencer sans toi.",
+        cue: 'râle tout de suite',
+        reflection:
+          "Compréhensible : rater un bus de peu, ça agace. Râler soulage une minute, mais tes amis reçoivent ta mauvaise humeur au lieu d'une info utile. Un petit message calme leur serait bien plus utile.",
+      },
+      {
+        style: 'avoidant',
+        label: 'Dis-toi que la soirée sera ratée de toute façon et rentre chez toi.',
+        cue: 'renonce et rentre',
+        reflection:
+          "Avoir envie de tout lâcher après un petit contretemps, c'est très humain. Vingt minutes de retard, pourtant, ce n'est pas grand-chose. Tu peux décider d'y aller, quitte à repartir plus tôt si ça ne te convient pas.",
+      },
+    ],
+  },
+  s02: {
+    situation:
+      "Tu envoies un compte rendu à ta responsable, puis tu repères un total faux en page deux. Elle n'a pas encore répondu. Tes joues chauffent et tu rouvres le message envoyé pour regarder l'erreur une fois de plus.",
+    reframe: 'Que dirais-tu à un collègue qui aurait trouvé le même total faux dans son propre rapport ?',
+    options: [
+      {
+        style: 'reactive',
+        label: "Écris un très long mail d'excuses où tu énumères tous tes torts, avant même qu'on t'ait répondu.",
+        cue: 'excuse-toi longuement',
+        reflection:
+          "On a vite fait de se montrer sévère envers soi-même. De longues excuses obligent l'autre à te rassurer au lieu de lire le compte rendu. Une ligne avec la correction suffit presque toujours.",
+      },
+      {
+        style: 'constructive',
+        label: 'Envoie un court message avec la page corrigée et une ligne pour dire ce qui a changé.',
+        cue: 'envoie la correction',
+        reflection:
+          "Une correction claire montre que tu fais attention, et on retient souvent plus le rectificatif que l'erreur. Tu as repéré la faute toi-même, et c'est le plus difficile. Il ne reste qu'un petit message.",
+      },
+      {
+        style: 'avoidant',
+        label: "Ne dis rien et espère que personne ne regardera la page deux de près.",
+        cue: 'attends sans rien dire',
+        reflection:
+          "Espérer, c'est une façon normale de gérer la gêne. Mais si ce total compte, une correction discrète aujourd'hui pèsera moins lourd que plusieurs jours à guetter une réaction.",
+      },
+    ],
+  },
+  s03: {
+    situation:
+      "Un rendez-vous à prendre traîne sur ta liste depuis presque une semaine. Cinq minutes au téléphone suffiraient. Chaque fois que tu attrapes ton portable, autre chose paraît plus urgent, et la tâche grossit dans ta tête.",
+    reframe: "Quelle serait la plus petite première étape, celle que tu finirais avant que l'eau du thé soit chaude ?",
+    options: [
+      {
+        style: 'avoidant',
+        label: "Remets ça à la semaine prochaine en te disant que tu seras plus d'attaque.",
+        cue: 'repousse',
+        reflection:
+          "Reporter n'est pas une faute, c'est parfois le bon choix. Mais sans jour ni heure, la semaine prochaine ressemblera beaucoup à celle-ci. Fixe-toi un créneau, même petit.",
+      },
+      {
+        style: 'curious',
+        label: 'Note ce que tu redoutes au juste dans cet appel, puis relis ta liste en prenant ton temps.',
+        cue: 'nomme la crainte',
+        reflection:
+          "Voir une inquiétude sur le papier la rend souvent plus petite et plus précise. C'est un bon premier pas. Une fois la liste écrite, l'appel lui-même est généralement la partie facile.",
+      },
+      {
+        style: 'constructive',
+        label: 'Lance un minuteur de cinq minutes et passe cet appel.',
+        cue: 'cinq minutes, maintenant',
+        reflection:
+          "Le minuteur ramène la tâche à sa vraie taille. Tu n'avais pas besoin de te sentir d'attaque, juste de commencer. Ce qui pesait depuis une semaine est désormais derrière toi.",
+      },
+    ],
+  },
+  s04: {
+    situation:
+      "Un ami annule le dîner dont vous parliez depuis des semaines, par un message court et sans nouvelle date. Tu avais libéré ta soirée et même choisi le restaurant. Tu relis son message en espérant y trouver un peu plus de chaleur.",
+    reframe: "Si c'était toi qui annulais, qu'est-ce que tu aimerais que ton ami comprenne ?",
+    options: [
+      {
+        style: 'boundary',
+        label: "Dis-lui que cette annulation te fait de la peine, et demande-lui une nouvelle date dès qu'il le pourra.",
+        cue: 'dis ce que tu ressens',
+        reflection:
+          "Tu as dit ce que tu ressens et ce que tu attends, sans reproche. C'est une limite sous sa forme la plus douce. Ton ami peut y répondre, et tu n'as pas eu à tout avaler en silence.",
+      },
+      {
+        style: 'constructive',
+        label: "Réponds que tu attends qu'il te propose une autre date, et prévois un petit plaisir pour ce soir.",
+        cue: 'prévois un plan B',
+        reflection:
+          "Tu as rempli ta soirée libre avec quelque chose qui te fait du bien. Rien n'est perdu entre vous : tu as simplement pris soin de toi en attendant la nouvelle date.",
+      },
+      {
+        style: 'avoidant',
+        label: 'Ne réponds pas et arrête de proposer des sorties pendant un moment.',
+        cue: 'fais silence',
+        reflection:
+          "Quand on a de la peine, on a envie de se replier, et c'est compréhensible. Un court silence passe ; un long peut transformer un dîner annulé en distance. Une réponse simple garde la chaleur du lien.",
+      },
+      {
+        style: 'reactive',
+        label: "Réponds que ce n'est pas la première fois et que tu en as assez des plans.",
+        cue: 'rends le coup',
+        reflection:
+          "Ça pique, et ce que tu ressens est légitime. Un message envoyé dans la première minute peut transformer « cette fois » en « chaque fois ». Tu peux garder ta déception et laisser la porte entrouverte.",
+      },
+    ],
+  },
+  s05: {
+    situation:
+      "Sur ton relevé de compte apparaît un prélèvement que tu ne reconnais pas, à peu près le prix d'un déjeuner. C'est assez petit pour que tu te sentes bête d'y penser, et assez gros pour t'agacer. Tu comptais déjà chaque euro cette semaine.",
+    reframe: "Si c'était le relevé d'un ami, quelle serait ta première question, posée calmement ?",
+    options: [
+      {
+        style: 'constructive',
+        label: 'Note la date et le montant, vérifie tes justificatifs, puis pose une question claire à ta banque.',
+        cue: 'vérifie, puis demande',
+        reflection:
+          "Les faits d'abord, l'agacement ensuite : c'est souvent dans cet ordre qu'on obtient une vraie réponse. Une date, un montant et une question nette donnent à ton interlocuteur de quoi corriger.",
+      },
+      {
+        style: 'avoidant',
+        label: "Ferme l'appli de ta banque et dis-toi que ça ne vaut pas la peine.",
+        cue: 'regarde ailleurs',
+        reflection:
+          "Un petit montant se balaie facilement, et ne pas avoir envie de s'en occuper est humain. Mais si c'est une erreur, elle peut se répéter. Dix minutes cet après-midi pourraient t'éviter le même agacement le mois prochain.",
+      },
+      {
+        style: 'reactive',
+        label: 'Appelle le numéro du relevé et commence par une réclamation, avant même que la personne ait le temps de parler.',
+        cue: "attaque d'emblée",
+        reflection:
+          "S'agacer d'un prélèvement inattendu, c'est normal. Mais si tu démarres sur un ton vif, la personne au bout du fil se met à se défendre. Le même appel passe mieux quand tu commences par la date et le montant.",
+      },
+    ],
+  },
+  s06: {
+    situation:
+      "C'est mardi soir et tu rentres après tout le monde. Personne n'a décidé quoi manger, et chacun répond « ça m'est égal » quand tu demandes. Tu as faim, et le dîner tourne déjà au casse-tête.",
+    reframe: 'Comment rendre la réponse facile, en quelques mots, pour tout le monde ?',
+    options: [
+      {
+        style: 'reactive',
+        label: "Dis que c'est toi qui dois tout organiser dans cette maison, et que personne d'autre ne s'en occupe.",
+        cue: 'réponds sèchement',
+        reflection:
+          "La fatigue et la faim font tout paraître plus gros. Dit comme ça, ça lance une dispute sur le passé plutôt qu'un dîner. Tu pourras dire plus tard tout ce que tu organises, une fois à table.",
+      },
+      {
+        style: 'constructive',
+        label: "Propose deux idées simples et demande à chacun d'en choisir une d'ici cinq minutes.",
+        cue: 'donne deux choix',
+        reflection:
+          "Deux options, c'est plus facile à trancher qu'une question ouverte. Tu as transformé un « ça m'est égal » en décision sans élever la voix, et tu as montré qu'il suffit de peu.",
+      },
+      {
+        style: 'avoidant',
+        label: 'Prends un en-cas et va dans ta chambre pour la soirée, en laissant les autres se débrouiller.',
+        cue: "mets-toi à l'écart",
+        reflection:
+          "Avoir envie de souffler après une longue journée, c'est légitime, et un en-cas aide. Une seule phrase comme « Je cuisine, qui en veut ? » pourrait t'éviter une soirée le ventre vide plus tard.",
+      },
+      {
+        style: 'constructive',
+        label: "Prépare un petit quelque chose pour toi, et dis aux autres qu'ils peuvent s'y joindre.",
+        cue: 'lance-toi aux fourneaux',
+        reflection:
+          "Tu as pris soin de ta faim et laissé la porte ouverte avec gentillesse. Souvent, il suffit qu'une personne commence pour que tout le monde suive. Personne n'a eu à se faire gronder.",
+      },
+    ],
+  },
+  s07: {
+    situation:
+      "La vaisselle s'empile encore, et ce n'était pas ton tour. Tu l'as déjà faite deux fois cette semaine. Tu entends les autres rire dans la pièce d'à côté, bien détendus, et ta mâchoire se serre.",
+    reframe: 'Quelle phrase ordinaire rendrait la semaine prochaine plus facile ?',
+    options: [
+      {
+        style: 'reactive',
+        label: 'Lave la vaisselle en rappelant absolument tout ce que tu as fait depuis lundi.',
+        cue: 'fais une scène',
+        reflection:
+          "Quand on est à bout, on se met vite à compter les points. Ta liste est juste, et tu as besoin qu'on le voie. Mais dérouler toute la liste pousse les gens à se défendre au lieu d'entendre ta fatigue.",
+      },
+      {
+        style: 'constructive',
+        label: 'Lave tout maintenant, puis demande dix minutes ce soir pour établir ensemble un roulement.',
+        cue: 'règle puis organise',
+        reflection:
+          "Tu as remis la cuisine en ordre et demandé un partage plus juste. Comme tu as choisi un moment calme, personne ne se sent pris à partie. Un tableau sur le frigo, c'est banal, et ça marche.",
+      },
+      {
+        style: 'boundary',
+        label: 'Laisse-la, et dis que tu ne la feras plus sans un roulement équitable.',
+        cue: 'pose une limite',
+        reflection:
+          "Tu as posé une limite sans accuser personne. Laisser la vaisselle en disant pourquoi, c'est clair et juste. Les autres savent ce dont tu as besoin, et peuvent décider avec toi comment y arriver.",
+      },
+    ],
+  },
+  s08: {
+    situation:
+      "Un collègue t'écrit deux lignes sèches : ta partie est en retard, encore. Pas de bonjour. Tu attendais le retour de quelqu'un d'autre, et ton brouillon est presque prêt. Le ton claque comme une porte.",
+    reframe: "Quelle est la seule information que tu veux qu'il ait, et jusqu'où peux-tu la raccourcir ?",
+    options: [
+      {
+        style: 'constructive',
+        label: "Réponds avec le brouillon, dis ce que tu attends encore, et donne l'heure à laquelle tu auras fini.",
+        cue: 'réponds sur le fond',
+        reflection:
+          "Tu as répondu à la vraie question : où en sont les choses et quand ce sera fini. Une heure précise donne à chacun un repère solide. Le ton pourra faire l'objet d'une autre discussion si cela se reproduit.",
+      },
+      {
+        style: 'reactive',
+        label: 'Réponds sur le même ton et mets un responsable en copie.',
+        cue: 'rends la pareille',
+        reflection:
+          "Répondre sur le même ton paraît juste sur le moment. Mettre un responsable en copie peut toutefois transformer un petit retard en conflit plus gros. Tu peux garder ton point de vue sans en faire une affaire publique.",
+      },
+      {
+        style: 'boundary',
+        label: "Envoie le brouillon et demande un bonjour et une échéance claire à l'avenir.",
+        cue: 'nomme le ton',
+        reflection:
+          "Tu as fait le travail et dit comment tu aimerais qu'on te parle. Le dire poliment, c'est une limite, pas une attaque. Souvent, les gens s'ajustent quand on le leur dit simplement.",
+      },
+      {
+        style: 'avoidant',
+        label: "Laisse le message de côté tant que tu n'es pas plus calme, peut-être jusqu'à demain.",
+        cue: 'évite le message',
+        reflection:
+          "Avoir besoin de souffler avant de répondre, c'est sensé. Mais le message sera toujours là, et le retard peut grandir. Une réponse d'une ligne maintenant protégerait ton calme tout en faisant avancer les choses.",
+      },
+    ],
+  },
+  s09: {
+    situation:
+      "Tu partages une anecdote drôle dans la discussion de groupe et personne ne réagit. Trois personnes étaient en train d'écrire, puis plus rien. Une minute plus tard, quelqu'un poste la photo de son déjeuner. Tu te sens rapetisser et tu hésites à supprimer ton message.",
+    reframe: "À part ton anecdote, quelles deux raisons pourraient expliquer ce silence ?",
+    options: [
+      {
+        style: 'reactive',
+        label: "Poste une phrase sur ce silence pour montrer que tu l'as noté.",
+        cue: 'pique en retour',
+        reflection:
+          "Ça a fait mal, et vouloir une réaction est compréhensible. Une pique rend un groupe plus méfiant que chaleureux. Tu peux encaisser le coup sans le renvoyer à tout le groupe.",
+      },
+      {
+        style: 'constructive',
+        label: 'Réagis à la photo du déjeuner et envoie ton anecdote à un ami qui va l\'apprécier.',
+        cue: 'change de public',
+        reflection:
+          "Tu as rejoint la conversation sans chercher à tout prix à faire rire, et trouvé quelqu'un qui saura l'apprécier. Toutes les histoires ne vont pas à tous les groupes : ça en dit peu sur l'histoire, et rien sur toi.",
+      },
+      {
+        style: 'curious',
+        label: 'Dis-toi que les autres sont peut-être juste occupés, et regarde la suite.',
+        cue: "garde l'esprit ouvert",
+        reflection:
+          "Chercher d'autres explications est une bonne habitude : une discussion se tait souvent pour des raisons banales. Attendre, c'est très bien. Si ça te trotte encore dans la tête plus tard, une question amicale à une personne peut trancher.",
+      },
+      {
+        style: 'avoidant',
+        label: 'Mets la discussion en sourdine pour tout un mois et décide de ne plus rien y partager.',
+        cue: 'fais silence',
+        reflection:
+          "Prendre du recul après une blague tombée à plat est sensé. En faire une règle définitive transforme pourtant une minute de silence en porte fermée. Une courte pause laisse la place d'y revenir quand ce sera plus léger.",
+      },
+    ],
+  },
+  s10: {
+    situation:
+      "Ta boîte mail est restée fermée depuis lundi. Tu sais que deux messages demandent une réponse. Chaque fois que tu déverrouilles ton téléphone, le compteur de non-lus semble avoir grossi, et regarder la météo ou l'actualité paraît tellement plus facile.",
+    reframe: 'Quel message, une fois traité, ferait paraître la pile plus légère ?',
+    options: [
+      {
+        style: 'curious',
+        label: "Avant d'ouvrir quoi que ce soit, devine ce que tu vas trouver, puis ouvre un message et compare.",
+        cue: 'teste ta supposition',
+        reflection:
+          "L'appréhension imagine souvent pire que la réalité. Comparer un message à ta supposition est une façon douce de t'y mettre, et le suivant fait moins peur. Tu pourras continuer si tu en as envie.",
+      },
+      {
+        style: 'avoidant',
+        label: 'Coupe les notifications et promets-toi une vraie séance de tri dimanche.',
+        cue: 'remets à plus tard',
+        reflection:
+          "Couper les notifications peut vraiment soulager. Dimanche est une belle promesse, mais les piles ont tendance à grossir. Si tu réponds quand même à un message aujourd'hui, la promesse devient bien plus facile à tenir.",
+      },
+      {
+        style: 'constructive',
+        label: 'Choisis deux messages importants, réponds-y, puis ferme la boîte.',
+        cue: 'deux, puis stop',
+        reflection:
+          "Deux réponses, c'est un vrai pas, et s'arrêter exprès fait partie du savoir-faire. Les autres messages attendront, et les deux personnes à qui tu as répondu auront enfin des nouvelles.",
+      },
+      {
+        style: 'reactive',
+        label: 'Ouvre tout d\'un coup et réponds vite, en quelques mots, pour faire tomber le chiffre.',
+        cue: 'expédie tout',
+        reflection:
+          "Vouloir voir le chiffre baisser, c'est naturel. Des réponses rapides et courtes créent souvent de nouvelles questions. Tu n'as pas à tout vider, seulement les messages qui comptent.",
+      },
+    ],
+  },
+  s11: {
+    situation:
+      "Des photos d'un déjeuner d'équipe apparaissent en ligne. Personne ne t'a proposé de venir, alors que tu travailles avec presque tous ceux qu'on y voit. Et pas un mot là-dessus. L'après-midi paraît plus bruyant que d'habitude, et ton bureau semble loin de tout le monde.",
+    reframe: 'Quelle autre raison pourrait expliquer ce déjeuner, et comment la vérifier ?',
+    options: [
+      {
+        style: 'constructive',
+        label: 'Propose un café à deux collègues cette semaine, un jour où tu es libre.',
+        cue: 'fais un plan',
+        reflection:
+          "Au lieu de fixer les photos, tu t'es fait une place à une prochaine table. Tu ne peux pas être de tous les déjeuners, mais tu peux toujours demander à venir au suivant.",
+      },
+      {
+        style: 'reactive',
+        label: "Commente les photos par une blague sur les collègues qu'on oublie d'inviter, pour qu'ils sachent que tu as vu.",
+        cue: 'mets-les mal à l\'aise',
+        reflection:
+          "Se retrouver à l'écart fait mal, et la blague essaie de le dire. Elle risquerait pourtant de gêner les gens plutôt que de vous rapprocher. Tu peux vouloir faire partie du groupe sans faire de ces photos un piège.",
+      },
+      {
+        style: 'curious',
+        label: "Demande-toi s'il peut y avoir une autre raison, comme une réservation de dernière minute.",
+        cue: "cherche d'autres raisons",
+        reflection:
+          "Chercher d'autres explications t'évite de te raconter une histoire plus sombre. Ce genre de déjeuner se monte souvent à la dernière minute. C'est un bon début, et une question amicale peut transformer une hypothèse en fait.",
+      },
+    ],
+  },
+  s12: {
+    situation:
+      "L'addition arrive après un dîner à plusieurs. Tu as pris une salade et de l'eau ; les autres, des entrées et des desserts. Quelqu'un propose de diviser en parts égales parce que c'est plus simple. Tu peux te le permettre, mais l'injustice te travaille.",
+    reframe: "Quelle phrase garderait à la fois l'amitié et les comptes honnêtes ?",
+    options: [
+      {
+        style: 'reactive',
+        label: "Plaisante sur les desserts des autres, puis laisse le silence s'installer.",
+        cue: 'fais une blague piquante',
+        reflection:
+          "La blague disait vrai, mais de biais. L'humour peut ouvrir une porte comme la fermer, et un trait acéré laisse souvent tout le monde mal à l'aise. Tu peux toujours demander un partage plus juste.",
+      },
+      {
+        style: 'avoidant',
+        label: 'Paie la même part, souris, et renonce au prochain dîner.',
+        cue: 'ne dis rien',
+        reflection:
+          "Payer sans rien dire semble plus simple qu'un débat. Mais si ça continue de te gêner, ça te coûte plus que de l'argent. Tu peux revenir la prochaine fois et demander des additions séparées dès le départ.",
+      },
+      {
+        style: 'constructive',
+        label: "Propose que chacun règle son dû avec l'appli de paiement : c'est rapide et équitable pour tous.",
+        cue: 'propose un partage juste',
+        reflection:
+          "Tu as proposé une solution pratique qui convient à tout le monde, pas seulement à toi. Comme c'est simple et neutre, personne n'a à se justifier. Être juste, ça n'a rien de gênant.",
+      },
+      {
+        style: 'boundary',
+        label: 'Dis que tu partages le pourboire, mais que tu ne paies que ce que tu as commandé.',
+        cue: 'dis ce que tu paies',
+        reflection:
+          "Tu as dit oui à une partie du partage et non au reste, avec des mots simples. Entre amis, on sait entendre un chiffre clair, et la table a maintenant une solution juste que chacun peut accepter.",
+      },
+    ],
+  },
+  s13: {
+    situation:
+      "Tu fais tomber un verre sur le sol d'un café, et il se brise. Quelques personnes se retournent. Un serveur arrive déjà avec un balai. Tes joues brûlent, et pendant un instant tu voudrais rentrer sous terre.",
+    reframe: "Dans deux jours, quelle place ce verre prendra-t-il dans la semaine de quelqu'un d'autre ?",
+    options: [
+      {
+        style: 'constructive',
+        label: 'Excuse-toi une fois et paie le verre.',
+        cue: 'assume simplement',
+        reflection:
+          "Une excuse sincère et une proposition d'aide, c'est ce qu'on attend le plus souvent. Les têtes tournées sont déjà presque toutes revenues à leur café. Tu as choisi de rester, et l'incident reste minuscule.",
+      },
+      {
+        style: 'avoidant',
+        label: "Laisse un peu d'argent sur la table et file avant qu'on te parle.",
+        cue: 'esquive',
+        reflection:
+          "Vouloir disparaître est une réaction très courante, et payer est attentionné. Mais partir sans un mot te prive de la partie souvent la plus facile : un petit « pardon », un merci, et c'est terminé.",
+      },
+      {
+        style: 'reactive',
+        label: 'Répète tes excuses et plaisante sur ta maladresse.',
+        cue: 'tourne-le en blague',
+        reflection:
+          "La plaisanterie aide parfois à gérer la gêne. Un long numéro demande pourtant à la salle de te rassurer. Une excuse claire suffit, et le personnel peut retourner à son service.",
+      },
+      {
+        style: 'constructive',
+        label: 'Demande ce que tu peux faire pour aider, puis reste pour finir ton café avant de partir.',
+        cue: 'reste et aide',
+        reflection:
+          "Finir ton café tranquillement, c'est te prouver que le moment est passé. Les cafés ont l'habitude de la casse. Politesse, coup de main, café jusqu'au bout : c'était exactement ce qu'il fallait.",
+      },
+    ],
+  },
+  s14: {
+    situation:
+      "Deux proches te réclament le même samedi après-midi : l'un a besoin d'aide pour déplacer une armoire, l'autre attend une visite promise depuis longtemps. Tu as répondu « peut-être » aux deux. Ils attendent chacun une réponse et tu ne sais plus comment caser ton samedi.",
+    reframe: "Si tu ne pouvais tenir qu'une promesse aujourd'hui, laquelle compte le plus pour toi cette semaine ?",
+    options: [
+      {
+        style: 'boundary',
+        label: "Dis oui à l'un pour samedi, et propose à l'autre un jour précis la semaine prochaine.",
+        cue: 'un oui, un plus tard',
+        reflection:
+          "Tu as dit un oui clair à l'un, et un « pas samedi » clair à l'autre, avec une autre date. Ça respecte les deux personnes et tes propres limites. Personne ne peut être à deux endroits à la fois.",
+      },
+      {
+        style: 'constructive',
+        label: 'Regarde combien de temps prend chaque chose, puis annonce le même plan aux deux.',
+        cue: 'planifie les heures',
+        reflection:
+          "Compter les heures réelles fait moins mal que ruminer la culpabilité. Si tout peut tenir, tu as trouvé la solution ; sinon, tu pourras le dire tôt. Dans les deux cas, chacun entend le même plan simple.",
+      },
+      {
+        style: 'reactive',
+        label: 'Écris aux deux que ton emploi du temps déborde et que tu ne peux pas contenter tout le monde.',
+        cue: 'montre ton stress',
+        reflection:
+          "Quand deux demandes te tirent chacune de leur côté, ça fatigue, et vouloir que ça se voie est naturel. Mais un reproche peut faire sentir aux deux qu'ils te pèsent. Tu peux dire les choses franchement, sans colère.",
+      },
+      {
+        style: 'avoidant',
+        label: "Laisse les deux messages sans réponse jusqu'à ce que samedi soit passé.",
+        cue: 'laisse passer',
+        reflection:
+          "Attendre semble faire disparaître le problème. Les deux proches risquent pourtant de se sentir lâchés, et une excuse après coup pèse plus qu'une réponse honnête aujourd'hui. Tu as le droit de choisir.",
+      },
+    ],
+  },
+  s15: {
+    situation:
+      "Ton train est supprimé et tu vas rater ta correspondance pour un déjeuner de famille. Le panneau passe de « retardé » à « supprimé » en une minute. Autour de toi, les gens soupirent et consultent leur téléphone, et ta patience s'épuise.",
+    reframe: "Qu'est-ce qui dépend encore de toi entre ici et ce déjeuner ?",
+    options: [
+      {
+        style: 'curious',
+        label: "Demande à un agent combien de temps durent d'habitude les perturbations sur cette ligne, et pourquoi.",
+        cue: 'demande une info',
+        reflection:
+          "Demander te donne des faits plutôt que des suppositions, et c'est un bon réflexe. La suite t'appartient : avec sa réponse, tu pourras choisir entre attendre et changer d'itinéraire, au lieu de simplement t'inquiéter.",
+      },
+      {
+        style: 'reactive',
+        label: "Dis à un agent ce que tu penses de la gestion de l'entreprise.",
+        cue: 'défoule-toi',
+        reflection:
+          "Un train supprimé, c'est agaçant, et le personnel entend ça toute la journée. Se défouler sur le personnel accélère rarement quoi que ce soit. Une question calme te donne souvent plus vite l'information dont tu as besoin.",
+      },
+      {
+        style: 'avoidant',
+        label: 'Renonce au déjeuner et rentre sans prévenir personne.',
+        cue: 'renonce',
+        reflection:
+          "La déception peut faire paraître un projet sans intérêt. Un train supprimé est un vrai obstacle, mais un petit message préviendrait ta famille. Même une seule ligne lui évite de deviner où tu es.",
+      },
+      {
+        style: 'constructive',
+        label: "Cherche un autre trajet, préviens ta famille de ton heure d'arrivée et prends-le.",
+        cue: "change d'itinéraire",
+        reflection:
+          "Un autre itinéraire et un message d'avance transforment une suppression en simple retard. Tu ne peux pas réparer le train, mais tu as réglé ce qui dépendait de toi. Ta famille sait à quelle heure t'attendre.",
+      },
+    ],
+  },
+  s16: {
+    situation:
+      "La réunion avant la tienne déborde, et des gens discutent encore dans la salle que tu as réservée. Tu as tes notes en main et ta réunion devrait déjà avoir commencé. Personne n'a levé les yeux, et les minutes filent.",
+    reframe: "Quelle est la plus petite interruption qui protégerait la prochaine demi-heure pour tout le monde ?",
+    options: [
+      {
+        style: 'reactive',
+        label: "Entre, pose ton dossier sur la table et fais bien comprendre qu'on t'a fait attendre.",
+        cue: 'montre ton impatience',
+        reflection:
+          "Le dépassement est agaçant, et ce retard ne vient pas de toi. Faire sentir son agacement transforme pourtant un souci d'horaire en tension entre personnes. Tu peux entrer avec la même fermeté et un visage plus calme.",
+      },
+      {
+        style: 'constructive',
+        label: 'Frappe, dis à quelle heure il te faut la salle, et propose une autre salle libre si tu en connais une.',
+        cue: 'propose une solution',
+        reflection:
+          "Proposer une solution permet aux gens de partir sans se sentir chassés. Tu as protégé ta réunion tout en restant aimable avec l'équipe d'avant, ce qui facilitera aussi la prochaine fois.",
+      },
+      {
+        style: 'avoidant',
+        label: 'Attends dans le couloir, quel que soit le temps qui reste.',
+        cue: 'attends poliment',
+        reflection:
+          "La politesse est une belle qualité, et attendre paraît prudent. Si ça avale l'essentiel de ta réunion, tu perds pourtant ce pour quoi tu avais réservé la salle. Tu peux garder ta politesse et frapper à la porte.",
+      },
+      {
+        style: 'boundary',
+        label: 'Frappe, dis que ta réunion commence et demande-leur de conclure vite.',
+        cue: 'réclame ton créneau',
+        reflection:
+          "Ton créneau est réel. Demander de conclure, c'est une demande courtoise, et le dire clairement respecte les deux groupes. Les gens peuvent ranger pendant que tu t'installes, et la plupart ne s'en offusqueront pas.",
+      },
+    ],
+  },
+  s17: {
+    situation:
+      "Tu as préparé un gâteau pour une petite soirée entre amis, et il sort du moule en deux morceaux. Il sent divinement bon. Tu l'imaginais en belles parts bien nettes dans les assiettes. Les invités arrivent dans quarante minutes et ta bonne humeur est retombée.",
+    reframe: 'Qu\'est-ce qui ferait encore de ce gâteau un cadeau, même en deux morceaux ?',
+    options: [
+      {
+        style: 'constructive',
+        label: 'Sers les morceaux dans des bols avec de la crème.',
+        cue: 'sers-le autrement',
+        reflection:
+          "Une autre façon de servir sauve le gâteau et la soirée. Les invités retiennent l'accueil plus que la forme. Tu as gardé le cadeau et lâché l'image parfaite.",
+      },
+      {
+        style: 'curious',
+        label: "Demande à un ami bon cuisinier ce qu'il ferait de deux morceaux avec quarante minutes devant lui.",
+        cue: 'demande des idées',
+        reflection:
+          "Emprunter une idée est malin, pas un échec : les cuisiniers le font tout le temps. Quarante minutes laissent largement le choix, et tu pourras trancher dès que ton ami répondra.",
+      },
+      {
+        style: 'avoidant',
+        label: "Dis-toi que tu n'avais jamais prévu de le servir et ne propose que des biscuits.",
+        cue: 'fais semblant de rien',
+        reflection:
+          "Cacher le gâteau protège l'image que tu avais en tête. Cela cache aussi quelque chose que tu as fait pour eux. Tu peux le servir tel quel et accueillir tes invités avec le sourire.",
+      },
+      {
+        style: 'reactive',
+        label: 'Déclare la soirée fichue et jette le gâteau sans même y goûter.',
+        cue: 'jette tout de suite',
+        reflection:
+          "La déception après des heures d'effort, ça fait mal. Se débarrasser sur-le-champ d'un gâteau sans doute bon, c'est perdre l'effort que tes invités auraient apprécié. La soirée n'est pas fichue : ce gâteau compte déjà.",
+      },
+    ],
+  },
+  s18: {
+    situation:
+      "Une voisine te demande de récupérer ses colis encore une fois et de nourrir son chat le week-end prochain. Tu l'as déjà dépannée deux fois ce mois-ci, et tu voulais un week-end tranquille. Elle a l'air pleine d'espoir, et tu t'entends presque dire oui.",
+    reframe: "Que peux-tu offrir sans te forcer, et que dois-tu garder pour toi ?",
+    options: [
+      {
+        style: 'avoidant',
+        label: "Réponds « peut-être, je regarde » puis évite-la dans l'escalier et dans le hall pendant quelques jours.",
+        cue: 'esquive la question',
+        reflection:
+          "Gagner du temps paraît gentil sur le moment. L'éviter rendra pourtant la prochaine rencontre plus gênante, pour vous deux. Une réponse claire, même un petit non, se reçoit mieux qu'un silence.",
+      },
+      {
+        style: 'reactive',
+        label: 'Dis que les gens profitent de ta gentillesse, et tourne les talons.',
+        cue: 'lance une pique',
+        reflection:
+          "Le ressentiment monte quand on dit oui trop souvent, et tu l'as senti. Le dire comme une accusation risque pourtant de blesser une voisine qui n'avait aucune mauvaise intention. Un simple « pas cette fois » garde de bonnes relations.",
+      },
+      {
+        style: 'constructive',
+        label: 'Dis que tu peux prendre les colis, et suggère-lui une plateforme de garde pour le chat.',
+        cue: 'propose autre chose',
+        reflection:
+          "Tu as su aider sans te surcharger, en lui donnant de vraies pistes. Aider quelqu'un à trouver une solution, c'est aussi de l'aide. Personne ne reste sans solution.",
+      },
+      {
+        style: 'boundary',
+        label: 'Dis que tu prends les colis, mais pas la garde du chat.',
+        cue: 'dis oui à une partie',
+        reflection:
+          "Tu as offert ce que tu pouvais et refusé le reste, gentiment. Un non net sur une partie rend ton oui sur l'autre plus sincère. Les bons voisins respectent ça, en général.",
+      },
+    ],
+  },
+};
+
+export const FR: Record<string, ScenarioText> = Object.fromEntries(Object.entries(RAW).map(([id, text]) => [id, fr(text)]));
