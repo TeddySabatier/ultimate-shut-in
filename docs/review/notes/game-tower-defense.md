@@ -61,3 +61,33 @@ Branch `feat/game-tower-defense-v2` (PR #25 against `integration/arena`). Spec: 
 ## Needs from files I do not own
 
 None.
+
+## Design decisions and review outcome
+
+Lead designer's summary.
+
+- **Board.** A 9x7 grid; 1 cell = 1000 units, 50 ms ticks, integer maths only. Three seeded maps (10, 10 and 11 pads), each optionally mirrored left to right. Every pad touches the path, and some pads sit side by side so the Chorus has neighbours to boost.
+- **Troops are towers.** Each member with a habit gives a card that can be built any number of times; members without a habit cheer in the log. `power` scales damage (`100 + p` percent, after the review), range, interval and cost, so the party shows on the board.
+- **Specials** are exact integer rules:
+  - Chorus: the highest boost among the 8 neighbours, never stacked.
+  - Archivist: a mark that adds a percentage to every later hit.
+  - Lull: a slow capped at 50 percent; the Silence Specter is immune and the Static takes half.
+  - Hearth: +1 Haven HP per interval.
+  - Bubble: 50 percent splash, and a knock-back limited to once per 40 ticks so every enemy keeps moving forward and the game always ends.
+- **The Static.** It switches off the nearest tower for 3 s every 5 s, cannot be knocked back, and costs 5 Haven HP if it gets through.
+- **Tone.** A loss is "the troops come home"; the Haven itself never falls.
+- **Cold review.** 0 critical, 3 major, 7 minor and 8 nit findings, recorded in `game-tower-defense-review.md`. All three majors, all minors and nits n1 to n8 were fixed (see "Review fixes" above):
+  - M1, the difficulty cliff: smooth `HP_PCT`, power scaling halved, and a balance test for each band.
+  - M2: the same-seed e2e replay runs through Bot play.
+  - M3: the hint is always shown, also in text, before it can be spent.
+  - The review also prompted three rule changes: a loss is settled right after the leaks, a jammed tower cannot be sold, and a called wave spawns at `tick + 1 + offset`.
+- **Re-verified by the lead** on `fbbed14`:
+  - lint, typecheck and build are clean;
+  - `npx vitest run src/games`: 244 passed;
+  - games budget: 48.5 KB of code;
+  - tower-defense e2e: 11 passed, 1 skipped (axe runs on mobile only);
+  - the three screenshots (about 81 KB) were viewed.
+- **Open.**
+  - The keyboard-and-pause e2e takes about 19 s on the desktop project, close to the 20 s guideline.
+  - The Lab's `replaySameSeed` cannot be combined with Bot play, so the spec compares two Bot play outcomes itself; a Lab change could fix the helper.
+  - The Cursor branch `feat/game-tower-defense` should be closed once PR #25 merges.

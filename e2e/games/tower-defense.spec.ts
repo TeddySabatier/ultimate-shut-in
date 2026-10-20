@@ -6,7 +6,7 @@
  * Bot play and the real UI is used for a few inputs only.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { botPlayToOutcome, expectNoSeriousA11yViolations, expectResponsiveGame, expectValidOutcome, openLab, readOutcome, replaySameSeed, shootGame } from './lab-helpers';
+import { botPlayToOutcome, expectNoSeriousA11yViolations, expectResponsiveGame, expectValidOutcome, openLab, readOutcome, shootGame } from './lab-helpers';
 
 const ID = 'tower-defense';
 
@@ -70,15 +70,20 @@ test('plays a gentle game to an outcome', async ({ page }, testInfo) => {
   await shootGame(page, testInfo, ID, 'end');
 });
 
-// 4. Required: replaying the same seed gives the same outcome. The real-time clock would make a played game depend on timing
-// (the glow earned grows every second), so both runs go through the Lab's Bot play, which is deterministic.
+// 4. Required: the same seed gives the same outcome. The real-time clock would make a played game depend on timing (the glow earned
+// grows every second), so the replay goes through the Lab's Bot play, which is deterministic: two runs of the same seed must match.
+// (The Lab's "Replay same seed" button clears the previous result, so it is used afterwards, to check that the game restarts fresh.)
 test('replaying the same seed gives the same outcome', async ({ page }) => {
   await openLab(page, ID, { seed: 42, difficulty: 1 });
-  const outcome = await replaySameSeed(page, async () => {
-    await botPlayToOutcome(page);
-  });
-  expect(['won', 'lost']).toContain(outcome.result);
-  expect(outcome.log).toMatch(/The path: /);
+  const first = await botPlayToOutcome(page);
+  const second = await botPlayToOutcome(page);
+  expect(second).toEqual(first);
+  await expect(page.getByTestId('lab-compare')).toHaveText('Matches the previous run.');
+  expect(['won', 'lost']).toContain(first.result);
+  expect(first.log).toMatch(/The path: /);
+  await expectValidOutcome(page);
+  await page.getByRole('button', { name: 'Replay same seed' }).click();
+  await expect(hud(page)).toContainText('Wave 0 of 5');
 });
 
 // This game's own checks.
