@@ -39,8 +39,9 @@ function inBoard(target: EventTarget | null): boolean {
   return target instanceof HTMLElement && target.closest('[data-board]') !== null;
 }
 
-function isBody(target: EventTarget | null): boolean {
-  return target === document.body || target === document.documentElement || target === null;
+/** True when the key belongs to a control of its own (a button, a link, a field), not to the board. */
+function ownsKeys(target: EventTarget | null): boolean {
+  return target instanceof HTMLElement && (target.isContentEditable || target.closest('button, a, input, select, textarea, summary, [role="button"]') !== null);
 }
 
 /** What a monster will do next, in words. */
@@ -97,7 +98,7 @@ export default function RoguelikeChessScreen(props: GameScreenProps) {
     const onKey = (e: KeyboardEvent) => {
       if (e.altKey || e.ctrlKey || e.metaKey) return;
       const onBoard = inBoard(e.target);
-      if (!onBoard && !isBody(e.target)) return;
+      if (!onBoard && ownsKeys(e.target)) return;
       if (e.key === 'Escape') {
         setSelectedId(null);
         return;
