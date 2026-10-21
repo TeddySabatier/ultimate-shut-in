@@ -10,6 +10,7 @@ import { defineStrings } from '../contract';
 export const strings = defineStrings({
   en: {
     intro: 'Fill the grid so every row, column and box holds each digit once. There is exactly one solution.',
+    help: 'How to play',
     keys: 'Arrow keys move. 1 to 9 place a digit (or a note). N toggles notes, Backspace erases, Ctrl+Z undoes, Ctrl+Y redoes, H gives a hint.',
     boardLabel: 'Sudoku board, {n} by {n}',
     cell: 'Row {r}, column {c}, box {b}: {state}',
@@ -26,6 +27,7 @@ export const strings = defineStrings({
     padNote: 'Note {d}',
     padLeft: ', {left} left',
     toolsLabel: 'Tools',
+    optionsLabel: 'Options',
     notes: 'Notes',
     notesOn: 'Notes: on',
     erase: 'Erase',
@@ -107,6 +109,7 @@ export const strings = defineStrings({
   },
   fr: {
     intro: 'Remplis la grille pour que chaque ligne, colonne et bloc contienne chaque chiffre une seule fois. Il y a exactement une solution.',
+    help: 'Comment jouer',
     keys: 'Les flèches déplacent. 1 à 9 placent un chiffre (ou une note). N active les notes, Retour arrière efface, Ctrl+Z annule, Ctrl+Y rétablit, H donne un indice.',
     boardLabel: 'Grille de sudoku, {n} sur {n}',
     cell: 'Ligne {r}, colonne {c}, bloc {b} : {state}',
@@ -123,6 +126,7 @@ export const strings = defineStrings({
     padNote: 'Note {d}',
     padLeft: ', {left} restants',
     toolsLabel: 'Outils',
+    optionsLabel: 'Options',
     notes: 'Notes',
     notesOn: 'Notes : oui',
     erase: 'Effacer',
