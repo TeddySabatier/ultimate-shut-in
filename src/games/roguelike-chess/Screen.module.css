@@ -1,0 +1,228 @@
+/* Roguelike Chess. Tokens only; rules from docs/RESPONSIVE-RULES.md. */
+
+.wrap {
+  width: 100%;
+  min-width: 0;
+}
+
+.intro {
+  font-size: var(--text-sm);
+}
+
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  margin-bottom: var(--space-2);
+}
+
+.prompt {
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  margin: 0 0 var(--space-3);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+.board {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  min-width: 0;
+}
+
+.rank {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(var(--touch-target), 1fr));
+  gap: 2px;
+  min-width: 0;
+}
+
+.cell {
+  position: relative;
+  width: 100%;
+  min-width: var(--touch-target);
+  min-height: var(--touch-target);
+  padding: 0;
+  flex-direction: column;
+  gap: 0;
+  text-transform: none;
+  font-family: var(--font-mono);
+  font-size: var(--heading-xs);
+  background: var(--color-panel);
+  overflow: hidden;
+}
+
+.cell:nth-child(even) {
+  background: var(--color-panel-raised);
+}
+
+.rank:nth-child(even) .cell:nth-child(odd) {
+  background: var(--color-panel-raised);
+}
+
+.rank:nth-child(even) .cell:nth-child(even) {
+  background: var(--color-panel);
+}
+
+.glyph {
+  flex: none;
+  font-family: var(--font-heading);
+  font-size: var(--heading-sm);
+  color: var(--color-accent-2);
+  line-height: 1.2;
+}
+
+.hp {
+  flex: none;
+  font-size: var(--text-xs);
+  color: var(--color-text);
+}
+
+.intent {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  flex: none;
+  color: var(--color-danger);
+  font-family: var(--font-heading);
+  font-size: var(--heading-xs);
+}
+
+.selected {
+  border-color: var(--color-accent-2);
+  box-shadow: inset 0 0 0 2px var(--color-accent-2);
+}
+
+.legal {
+  border-color: var(--color-success);
+  background: var(--color-panel-raised);
+}
+
+.hint {
+  outline: 2px solid var(--color-info);
+  outline-offset: -2px;
+}
+
+.cursor {
+  box-shadow: inset 0 0 0 2px var(--color-accent-text);
+}
+
+.subtitle {
+  margin-top: 0;
+}
+
+.side {
+  min-width: 0;
+}
+
+.roster,
+.upgradeList {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0 0 var(--space-3);
+  padding: 0;
+}
+
+.rosterItem {
+  min-width: 0;
+}
+
+.rosterBtn,
+.upgrade {
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  text-transform: none;
+  gap: var(--space-1);
+}
+
+.upgradeName {
+  font-size: var(--heading-sm);
+  text-transform: uppercase;
+}
+
+.upgradeDesc,
+.rosterBtn {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+}
+
+.fallen {
+  opacity: 0.55;
+}
+
+.log {
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-2);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-panel);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.banner {
+  margin: var(--space-4) 0 0;
+  padding: var(--space-3);
+  border: 2px solid var(--color-accent-2);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-heading);
+  font-size: var(--heading-md);
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--color-accent-2);
+}
+
+.banner[data-result='won'] {
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.banner[data-result='lost'],
+.banner[data-result='fled'] {
+  border-color: var(--color-border-light);
+  color: var(--color-text);
+}
+
+/* Reduced motion: same layout, no movement. */
+.still .legal {
+  transition: none;
+}
+
+@media (max-width: 359px) {
+  .intro {
+    font-size: var(--text-xs);
+  }
+}
+
+@media (min-width: 768px) {
+  .layout {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+@media (max-height: 500px) {
+  .intro {
+    display: none;
+  }
+  .layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-2);
+  }
+  .prompt {
+    display: none;
+  }
+}
