@@ -72,6 +72,7 @@ function withEnemy(state: ChessState, x: number, y: number, kind: EnemyKind = 'b
     maxHp: over.maxHp ?? 4,
     attack: over.attack ?? 1,
     alive: over.alive ?? true,
+    kids: over.kids ?? (kind === 'bunny' ? 1 : 0),
     intentX: over.intentX ?? x,
     intentY: over.intentY ?? y,
     intentVerb: over.intentVerb ?? 'wait',
@@ -570,6 +571,67 @@ describe('strings stay in lockstep for logs the engine writes', () => {
     for (const kind of ALL_UPGRADES) {
       expect(strings.en.upgrade[kind].name.length).toBeGreaterThan(0);
       expect(strings.fr.upgrade[kind].name.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('balance and the second-pass rules', () => {
+  const winRate = (party: typeof parties.full, d: 1 | 2 | 3 | 4 | 5, seeds = 60): number => {
+    let wins = 0;
+    for (let seed = 1; seed <= seeds; seed++) if (playToEnd(game, seed, party, emptyRun(d)).outcome?.result === 'won') wins += 1;
+    return (wins / seeds) * 100;
+  };
+
+  it('a dust bunny leaves one copy only, so a room can always be cleared', () => {
+    const { state: board } = pieceAt('king', 0, 0);
+    const state = withEnemy(board, 3, 3, 'bunny', { hp: 6, attack: 1 });
+    const enemy = state.enemies[0]!;
+    expect(enemy.kids).toBe(1);
+    const plan = planEnemy(state, enemy);
+    const once = runEnemyTurn({ ...state, enemies: state.enemies.map((e) => (e.id === enemy.id ? { ...e, ...plan } : e)) });
+    const parent = once.enemies.find((e) => e.id === enemy.id)!;
+    expect(parent.kids).toBe(0);
+    expect(planEnemy(once, parent).intentVerb).not.toBe('split');
+    const baby = once.enemies.find((e) => e.id !== enemy.id && e.kind === 'bunny')!;
+    expect(baby.kids).toBe(0);
+    expect(baby.maxHp).toBe(1);
+  });
+
+  it('a level 1 starter party can win the gentlest difficulty, a level 12 party wins it nearly always', () => {
+    expect(winRate(parties.starter, 1)).toBeGreaterThanOrEqual(25);
+    expect(winRate(parties.full, 1)).toBeGreaterThanOrEqual(90);
+  });
+
+  it('gets harder as the difficulty rises (greedy bot, full party)', () => {
+    const easy = winRate(parties.full, 2);
+    const mid = winRate(parties.full, 4);
+    const hard = winRate(parties.full, 5);
+    expect(easy).toBeGreaterThan(mid);
+    expect(mid).toBeGreaterThan(hard);
+  });
+
+  it('enemies toughen a little with the party level, so a level 12 party does not walk through', () => {
+    const low = start(4, parties.starter, emptyRun(3));
+    const high = start(4, parties.full, emptyRun(3));
+    expect(high.tough).toBeGreaterThan(low.tough);
+    expect(high.enemies[0]!.maxHp).toBeGreaterThan(low.enemies[0]!.maxHp);
+    expect(enemyHp('blob', 3, 4)).toBe(enemyHp('blob', 3) + 4);
+  });
+
+  it('reach gives a knight king steps and no strange jumps', () => {
+    const { piece, state } = pieceAt('knight', 2, 2, { rangeBonus: 1 });
+    const moves = squares(legalMoves(state, piece));
+    expect(moves).toContain('3,3');
+    expect(moves).toContain('3,4');
+    expect(moves).not.toContain('3,5');
+    expect(moves).toHaveLength(16);
+  });
+
+  it('the bot plays a mixed party with no knight to an end on every difficulty', () => {
+    for (const d of [1, 2, 3, 4, 5] as const) {
+      const r = playToEnd(game, 3, parties.mixed, emptyRun(d));
+      expect(r.outcome).toBeTruthy();
+      expect(r.stopped).toBeUndefined();
     }
   });
 });

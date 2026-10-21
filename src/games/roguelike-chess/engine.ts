@@ -104,6 +104,8 @@ export interface Enemy {
   maxHp: number;
   attack: number;
   alive: boolean;
+  /** Dust bunnies: copies this one can still leave behind (one, then none). */
+  kids: number;
   intentX: number;
   intentY: number;
   intentVerb: IntentVerb;
@@ -120,6 +122,7 @@ export interface ChessState {
   step: number;
   locale: Locale;
   difficulty: 1 | 2 | 3 | 4 | 5;
+  tough: number;
   room: number;
   turnInRoom: number;
   turnCap: number;
@@ -364,9 +367,6 @@ export function legalMoves(state: ChessState, piece: Piece): Pos[] {
     for (const d of KNIGHT_DELTAS) pushJump(out, state, from.x + d.x, from.y + d.y);
     if (piece.passives.includes('skirmisher') || piece.rangeBonus > 0) {
       for (const d of KING_DELTAS) pushJump(out, state, from.x + d.x, from.y + d.y);
-    }
-    if (piece.rangeBonus > 0) {
-      for (const d of KNIGHT_DELTAS) pushJump(out, state, from.x + d.x * 1, from.y + (d.y > 0 ? d.y + 1 : d.y - 1));
     }
   } else if (piece.kind === 'king') {
     const dist = Math.min(max, 2);
@@ -615,7 +615,7 @@ function planEnemy(state: ChessState, e: Enemy): Pick<Enemy, 'intentX' | 'intent
     }
   }
 
-  if (e.kind === 'bunny') {
+  if (e.kind === 'bunny' && e.kids > 0) {
     const spawn = splitSquare(state, here);
     if (spawn) return { intentX: spawn.x, intentY: spawn.y, intentVerb: 'split' };
   }
@@ -648,22 +648,36 @@ function withIntentions(state: ChessState): ChessState {
 
 function roomEnemyCount(room: number, d: number): number {
   if (room === 1) return d <= 2 ? 2 : 3;
-  if (room === 2) return d === 1 ? 3 : d >= 5 ? 5 : 4;
+  if (room === 2) return d <= 2 ? 3 : 4;
   return 1 + (d <= 2 ? 1 : d <= 4 ? 2 : 3);
 }
 
-function enemyHp(kind: EnemyKind, d: number): number {
-  if (kind === 'static') return 7 + d * 3;
-  if (kind === 'golem') return 5 + d * 2;
-  if (kind === 'blob' || kind === 'bunny' || kind === 'imp') return 3 + d * 2;
-  return 4 + d * 2;
+const HP_STEP = [0, 1, 9, 10, 10];
+
+function enemyHp(kind: EnemyKind, d: number, tough = 0): number {
+  const step = HP_STEP[Math.max(0, Math.min(4, d - 1))]!;
+  if (kind === 'static') return 6 + (d - 1) * 3 + tough;
+  if (kind === 'golem') return 4 + step + tough;
+  if (kind === 'blob' || kind === 'bunny' || kind === 'imp') return 2 + step + tough;
+  return 3 + step + tough;
 }
 
-function enemyAtk(kind: EnemyKind, d: number): number {
-  if (kind === 'static') return 2 + d;
-  if (kind === 'golem') return 1 + d;
-  if (kind === 'leech' || kind === 'specter') return 1 + d;
-  return 1 + Math.floor(d / 2);
+/** Enemies toughen a little with the party's average level, so a level 1 party still has a fair first room. */
+function toughOf(party: Party): number {
+  const ms = party.members.slice(0, 8);
+  if (ms.length === 0) return 0;
+  return Math.floor((ms.reduce((n, m) => n + m.level, 0) * 2) / ms.length / 3);
+}
+
+const ATK_BASE = [1, 1, 3, 3, 3];
+const ATK_STATIC = [2, 2, 5, 5, 5];
+
+function enemyAtk(kind: EnemyKind, d: number, tough = 0): number {
+  const i = Math.max(0, Math.min(4, d - 1));
+  const extra = Math.floor(tough / 4);
+  if (kind === 'static') return ATK_STATIC[i]! + extra;
+  if (kind === 'golem' || kind === 'leech' || kind === 'specter') return ATK_BASE[i]! + (d >= 4 ? 1 : 0) + extra;
+  return ATK_BASE[i]! + extra;
 }
 
 const ROOM1: readonly EnemyKind[] = ['blob', 'bunny', 'imp', 'golem'];
@@ -704,9 +718,9 @@ function enemySpots(rng: Rng, n: number): Pos[] {
   return spots.slice(0, n);
 }
 
-function makeEnemy(kind: EnemyKind, pos: Pos, id: string, d: number): Enemy {
-  const hp = enemyHp(kind, d);
-  return { id, kind, x: pos.x, y: pos.y, hp, maxHp: hp, attack: enemyAtk(kind, d), alive: true, intentX: pos.x, intentY: pos.y, intentVerb: 'wait' };
+function makeEnemy(kind: EnemyKind, pos: Pos, id: string, d: number, tough: number): Enemy {
+  const hp = enemyHp(kind, d, tough);
+  return { id, kind, x: pos.x, y: pos.y, hp, maxHp: hp, attack: enemyAtk(kind, d, tough), alive: true, kids: kind === 'bunny' ? 1 : 0, intentX: pos.x, intentY: pos.y, intentVerb: 'wait' };
 }
 
 function makePiece(m: PartyMember, pos: Pos, defensePts: number, attackPts: number): Piece {
@@ -714,7 +728,7 @@ function makePiece(m: PartyMember, pos: Pos, defensePts: number, attackPts: numb
   let hp = 3 + m.level + Math.floor(defensePts / 10);
   if (passives.includes('tidy')) hp += 1;
   if (passives.includes('sentinel')) hp += 2;
-  let attack = 1 + Math.floor(m.level / 3) + Math.floor(attackPts / 10);
+  let attack = 1 + Math.floor((m.level + 2) / 3) + Math.floor(attackPts / 10);
   if (m.loyalty > 70) attack += 1;
   if (passives.includes('vanguard')) attack += 1;
   return {
@@ -742,7 +756,7 @@ function roomRng(seed: number, room: number): Rng {
   return mulberry32(fnv1a(`roguelike-chess:${seed >>> 0}:room:${room}`));
 }
 
-function buildEnemies(seed: number, room: number, d: number, serial0: number): { enemies: Enemy[]; nextEnemySerial: number } {
+function buildEnemies(seed: number, room: number, d: number, tough: number, serial0: number): { enemies: Enemy[]; nextEnemySerial: number } {
   const rng = roomRng(seed, room);
   const kinds = pickKinds(rng, room, d);
   const spots = enemySpots(rng, kinds.length);
@@ -750,7 +764,7 @@ function buildEnemies(seed: number, room: number, d: number, serial0: number): {
   const enemies = kinds.map((kind, i) => {
     serial += 1;
     const pos = spots[i] ?? { x: i % BOARD, y: 5 };
-    return makeEnemy(kind, pos, `e${room}-${serial}`, d);
+    return makeEnemy(kind, pos, `e${room}-${serial}`, d, tough);
   });
   return { enemies, nextEnemySerial: serial };
 }
@@ -798,7 +812,7 @@ function offerUpgrades(state: ChessState): UpgradeOffer[] {
 }
 
 function enterRoom(state: ChessState, room: number): ChessState {
-  const built = buildEnemies(state.seed, room, state.difficulty, state.nextEnemySerial);
+  const built = buildEnemies(state.seed, room, state.difficulty, state.tough, state.nextEnemySerial);
   const next: ChessState = {
     ...state,
     room,
@@ -820,6 +834,7 @@ function initial(seed: number, party: Party, run: RunContext, locale: Locale): C
     step: 0,
     locale,
     difficulty: run.difficulty,
+    tough: toughOf(party),
     room: 1,
     turnInRoom: 0,
     turnCap: BASE_TURN_CAP + Math.floor(buffAmount(run, 'time') / 5),
@@ -861,6 +876,7 @@ function spawnBunny(state: ChessState, at: Pos): ChessState {
     maxHp: hp,
     attack: 1,
     alive: true,
+    kids: 0,
     intentX: at.x,
     intentY: at.y,
     intentVerb: 'wait',
@@ -892,6 +908,7 @@ function executeLocked(state: ChessState, e: Enemy): ChessState {
 
   if (verb === 'split') {
     let next = spawnBunny(state, { x: tx, y: ty });
+    next = { ...next, enemies: next.enemies.map((en) => (en.id === current.id ? { ...en, kids: 0 } : en)) };
     const prey = nearestPiece(next, current);
     if (prey) {
       const step = stepToward(next, current, prey);
