@@ -1,0 +1,379 @@
+/* Sudoku. Tokens only (src/styles/tokens.css); rules from docs/RESPONSIVE-RULES.md. */
+
+.game {
+  width: 100%;
+  min-width: 0;
+  container: sudoku / inline-size;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.boardArea,
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.label {
+  color: var(--color-muted);
+}
+
+.line {
+  margin: 0;
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- the board ---------- */
+
+.boardFrame {
+  position: relative;
+  flex: none;
+  width: min(100%, 28rem);
+  margin: 0 auto;
+}
+
+.board {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  container-type: inline-size;
+  border: 3px solid var(--color-border-light);
+  background: var(--color-border-light);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+}
+
+.board[data-size='6'] .row {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  aspect-ratio: 1;
+  padding: 0;
+  background: var(--color-panel);
+  border-right: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.row:last-child .cell {
+  border-bottom: 0;
+}
+
+.cell:last-child {
+  border-right: 0;
+}
+
+.boxRight {
+  border-right: 3px solid var(--color-border-light);
+}
+
+.boxBottom {
+  border-bottom: 3px solid var(--color-border-light);
+}
+
+.given {
+  background: var(--color-panel-raised);
+}
+
+.peer {
+  background: color-mix(in srgb, var(--color-accent) 16%, var(--color-panel));
+}
+
+.given.peer {
+  background: color-mix(in srgb, var(--color-accent) 18%, var(--color-panel-raised));
+}
+
+.unitLit {
+  background: color-mix(in srgb, var(--color-accent-2) 24%, var(--color-panel));
+}
+
+.same,
+.given.same {
+  background: color-mix(in srgb, var(--color-info) 30%, var(--color-panel));
+}
+
+.selected,
+.given.selected {
+  z-index: 1;
+  background: color-mix(in srgb, var(--color-accent) 42%, var(--color-panel));
+  outline: 3px solid var(--color-accent-2);
+  outline-offset: -3px;
+}
+
+.cell:focus-visible {
+  z-index: 2;
+  outline: 3px solid var(--color-accent-2);
+  outline-offset: -3px;
+}
+
+.hinted {
+  box-shadow: inset 0 0 0 4px var(--color-success);
+}
+
+.digit {
+  font-family: var(--font-body);
+  font-size: 1.25rem;
+  font-size: clamp(1rem, 6.4cqw, 2rem);
+  font-weight: 600;
+  line-height: 1;
+  color: var(--color-info);
+}
+
+.small .digit {
+  font-size: clamp(1.1rem, 8.6cqw, 2.4rem);
+}
+
+.given .digit {
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.conflict .digit,
+.off .digit {
+  color: var(--color-danger);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.flag {
+  position: absolute;
+  top: 0;
+  right: 0.1em;
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--color-danger);
+}
+
+.notes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  width: 100%;
+  height: 100%;
+  font-family: var(--font-body);
+  font-size: 0.5625rem;
+  font-size: clamp(0.5625rem, 3.3cqw, 0.95rem);
+  line-height: 1;
+  text-align: center;
+  color: var(--color-muted);
+}
+
+.notes > span {
+  display: grid;
+  place-items: center;
+}
+
+.small .notes {
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  font-size: clamp(0.625rem, 4.4cqw, 1.1rem);
+}
+
+.hiddenBoard .board {
+  visibility: hidden;
+}
+
+.pausedNote {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: var(--space-4);
+  text-align: center;
+  border: 3px solid var(--color-border-light);
+  background: var(--color-panel);
+}
+
+.announce {
+  margin: 0;
+  min-height: 1.4em;
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.result {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 2px solid var(--color-border-light);
+  background: var(--color-panel-raised);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.resultWon {
+  border-color: var(--color-success);
+}
+
+.result:focus-visible {
+  outline: 3px solid var(--color-accent-2);
+  outline-offset: 2px;
+}
+
+/* ---------- pad and tools ---------- */
+
+.pad {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.small .pad {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.padKey,
+.tool {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-panel-raised);
+  color: var(--color-text);
+  border: 2px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-weight: 600;
+  line-height: 1.15;
+  text-align: center;
+  overflow-wrap: anywhere;
+  touch-action: manipulation;
+}
+
+.padKey:disabled,
+.tool:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.padKey:active:not(:disabled),
+.tool:active:not(:disabled) {
+  background: var(--color-panel);
+}
+
+.padOn {
+  border-color: var(--color-accent-2);
+}
+
+.tool[aria-pressed='true'] {
+  border-color: var(--color-accent-2);
+  background: color-mix(in srgb, var(--color-accent) 35%, var(--color-panel-raised));
+}
+
+.padDigit {
+  font-size: var(--text-xl);
+  line-height: 1;
+}
+
+.padLeft {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--color-muted);
+}
+
+.padWord,
+.tool {
+  font-size: var(--text-sm);
+}
+
+.toolSub {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--color-accent-2);
+}
+
+.tools {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.help {
+  font-size: var(--text-sm);
+}
+
+.help summary {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  color: var(--color-accent-text);
+  cursor: pointer;
+}
+
+.help p {
+  margin: 0 0 var(--space-2);
+}
+
+.perks {
+  margin: 0;
+  padding-left: var(--space-4);
+}
+
+/* ---------- small phones, wide frames and landscape ---------- */
+
+@container sudoku (max-width: 20rem) {
+  .tools {
+    gap: var(--space-1);
+  }
+}
+
+@container sudoku (min-width: 34rem) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+@media (max-height: 500px) {
+  .boardFrame {
+    width: min(100%, 28rem, calc(100dvh - 8rem));
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cell {
+    transition: background-color var(--duration-fast) linear;
+  }
+}
+
+.still .cell {
+  transition: none;
+}
