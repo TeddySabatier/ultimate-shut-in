@@ -270,7 +270,7 @@ describe('Sudoku screen', () => {
     const p = props({ locale: 'fr' });
     render(<SudokuScreen {...p} />);
     expect(screen.getByRole('grid')).toHaveAccessibleName('Grille de sudoku, 9 sur 9');
-    expect(cell(firstBlank(p))).toHaveAttribute('aria-label', expect.stringMatching(/^Ligne \d, colonne \d, bloc \d : vide$/));
+    expect(cell(firstBlank(p))).toHaveAttribute('aria-label', expect.stringMatching(/^Ligne \d, colonne \d, bloc \d\u00a0: vide$/));
     expect(screen.getByTestId('sudoku-hint')).toHaveTextContent('Indice');
     expect(screen.getByTestId('sudoku-stop')).toHaveTextContent("S'arrêter");
     expect(screen.getByRole('button', { name: 'Effacer' })).toBeInTheDocument();

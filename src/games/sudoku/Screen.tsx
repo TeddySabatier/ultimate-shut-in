@@ -239,7 +239,7 @@ export default function SudokuScreen(props: GameScreenProps) {
             ) : null}
           </div>
 
-          <p className={styles.announce} role="status" aria-live="polite" data-testid="sudoku-live">
+          <p className={cx(styles.announce, resultText !== null && 'srOnly')} role="status" aria-live="polite" data-testid="sudoku-live">
             {message}
           </p>
           {resultText ? (

@@ -33,7 +33,6 @@ import game from './manifest';
 import { GRADE_RANK, countSolutions, gradeOfPuzzle, logicSolve, nextStep, solveUnique, type Grade } from './logic';
 
 const SEEDS = 200;
-const range = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
 
 function start(seed: number, difficulty: Difficulty = 3, party: Party = parties.starter, run: Partial<RunContext> = {}): SudokuState {
   return engine.initial(seed, party, { ...emptyRun(difficulty), ...run }, 'en');

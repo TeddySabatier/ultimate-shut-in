@@ -20,7 +20,7 @@ describe('messages', () => {
     expect(cellLabel(s, given, en, null)).toBe(`Row ${Math.floor(given / 9) + 1}, column ${(given % 9) + 1}, box ${box}: ${s.grid[given]}, given`);
     const c = blank(s);
     expect(cellLabel(s, c, en, null)).toMatch(/: empty$/);
-    expect(cellLabel(s, c, fr, null)).toMatch(/ : vide$/);
+    expect(cellLabel(s, c, fr, null)).toMatch(/\u00a0: vide$/);
     const noted = act(s, { type: 'note', cell: c, digit: 1 }, { type: 'note', cell: c, digit: 4 });
     expect(cellLabel(noted, c, en, null)).toMatch(/: empty, notes 1 4$/);
     expect(notesText(0b1001)).toBe('1 4');

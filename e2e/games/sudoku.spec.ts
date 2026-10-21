@@ -117,9 +117,8 @@ test('arrow keys move the one tab stop; a wrong digit is flagged by Check and fi
 });
 
 test('Stop here keeps the board and ends with a partial score; Leave is a separate press', async ({ page }) => {
-  await openLab(page, ID, { seed: 5, difficulty: 2, party: 'starter' });
-  await page.getByTestId('sudoku-hint').click();
-  await page.getByTestId('sudoku-hint').click();
+  await openLab(page, ID, { seed: 5, difficulty: 2, party: 'full' });
+  for (let i = 0; i < 4; i++) await page.getByTestId('sudoku-hint').click();
   await stage(page).getByRole('button', { name: 'Stop here' }).click();
   const out = await readOutcome(page);
   expect(out.result).toBe('fled');
@@ -142,7 +141,7 @@ test('French, and a party that changes the game: Study gives free hints, Sleep s
   await page.getByTestId('sudoku-hint').click();
   await expect(live(page)).toContainText(/Ligne \d, colonne \d|Dans (la|le) /);
   await page.getByTestId('sudoku-notes').click();
-  await expect(page.getByTestId('sudoku-notes')).toHaveText('Notes : oui');
+  await expect(page.getByTestId('sudoku-notes')).toHaveText('Notes\u00a0: oui');
   // The same seed with a starter party has no free hint and a shorter par.
   await openLab(page, ID, { seed: 11, lang: 'fr', difficulty: 3, party: 'starter' });
   await expect(page.getByTestId('sudoku-hint')).not.toContainText('offerts');
