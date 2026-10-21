@@ -232,7 +232,7 @@ export default function HavenRushScreen(props: GameScreenProps) {
         </div>
 
         <div className={styles.side}>
-          <div className={styles.feed} aria-live="polite" data-testid="gr-feed">
+          <div className={cx(styles.feed, !status && live.length === 0 && styles.feedEmpty)} aria-live="polite" data-testid="gr-feed">
             {status ? <p className={styles.status}>{status}</p> : null}
             <ul className={styles.events}>
               {live.map((l) => (

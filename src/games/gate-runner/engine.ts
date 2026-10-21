@@ -45,7 +45,7 @@ export type GateRunnerAction = { type: 'tick' } | { type: 'side'; side: 0 | 1 } 
 /** The gate a Social vassal adds before the first one: +3 on both sides. */
 export const SOCIAL_GATE: Gate = { y: SOCIAL_GATE_Y, l: { k: 'add', n: 3 }, r: { k: 'add', n: 3 } };
 /** How much the bot errs, in percent per gate pair, by difficulty 1..5. */
-export const BOT_ERROR_PCT = [4, 7, 10, 13, 17] as const;
+export const BOT_ERROR_PCT = [4, 7, 10, 11, 14] as const;
 /** The bot starts to move to its half when the gate is this close (units). */
 export const BOT_LEAD = 140;
 
