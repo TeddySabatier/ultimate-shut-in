@@ -17,6 +17,7 @@ const BLANK = /: empty$/;
 
 /** The index of the first blank cell, read from the cell names. */
 async function firstBlank(page: Page): Promise<number> {
+  await expect(page.getByRole('gridcell').first()).toBeVisible(); // the board has mounted: never read an empty stage
   const labels = await page.locator('[data-testid^="sudoku-cell-"]').evaluateAll((els) => els.map((el) => el.getAttribute('aria-label') ?? ''));
   return labels.findIndex((l) => /: empty$/.test(l));
 }
@@ -98,7 +99,7 @@ test('arrow keys move the one tab stop; a wrong digit is flagged by Check and fi
   await page.keyboard.press('ArrowRight');
   await expect(cell(page, rowStart + 1)).toBeFocused();
   await expect(page.locator('[role="gridcell"][tabindex="0"]')).toHaveCount(1);
-  // Find a blank cell and put a digit that is certainly wrong for it: one its row already holds as a given.
+  // Put a digit that is certainly wrong for the blank cell: one its row already holds as a given.
   const labels = await page.locator('[data-testid^="sudoku-cell-"]').evaluateAll((els) => els.map((el) => el.getAttribute('aria-label') ?? ''));
   const row = Math.floor(first / 9);
   const given = labels.slice(row * 9, row * 9 + 9).map((l) => /: (\d), given$/.exec(l)?.[1]).find(Boolean)!;
