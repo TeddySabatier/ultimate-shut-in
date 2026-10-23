@@ -281,6 +281,7 @@
 .promptText {
   margin: 0;
   min-width: 0;
+  padding: var(--space-1) var(--space-2);
   font-size: var(--text-lg);
   overflow-wrap: anywhere;
 }

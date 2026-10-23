@@ -173,7 +173,7 @@ describe('Reading Race screen: reading', () => {
     render(<ReadingRaceScreen {...props()} />);
     click('Start the race');
     clock.run(4000, 16);
-    expect(screen.getByTestId('reading-race-reread')).toHaveTextContent('Re-read last sentence (-5)');
+    expect(screen.getByTestId('reading-race-reread')).toHaveTextContent('Re-read sentence (-5)');
     fireEvent.keyDown(window, { key: 'r' });
     expect(feed()).toBe('Back to the start of the sentence.');
   });
@@ -181,7 +181,7 @@ describe('Reading Race screen: reading', () => {
   it('a time buff makes re-reading free', () => {
     render(<ReadingRaceScreen {...props({ run: { ...runs.buffed, difficulty: 1 } })} />);
     click('Start the race');
-    expect(screen.getByTestId('reading-race-reread')).toHaveTextContent('Re-read last sentence (free)');
+    expect(screen.getByTestId('reading-race-reread')).toHaveTextContent('Re-read sentence (free)');
   });
 
   it('shows three words at a time in phrase mode', () => {
