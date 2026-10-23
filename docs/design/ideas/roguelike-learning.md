@@ -62,6 +62,41 @@ Format per idea: mechanic / what the player learns / why it stays fun / build co
 - Comparing the player to other people. The only comparison allowed is to the bot or to their own past runs.
 - Making a learning game out of Roguelike Chess. It stays a tactics game; learning is a by-product the player can notice.
 
+## 4b. Chosen-subject learning (added after a direction change)
+
+The owner's actual goal is narrower and more useful than "learning in general": **pick a subject, get questions on it, inside the Arena.** First subjects: Kubernetes and eBPF, later anything (AI inference, Spanish). This section sketches how that fits without breaking the constraints above. It is still ideation; the build is a separate brief.
+
+### Shape
+
+- **Subject decks are content, not code.** A deck is a JSON file under `src/games/content/decks/<subject>.json`: 100 to 150 cards, each with a prompt, the answer, three plausible wrong answers, a two-line explanation, a difficulty tier (1 recall, 2 apply, 3 debug or design), a topic tag, and a pointer to the official documentation page it comes from. Original wording, no copied text. Decks are authored offline by an agent from the official docs, then reviewed card by card by a second agent; nothing is fetched at runtime (the app stays offline-first, no LLM, no backend).
+- **One scheduler, reused.** Word Forge already has a tiny spaced-repetition scheduler inside a run. Lift it into `src/games/shared/` and let it schedule subject cards the same way: a wrong card returns after 2 then 5 cards, a right one once more after 8. Across runs, a small per-subject record in the save (card id, times seen, last result) makes the next run favour weak cards. This is the only save change (one array), reserve it in the playbook.
+- **The player chooses the subject in the Armory**, under a "Study table" entry: a list of installed decks with a progress ring (cards seen, cards mastered). Choosing nothing means no subject content anywhere. Switching is free.
+
+### Three ways a subject enters a run, from safest to boldest
+
+1. **A dedicated game, "Scroll Room"** (`subject-scrolls`, category `self-development`): the Word Forge loop with subject cards instead of vocabulary. Multiple choice at difficulty 1 and 2, typed or ordered answers at 3 and up (for example put the kubectl steps in order, pick the eBPF hook for a scenario). Three minutes, 15 to 20 cards, explanation after every card, `Outcome.learned` carries the two cards missed most. This is the cheapest thing that delivers "I am learning Kubernetes tonight" and should exist first. Cost M, mostly content.
+2. **The Archivist room in Roguelike Chess** (idea B6 generalised): between rooms 2 and 3 the Study piece finds a scroll with one card from the chosen deck. Right answer: a 1-point shield on the weakest piece for the boss room. Wrong or skipped: nothing, and the explanation is shown. One card, always skippable, never on the critical path. Cost S once the decks exist.
+3. **Subject-flavoured upgrades**: the 12 chess upgrades keep their effects but their flavour line comes from the chosen deck ("Field kit: a liveness probe restarts a pod that stopped answering; a readiness probe only takes it out of the Service") when a subject is active. Reading is optional; the fact rides on a card already being read. Cost S, content only.
+
+### What "keeping it fun" means here
+
+- Questions never gate progress. The Scroll Room is a game you choose to enter; the Archivist scroll is a bonus; upgrade flavour is reading you can ignore.
+- Tier 3 cards are small puzzles, not trivia: "a pod is Pending with no events; which three things do you check first" or "which eBPF program type can drop a packet before the kernel allocates an skb". Puzzles belong in a roguelike; definitions mostly do not.
+- The explanation after a card is the actual learning moment. Two lines, concrete, with the doc pointer for later.
+- Progress is shown as mastery per topic, never as a streak or a daily goal. Missing a week costs nothing except that the scheduler brings weak cards back.
+
+### First two decks, as a sketch
+
+**Kubernetes (about 140 cards, 10 topics):** core objects (Pod, ReplicaSet, Deployment, StatefulSet, DaemonSet, Job, CronJob); Services and Ingress and the networking model; ConfigMaps and Secrets; storage (PV, PVC, StorageClass); scheduling (requests and limits, affinity, taints and tolerations, priority); probes and lifecycle; RBAC and ServiceAccounts; kubectl fluency (get, describe, logs, exec, rollout, diff, explain); troubleshooting patterns (Pending, CrashLoopBackOff, ImagePullBackOff, OOMKilled, DNS); and architecture (API server, etcd, scheduler, controllers, kubelet, CNI, CRI). Source: kubernetes.io docs.
+
+**eBPF (about 110 cards, 9 topics):** what eBPF is and the verifier's guarantees; program types and hooks (kprobe, uprobe, tracepoint, XDP, tc, cgroup, LSM); maps (hash, array, per-CPU, ring buffer, LRU) and when to use each; helpers and tail calls; CO-RE and BTF; toolchains (libbpf, bpftool, bcc, bpftrace, and when each fits); loading and lifecycle (pinning, attach, replace); observability recipes (latency histograms, syscall tracing); networking recipes (XDP drop, load balancing); and safety and limits (verifier errors, instruction limits, kernel version differences). Sources: ebpf.io, kernel docs, libbpf and bpftool docs.
+
+Interleaving the two subjects in one run is allowed and probably good for retention; the scheduler draws from both decks when both are selected.
+
+### Pipeline to add a subject later
+
+A one-session recipe, same as adding a game: an agent reads the official docs, writes the deck JSON to the schema with a doc pointer per card, runs the deck validator (unique ids, four options, one correct, tier and topic present, no duplicate prompts, explanation under 240 characters), a second agent reviews facts card by card, the PR adds the deck and nothing else. Spanish or "AI inference" are then a content PR away.
+
 ## 5. Open questions
 
 - Should `Outcome.learned` notes be stored per game in the save (a new array, save v6 or later) or only kept in the run log? Prototype 2 needs an answer.
