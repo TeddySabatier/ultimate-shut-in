@@ -1,0 +1,443 @@
+/* Maze Learner. Tokens only (src/styles/tokens.css); rules from docs/RESPONSIVE-RULES.md. */
+
+.game {
+  width: 100%;
+  min-width: 0;
+  --glyph-hole: var(--color-bg);
+}
+
+.intro {
+  font-size: var(--text-sm);
+  margin: 0 0 var(--space-3);
+}
+
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-3);
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.lessonTitle {
+  margin: var(--space-3) 0 var(--space-2);
+}
+
+.lessonIntro,
+.goal {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.goal {
+  color: var(--color-accent-2);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+  min-width: 0;
+}
+
+.boardArea,
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+/* ---------- the board ---------- */
+
+.board {
+  position: relative;
+  flex: none;
+  width: min(100%, calc(var(--cols) * 3.25rem));
+  margin: 0 auto;
+  border: 3px solid var(--color-border-light);
+  background: var(--color-border-light);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+}
+
+.cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  aspect-ratio: 1;
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.cell[data-kind='0'] {
+  cursor: default;
+  background-color: var(--color-bg);
+  background-image: repeating-linear-gradient(0deg, var(--color-border) 0 2px, transparent 2px 8px), repeating-linear-gradient(90deg, var(--color-border) 0 2px, transparent 2px 12px);
+  border-color: var(--color-bg);
+}
+
+/* Wet floor: hatched, so it never depends on colour alone. */
+.cell[data-kind='6'] {
+  background-color: var(--color-panel-raised);
+  background-image: repeating-linear-gradient(45deg, var(--color-info) 0 2px, transparent 2px 7px);
+}
+
+.cell[data-kind='3'],
+.cell[data-kind='4'],
+.cell[data-kind='5'] {
+  background-color: var(--color-panel-raised);
+}
+
+.cell[data-kind='7'] {
+  background-color: var(--color-panel-raised);
+}
+
+.cell[data-heat='1'] {
+  background-color: color-mix(in srgb, var(--color-accent-2) 14%, var(--color-panel));
+}
+.cell[data-heat='2'] {
+  background-color: color-mix(in srgb, var(--color-accent-2) 28%, var(--color-panel));
+}
+.cell[data-heat='3'] {
+  background-color: color-mix(in srgb, var(--color-accent-2) 42%, var(--color-panel));
+}
+.cell[data-heat='4'] {
+  background-color: color-mix(in srgb, var(--color-accent-2) 56%, var(--color-panel));
+}
+.cell[data-heat='5'] {
+  background-color: color-mix(in srgb, var(--color-accent-2) 70%, var(--color-panel));
+}
+
+.cell[data-hint='1'] {
+  border: 2px dashed var(--color-info);
+}
+
+.cell[data-cursor='1'] {
+  outline: 3px solid var(--color-accent-text);
+  outline-offset: -3px;
+  z-index: 2;
+}
+
+.cell:focus-visible {
+  outline: 3px solid var(--color-success);
+  outline-offset: -3px;
+  z-index: 3;
+}
+
+.kindBig {
+  width: 72%;
+  height: 72%;
+  color: var(--color-accent-text);
+}
+
+.kindSmall {
+  position: absolute;
+  top: 6%;
+  left: 6%;
+  width: 34%;
+  height: 34%;
+  color: var(--color-muted);
+}
+
+.cell[data-kind='7'] .kindSmall {
+  color: var(--color-accent-2);
+}
+
+.arrow {
+  width: 56%;
+  height: 56%;
+  color: var(--color-text);
+  opacity: 0.92;
+}
+
+.friendArrow {
+  position: absolute;
+  top: 6%;
+  right: 6%;
+  width: 30%;
+  height: 30%;
+  color: var(--color-info);
+}
+
+.mark {
+  position: absolute;
+  bottom: 5%;
+  left: 5%;
+  width: 40%;
+  height: 40%;
+}
+
+.cheese {
+  color: var(--color-accent-2);
+}
+
+.puddle {
+  color: var(--color-info);
+}
+
+.markOnDoor {
+  width: 46%;
+  height: 46%;
+  color: var(--color-accent-2);
+}
+
+.value,
+.visits {
+  position: absolute;
+  padding: 0 2px;
+  border-radius: var(--radius-sm);
+  background: rgba(15, 15, 20, 0.82);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1.25;
+}
+
+.value {
+  right: 3%;
+  bottom: 3%;
+}
+
+.visits {
+  right: 3%;
+  top: 3%;
+  color: var(--color-info);
+}
+
+.creature {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 66%;
+  height: 66%;
+  margin: -33% 0 0 -33%;
+  color: var(--color-success);
+  filter: drop-shadow(0 0 1.5px var(--color-bg)) drop-shadow(0 0 1px var(--color-bg));
+  z-index: 4;
+}
+
+.creatureLive {
+  animation: maze-hop 0.5s steps(2, end) infinite;
+}
+
+@keyframes maze-hop {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.route {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.route polyline {
+  stroke: var(--color-success);
+  stroke-width: 2;
+  stroke-dasharray: 4 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.7;
+}
+
+.legend,
+.last,
+.friend {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+}
+
+.last {
+  color: var(--color-text);
+}
+
+/* ---------- the panel ---------- */
+
+.tools,
+.views {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.tool {
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-1) var(--space-1);
+  font-size: var(--heading-xs);
+}
+
+.tool[aria-pressed='true'],
+.views [aria-pressed='true'] {
+  background: var(--color-accent);
+  border-color: var(--color-accent-text);
+  box-shadow: none;
+}
+
+.toolIcon {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.dials {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+.dial {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  font-size: var(--text-sm);
+}
+
+.dial input[type='range'] {
+  width: 100%;
+  min-height: var(--touch-target);
+  padding: 0;
+  accent-color: var(--color-accent-2);
+}
+
+.dial small {
+  font-size: var(--text-xs);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.actions > * {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.learned {
+  padding: var(--space-3);
+  border: 2px solid var(--color-success);
+  border-radius: var(--radius-sm);
+  background: var(--color-panel);
+}
+
+.learned h4,
+.feed h4 {
+  margin: 0 0 var(--space-1);
+}
+
+.learned p {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.banner {
+  margin: 0;
+  padding: var(--space-3);
+  border: 2px solid var(--color-accent-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-panel);
+  font-family: var(--font-heading);
+  font-size: var(--heading-sm);
+  line-height: 1.5;
+}
+.banner[data-result='won'] {
+  border-color: var(--color-success);
+}
+
+.feed ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+}
+
+.feed li {
+  overflow-wrap: anywhere;
+}
+
+.feed li:not(:first-child) {
+  color: var(--color-muted);
+}
+
+.keys {
+  margin: 0;
+  font-size: var(--text-xs);
+}
+
+/* ---------- breakpoints ---------- */
+
+@media (max-width: 359px) {
+  .tools,
+  .views {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .actions > * {
+    flex-basis: 100%;
+  }
+}
+
+@media (min-width: 640px) {
+  .layout {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+@media (max-height: 500px) {
+  .board {
+    width: min(100%, calc(var(--cols) * 2.6rem));
+  }
+}
+
+/* Reduced motion: nothing moves on its own; the arrows and the heat map still change. */
+.still .creatureLive,
+.still .route {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .creatureLive {
+    animation: none;
+  }
+}
+
+.help {
+  font-size: var(--text-sm);
+}
+
+.help p {
+  margin: var(--space-2) 0 0;
+  color: var(--color-muted);
+}

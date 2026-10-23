@@ -62,7 +62,13 @@ const FEED_LENGTH = 6;
 export const WINDOW = [10, 20, 15, 15, 15] as const;
 export const NEED = [80, 90, 70, 80, 80] as const;
 /** Steps the creature may take in one episode, by lesson. */
-const MAX_STEPS = [32, 40, 40, 44, 40] as const;
+const MAX_STEPS_BY_LEVEL: readonly (readonly number[])[] = [
+  [20, 20, 22, 28, 30],
+  [40, 40, 40, 40, 40],
+  [40, 40, 40, 40, 40],
+  [44, 44, 44, 44, 44],
+  [40, 40, 40, 40, 40],
+];
 /** Chance (in thousandths) that a step slips into a random direction, by difficulty. */
 const SLIP = [0, 0, 0, 50, 100] as const;
 /** Episode budget of one try, by lesson then difficulty. */
@@ -187,23 +193,20 @@ export function valueOf(g: Grid, q: readonly number[], i: number): number {
   return best ?? 0;
 }
 
-/** The arrow the creature would follow from tile `i` (the greedy move), or -1 for a tile with nothing learned there. */
+/** The arrow the creature would follow from tile `i` (its best known move), or -1 while nothing has been learned there. */
 export function policyDir(g: Grid, q: readonly number[], i: number): number {
-  const dirs = legalDirs(g, i);
   let best = -1;
   let bestV = 0;
-  let tie = false;
-  for (const d of dirs) {
+  let any = false;
+  for (const d of legalDirs(g, i)) {
     const v = q[i * 4 + d] ?? 0;
+    if (v !== 0) any = true;
     if (best < 0 || v > bestV) {
       best = d;
       bestV = v;
-      tie = false;
-    } else if (v === bestV) tie = true;
+    }
   }
-  const allSame = dirs.every((d) => (q[i * 4 + d] ?? 0) === bestV);
-  if (best < 0 || (tie && allSame)) return -1;
-  return best;
+  return any ? best : -1;
 }
 
 function qUpdate(q: number[], i: number, dir: number, rewardPoints: number, j: number, terminal: boolean, alpha: number, gamma: number, g: Grid): void {
@@ -529,7 +532,7 @@ function train(s: MazeState, episodes: number): MazeState {
     gamma: s.discount,
     epsilon: s.epsilon,
     slip: SLIP[s.difficulty - 1] ?? 0,
-    maxSteps: MAX_STEPS[s.level - 1] ?? 40,
+    maxSteps: MAX_STEPS_BY_LEVEL[s.level - 1]?.[s.difficulty - 1] ?? 40,
     luck: s.luck,
     replay: s.perkSleep,
   };
