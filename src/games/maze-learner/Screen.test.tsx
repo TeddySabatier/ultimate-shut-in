@@ -43,7 +43,7 @@ describe('Maze Learner screen', () => {
     fireEvent.keyDown(window, { key: 'Enter' });
     await waitFor(() => expect(screen.getByTestId('maze-learner-episodes')).not.toHaveTextContent(/Episodes 0\//));
     await waitFor(() => expect(board().querySelectorAll('svg[class*="arrow"]').length).toBeGreaterThan(0));
-    expect(feed()).toHaveTextContent(/Trained \d+ episodes/);
+    expect(feed()).toHaveTextContent(/Episodes trained: \d+/);
   });
 
   it('arrow keys move the cursor over open tiles, skipping walls, and X and P write the other rewards', () => {

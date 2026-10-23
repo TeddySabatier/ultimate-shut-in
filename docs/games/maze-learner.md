@@ -24,7 +24,7 @@ With `reducedMotion` the creature does not walk, hop or animate; training runs i
 
 ### The feed
 
-An `aria-live="polite"` log under the controls says what changed ("Cheese placed at row 5, column 5", "Trained 10 episodes. Recent success: 40%") and coaches without nagging, at most one hint per training: remove the breadcrumbs, raise epsilon, put a puddle on every wet tile, look at the rewards you wrote.
+An `aria-live="polite"` log under the controls says what changed ("Cheese placed at row 5, column 5", "Episodes trained: 10. Recent success: 40%") and coaches without nagging, at most one hint per training: remove the breadcrumbs, raise epsilon, put a puddle on every wet tile, look at the rewards you wrote.
 
 ## The five lessons
 

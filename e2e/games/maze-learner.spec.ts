@@ -76,7 +76,7 @@ test('plays with the keyboard: arrows move the cursor, C, P and X write rewards,
   await expect(feed).toContainText('Cleared row');
   await page.keyboard.press('Enter');
   await expect(episodes(page)).not.toHaveText(/Episodes 0\//, { timeout: 8_000 });
-  await expect(feed).toContainText(/Trained \d+ episodes/, { timeout: 12_000 });
+  await expect(feed).toContainText(/Episodes trained: \d+/, { timeout: 12_000 });
 });
 
 test('speaks French and forfeits with a partial score', async ({ page }) => {

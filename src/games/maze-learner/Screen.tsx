@@ -580,14 +580,16 @@ export default function MazeLearnerScreen(props: GameScreenProps) {
 
           <div className={styles.feed}>
             <h4>{t.feed.title}</h4>
-            <ul aria-live="polite" role="log" data-testid="maze-learner-feed">
-              {state.feed
-                .slice(-3)
-                .reverse()
-                .map((ev, idx) => (
-                  <li key={`${state.feed.length}-${idx}-${ev.k}`}>{describe(ev, state, t)}</li>
-                ))}
-            </ul>
+            <div aria-live="polite" role="log" data-testid="maze-learner-feed">
+              <ul>
+                {state.feed
+                  .slice(-3)
+                  .reverse()
+                  .map((ev, idx) => (
+                    <li key={`${state.feed.length}-${idx}-${ev.k}`}>{describe(ev, state, t)}</li>
+                  ))}
+              </ul>
+            </div>
           </div>
           <details className={styles.help}>
             <summary>{t.helpTitle}</summary>

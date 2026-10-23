@@ -3,6 +3,7 @@
 .game {
   width: 100%;
   min-width: 0;
+  container: maze-learner / inline-size;
   --glyph-hole: var(--color-bg);
 }
 
@@ -295,7 +296,7 @@
 
 .tool[aria-pressed='true'],
 .views [aria-pressed='true'] {
-  background: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 40%, var(--color-bg));
   border-color: var(--color-accent-text);
   box-shadow: none;
 }
@@ -399,16 +400,17 @@
 /* ---------- breakpoints ---------- */
 
 @media (max-width: 359px) {
-  .tools,
-  .views {
-    grid-template-columns: minmax(0, 1fr);
-  }
   .actions > * {
     flex-basis: 100%;
   }
+  .tool {
+    padding-left: 2px;
+    padding-right: 2px;
+  }
 }
 
-@media (min-width: 640px) {
+/* Wide enough for the board and the controls side by side (the window itself, not the screen). */
+@container maze-learner (min-width: 42rem) {
   .layout {
     grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
     align-items: start;
@@ -440,4 +442,18 @@
 .help p {
   margin: var(--space-2) 0 0;
   color: var(--color-muted);
+}
+
+.help summary {
+  color: var(--color-accent-text);
+}
+
+.help summary::before {
+  content: 'B8';
+  display: inline-block;
+  width: 1.25rem;
+}
+
+.help[open] summary::before {
+  content: 'BE';
 }
