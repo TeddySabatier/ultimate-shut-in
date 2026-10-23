@@ -6,9 +6,9 @@
  *
  * Keyboard: arrows move the cursor (Shift paints with the chosen tool),
  * C cheese, P puddle, X erase, Space uses the tool, Enter trains, N moves on.
- * Touch and mouse: tap or drag over the tiles with the chosen tool.
+ * Mouse: click or drag over the tiles with the chosen tool. Touch: tap a tile (a swipe scrolls the page).
  */
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import { SystemWindow } from '../../components/SystemWindow';
 import { cx } from '../../utils/cx';
 import { formatText, type GameScreenProps } from '../contract';
@@ -197,6 +197,7 @@ export default function MazeLearnerScreen(props: GameScreenProps) {
   const cellRefs = useRef<(HTMLDivElement | null)[]>([]);
   const focusCursor = useRef(false);
   const painting = useRef(false);
+  const touching = useRef(false);
   const lastPainted = useRef(-1);
   const latest = useRef(state);
   latest.current = state;
@@ -322,6 +323,9 @@ export default function MazeLearnerScreen(props: GameScreenProps) {
     return tile instanceof HTMLElement ? Number(tile.dataset.i) : -1;
   };
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    // A finger may be starting to scroll the page: it only places a reward when it taps (see onClick).
+    touching.current = e.pointerType === 'touch';
+    if (touching.current) return;
     const i = tileAt(e);
     if (i < 0 || (state.cells[i] ?? WALL) === WALL) return;
     setCursor(i);
@@ -329,6 +333,14 @@ export default function MazeLearnerScreen(props: GameScreenProps) {
     painting.current = true;
     lastPainted.current = i;
     apply(i, tool);
+  };
+  const onClick = (e: ReactMouseEvent<HTMLDivElement>) => {
+    if (!touching.current) return;
+    const target = e.target instanceof Element ? e.target.closest('[data-i]') : null;
+    const i = target instanceof HTMLElement ? Number(target.dataset.i) : -1;
+    if (i < 0 || (state.cells[i] ?? WALL) === WALL) return;
+    setCursor(i);
+    if (!over) apply(i, tool);
   };
   const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (!painting.current || over) return;
@@ -420,6 +432,7 @@ export default function MazeLearnerScreen(props: GameScreenProps) {
             data-level={level}
             style={{ ['--cols' as string]: state.width, ['--rows' as string]: state.height }}
             onPointerDown={onPointerDown}
+            onClick={onClick}
             onPointerMove={onPointerMove}
           >
             {Array.from({ length: state.height }, (_, r) => (

@@ -78,6 +78,18 @@ describe('Maze Learner screen', () => {
     expect(floor).not.toHaveAccessibleName(/puddle/);
   });
 
+  it('a finger writes a reward only when it taps: the start of a swipe does nothing', () => {
+    render(<MazeLearnerScreen {...props()} />);
+    const floor = board().querySelector('[data-kind="1"]') as HTMLElement;
+    fireEvent.pointerDown(floor, { pointerId: 1, pointerType: 'touch' });
+    expect(floor).not.toHaveAccessibleName(/crumb/);
+    fireEvent.pointerCancel(window, { pointerId: 1 });
+    fireEvent.pointerDown(floor, { pointerId: 2, pointerType: 'touch' });
+    fireEvent.pointerUp(window, { pointerId: 2, pointerType: 'touch' });
+    fireEvent.click(floor);
+    expect(floor).toHaveAccessibleName(/breadcrumb/);
+  });
+
   it('the sliders set epsilon and the discount, and the numbers are read out', () => {
     render(<MazeLearnerScreen {...props()} />);
     const sliders = screen.getAllByRole('slider');

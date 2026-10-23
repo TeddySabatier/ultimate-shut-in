@@ -7,7 +7,7 @@ Category `ai-learning`, minimum ring 2, roster 1 to 8 (it plays with any party f
 ## How to play
 
 - **The board.** Grey stone tiles are walls, a house is the creature's home, a door is an exit, a hatched blue tile is wet floor, a star is a bonus tile. The creature starts at home every episode.
-- **Write the rewards.** Choose a tool (**Cheese**, **Puddle**, **Erase**) and tap or drag over tiles, or use the keyboard. A cheese is a reward, a puddle (a drop with a minus) is a penalty. Changing a reward restarts the success score, because the rules changed.
+- **Write the rewards.** Choose a tool (**Cheese**, **Puddle**, **Erase**) and tap a tile (drag over several with a mouse), or use the keyboard. A cheese is a reward, a puddle (a drop with a minus) is a penalty. Changing a reward restarts the success score, because the rules changed.
 - **Train.** **Train 10** shows the creature walking its route episode by episode; **Train 50 fast** runs a chunk of episodes per animation frame; **Stop** interrupts; **Forget** empties what it learned (your rewards stay, the episodes already spent do not come back).
 - **Watch it learn.** An arrow on a tile is the move the creature would choose now. **Values** shows the heat map and the number behind it (its estimate of the reward it expects from that tile). The dashed green line is the route of the latest episode.
 - **Two dials.** **Exploration (epsilon)**: how often it tries a random move instead of its best one. **Foresight (discount)**: how much it values a reward that is still many steps away.
@@ -136,7 +136,7 @@ All randomness comes from the seed. The maze: `mulberry32(fnv1a('maze-learner:<s
 - The creature sees only its tile, so breadcrumbs (eaten once per episode) need a dense trail; the game uses that as a teaching point rather than hiding it.
 - The success score is measured while the creature is still exploring, so you will often lower epsilon at the end of a lesson. This is the lesson, but it can surprise a first-time player; the feed says it.
 - The friend in lesson 3 is for comparison only and does not change the outcome.
-- Painting by dragging uses pointer events; on very old browsers a tap per tile is the fallback.
+- Dragging paints a trail of tiles with a mouse or a pen; a finger taps one tile at a time, so that a swipe still scrolls the page. Laying the corridor trail of lesson 4 therefore takes about fifteen taps on a phone.
 - Level 1 vassals can win only at difficulty 1 (and sometimes 2) against this bot.
 
 ## Screenshots

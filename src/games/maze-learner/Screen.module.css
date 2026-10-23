@@ -63,7 +63,7 @@
   background: var(--color-border-light);
   user-select: none;
   -webkit-user-select: none;
-  touch-action: none;
+  touch-action: manipulation;
 }
 
 .row {
