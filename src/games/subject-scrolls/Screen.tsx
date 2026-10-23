@@ -89,10 +89,11 @@ export default function SubjectScrollsScreen(props: GameScreenProps) {
   const [stored] = useState<Stored>(() => readStored());
   const [lobby, setLobby] = useState(true);
   const [selected, setSelected] = useState<SubjectId[]>(stored.decks);
-  // The partial order of the current card (keyed by the card, so a new card starts empty).
-  const [pickState, setPickState] = useState<{ id: string | null; list: number[] }>({ id: null, list: [] });
-  const picks = pickState.id === state.currentId ? pickState.list : [];
-  const setPicks = (update: (cur: number[]) => number[]) => setPickState((cur) => ({ id: state.currentId, list: update(cur.id === state.currentId ? cur.list : []) }));
+  // The partial order of the current deal (keyed by card and deal, so a card that comes back starts empty).
+  const dealKey = `${state.currentId ?? ''}:${state.marks.length}`;
+  const [pickState, setPickState] = useState<{ key: string; list: number[] }>({ key: '', list: [] });
+  const picks = pickState.key === dealKey ? pickState.list : [];
+  const setPicks = (update: (cur: number[]) => number[]) => setPickState((cur) => ({ key: dealKey, list: update(cur.key === dealKey ? cur.list : []) }));
   const saved = useRef(false);
   const nextButton = useRef<HTMLButtonElement>(null);
 

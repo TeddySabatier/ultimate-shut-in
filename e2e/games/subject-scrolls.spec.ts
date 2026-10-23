@@ -57,7 +57,8 @@ test('answers a card with the keyboard, reads the explanation and the source, th
 });
 
 test('types an answer at difficulty 4, in French', async ({ page }, testInfo) => {
-  await openLab(page, ID, { seed: 9, difficulty: 4, lang: 'fr', party: 'single' });
+  // Seed 3 opens on a typed card for the single party at difficulty 4; the walk below is a fallback if the decks change.
+  await openLab(page, ID, { seed: 3, difficulty: 4, lang: 'fr', party: 'single' });
   await expect(stage(page).getByRole('heading', { name: 'Salle des parchemins' })).toBeVisible();
   await begin(page);
   // Walk to the first typed card (ordered cards are answered by tapping every step in the shown order).
@@ -75,6 +76,7 @@ test('types an answer at difficulty 4, in French', async ({ page }, testInfo) =>
     await stage(page).getByTestId('subject-scrolls-next').click();
   }
   const input = stage(page).getByTestId('subject-scrolls-input');
+  await expect(input).toBeVisible();
   await expect(input).toBeFocused();
   await page.keyboard.type('réponse improbable');
   await page.keyboard.press('Enter');

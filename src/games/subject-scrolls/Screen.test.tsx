@@ -5,6 +5,8 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { emptyRun, type GameScreenProps, type Outcome } from '../contract';
+// eslint-disable-next-line no-restricted-imports -- src/games/shared holds cross-game helpers (CONTRACT.md section 2)
+import { cardsOf } from '../shared/decks';
 import { parties, runs } from '../testing/contract';
 import SubjectScrollsScreen from './Screen';
 import { currentCard, engine, type Mode } from './engine';
@@ -28,17 +30,21 @@ function seedWith(mode: Mode): number {
   throw new Error(`no seed reaches a ${mode} card`);
 }
 
-/** Answer the current card right through the UI and move on. */
+const escapeRe = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** Answer the current card right through the UI (the card is looked up by its prompt) and move on. */
 function answerRight() {
+  const prompt = screen.getByTestId('subject-scrolls-prompt').textContent ?? '';
+  const card = cardsOf(['kubernetes', 'ebpf']).find((c) => c.prompt === prompt)!;
   const input = screen.queryByTestId('subject-scrolls-input');
   if (input) {
-    fireEvent.change(input, { target: { value: 'x' } });
+    fireEvent.change(input, { target: { value: card.answer } });
     fireEvent.submit(input.closest('form')!);
   } else if (screen.queryByTestId('subject-scrolls-steps')) {
-    for (const b of screen.getAllByRole('button', { name: /^[1-5]/ })) fireEvent.click(b);
+    for (const step of card.steps ?? []) fireEvent.click(screen.getByRole('button', { name: new RegExp(`^[1-5]${escapeRe(step)}$`) }));
     fireEvent.click(screen.getByTestId('subject-scrolls-order-submit'));
   } else {
-    fireEvent.click(screen.getAllByRole('button', { name: /^[1-4]/ })[0]!);
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(`^[1-4]${escapeRe(card.answer)}$`) }));
   }
   fireEvent.click(screen.getByTestId('subject-scrolls-next'));
 }
@@ -123,6 +129,22 @@ describe('Scroll Room screen', () => {
     expect(screen.getByTestId('subject-scrolls-order-submit')).toBeEnabled();
     fireEvent.keyDown(window, { key: 'Enter' });
     expect(screen.getByTestId('subject-scrolls-explain')).toBeInTheDocument();
+  });
+
+  it('an ordered card that comes back after a miss starts with no step placed', () => {
+    render(<SubjectScrollsScreen {...props({ run: emptyRun(4), party: parties.single, seed: seedWith('ordered') })} />);
+    begin();
+    for (let i = 0; i < 6 && screen.queryByTestId('subject-scrolls-steps') === null; i++) answerRight();
+    const prompt = screen.getByTestId('subject-scrolls-prompt').textContent;
+    // Place the steps in the shown order (never the right one): the card comes back after 2 cards (wrong) or 6 (almost).
+    const n = screen.getAllByRole('button', { name: /^[1-5]/ }).length;
+    for (let i = 1; i <= n; i++) fireEvent.keyDown(window, { key: String(i) });
+    fireEvent.click(screen.getByTestId('subject-scrolls-order-submit'));
+    fireEvent.click(screen.getByTestId('subject-scrolls-next'));
+    for (let i = 0; i < 12 && screen.getByTestId('subject-scrolls-prompt').textContent !== prompt; i++) answerRight();
+    expect(screen.getByTestId('subject-scrolls-prompt').textContent).toBe(prompt);
+    expect(screen.getByTestId('subject-scrolls-sequence')).toHaveTextContent('Tap the steps in order.');
+    expect(screen.getAllByRole('button', { name: /^[1-5]/ }).every((b) => !(b as HTMLButtonElement).disabled)).toBe(true);
   });
 
   it('reads stored progress into the lobby and feeds the history to the engine', () => {
