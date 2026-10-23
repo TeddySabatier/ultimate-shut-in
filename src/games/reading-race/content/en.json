@@ -1,0 +1,412 @@
+[
+  {
+    "id": "extra-loaf",
+    "topic": "The extra loaf",
+    "level": 1,
+    "text": "Every evening the baker on Mill Street sold her last loaf at half price. One rainy Tuesday she forgot the salt, and the bread came out pale and bland. She almost threw the batch away. Then a boy in a yellow raincoat knocked on the glass just as she was locking up. He counted his coins twice and asked, very quietly, for whatever was left. She wrapped a loaf in paper and handed it over, still warm. He sat on the wet step and took a bite. He did not make a face. He only waved, with crumbs on his sleeve, and ran off down the street. That night she measured the salt twice. She also left one small loaf on the rack by the door, in case someone came late. The street smelled of yeast until morning, and she slept well.",
+    "questions": [
+      {
+        "kind": "literal",
+        "prompt": "What did the baker forget on that rainy Tuesday?",
+        "options": [
+          "The yeast",
+          "The salt",
+          "The flour",
+          "The key to the shop"
+        ],
+        "correct": 1
+      },
+      {
+        "kind": "inference",
+        "prompt": "Why did she leave a small loaf on the rack that night?",
+        "options": [
+          "She wanted to test a new recipe on the neighbours",
+          "The boy had paid for it in advance",
+          "It was too pale to sell in the morning",
+          "Someone arriving late might need it"
+        ],
+        "correct": 3
+      },
+      {
+        "kind": "detail",
+        "prompt": "What was the boy wearing?",
+        "options": [
+          "A green scarf",
+          "A red woollen cap",
+          "A yellow raincoat",
+          "A grey hood"
+        ],
+        "correct": 2
+      }
+    ]
+  },
+  {
+    "id": "autumn-leaves",
+    "topic": "Why leaves change colour",
+    "level": 1,
+    "text": "In summer, a leaf is green because it is full of chlorophyll. This is the pigment that catches sunlight so the leaf can make sugar. In autumn the days grow shorter, and many trees stop making new chlorophyll. The green slowly fades. Other colours were in the leaf all along, but the green hid them. Yellow and orange pigments, called carotenoids, can now be seen. Some trees also make a red pigment in autumn, which is why a maple can look as if it is glowing. The tree is not dying. It is closing each leaf off at the stem, pulling useful nutrients back into the branches, and letting the old leaf go. When the leaves fall, they rot and feed the soil. In spring the buds will open, and the green will return.",
+    "questions": [
+      {
+        "kind": "literal",
+        "prompt": "What gives a summer leaf its green colour?",
+        "options": [
+          "Chlorophyll",
+          "Carotenoids",
+          "Sugar",
+          "Nutrients"
+        ],
+        "correct": 0
+      },
+      {
+        "kind": "inference",
+        "prompt": "Why do yellow and orange colours appear in autumn?",
+        "options": [
+          "The tree makes new yellow pigment when it gets cold",
+          "The green fades and no longer hides them",
+          "The leaf absorbs more sunlight as the days shorten",
+          "The nutrients turn into colour at the stem"
+        ],
+        "correct": 1
+      },
+      {
+        "kind": "detail",
+        "prompt": "What happens to the nutrients when a tree closes a leaf off?",
+        "options": [
+          "They are washed away by the autumn rain and lost",
+          "They turn red inside the leaf",
+          "They are pulled back into the branches",
+          "They are sealed in the stem for good"
+        ],
+        "correct": 2
+      }
+    ]
+  },
+  {
+    "id": "zipper",
+    "topic": "How a zipper works",
+    "level": 1,
+    "text": "A zipper looks simple, but it is quite clever. It has two rows of small metal or plastic teeth. Each tooth has a bump on one side and a hollow on the other. When a bump from one row fits into a hollow from the other row, the two sides lock together. The slider is the little piece you pull. Inside it there is a Y-shaped channel. When you pull the slider up, the channel pushes the teeth together and locks them one after another. When you pull it down, a wedge in the middle forces them apart again. That is why a zipper only works while the slider moves. If a tooth is bent or missing, the two rows cannot meet properly, and the slider gets stuck or the zipper splits open behind it.",
+    "questions": [
+      {
+        "kind": "literal",
+        "prompt": "What does each tooth of a zipper have?",
+        "options": [
+          "A bump on one side and a hollow on the other",
+          "A magnet at each end",
+          "A small hook on one side and a loop of thread on the other",
+          "Two bumps and no hollow"
+        ],
+        "correct": 0
+      },
+      {
+        "kind": "inference",
+        "prompt": "Why can one bent tooth make a zipper split open?",
+        "options": [
+          "The slider can no longer be pulled",
+          "The wedge in the middle can no longer push the teeth apart",
+          "The metal melts when it is bent",
+          "The rows cannot lock together at that spot"
+        ],
+        "correct": 3
+      },
+      {
+        "kind": "detail",
+        "prompt": "What shape is the channel inside the slider?",
+        "options": [
+          "A Y shape",
+          "A circle",
+          "A straight line",
+          "A square"
+        ],
+        "correct": 0
+      }
+    ]
+  },
+  {
+    "id": "moon-phases",
+    "topic": "Why the Moon changes shape",
+    "level": 1,
+    "text": "The Moon does not make its own light. It shines because the Sun lights it, just as a lamp lights one side of a ball. At any moment, half of the Moon is lit. What changes from night to night is how much of that lit half we can see from Earth. The Moon travels around us in about a month, so our view of it keeps shifting. When the Moon is between us and the Sun, its lit side faces away, and we see almost nothing. This is called a new moon. About a week later we see half of the lit side, a bright half circle. When the Moon is on the far side of Earth from the Sun, we see its whole lit face, the full moon. Then the cycle runs backward, and starts over.",
+    "questions": [
+      {
+        "kind": "literal",
+        "prompt": "Why does the Moon shine?",
+        "options": [
+          "It makes its own light",
+          "The Sun lights it",
+          "It glows from heat inside",
+          "It reflects the oceans of Earth"
+        ],
+        "correct": 1
+      },
+      {
+        "kind": "inference",
+        "prompt": "Why do we see almost nothing at a new moon?",
+        "options": [
+          "Its lit side faces away from us",
+          "The shadow of Earth covers it",
+          "The Moon switches off for a few days",
+          "Clouds always gather around it"
+        ],
+        "correct": 0
+      },
+      {
+        "kind": "detail",
+        "prompt": "About how long does the Moon take to travel around Earth?",
+        "options": [
+          "A day",
+          "A week",
+          "About a year",
+          "A month"
+        ],
+        "correct": 3
+      }
+    ]
+  },
+  {
+    "id": "waggle-dance",
+    "topic": "The waggle dance",
+    "level": 2,
+    "text": "A honeybee that finds a rich patch of flowers can tell her sisters where it is without drawing a map. Back in the dark hive, she runs a short straight line while shaking her body from side to side, then loops back to the start and repeats it. This is called the waggle dance. The angle of the straight run, measured from straight up, matches the angle between the food and the Sun outside. A longer waggle means the flowers are farther away. Other bees crowd around her and follow with their antennae, then fly out in the direction she described. Researchers have confirmed this by marking bees and placing dishes of sugar water at known spots. The dance is not language as people use it, but it carries direction, distance and a hint of quality: a livelier dance usually means a better source. As the Sun moves across the sky, the dancer slowly shifts the angle of her run to match.",
+    "questions": [
+      {
+        "kind": "literal",
+        "prompt": "What does a longer waggle run tell the other bees?",
+        "options": [
+          "The flowers are sweeter",
+          "The Sun is higher in the sky",
+          "The flowers are farther away",
+          "The hive is getting crowded"
+        ],
+        "correct": 2
+      },
+      {
+        "kind": "inference",
+        "prompt": "Why did researchers place dishes of sugar water at known spots?",
+        "options": [
+          "To lure the bees away from the hive",
+          "To check that bees fly where the dance points",
+          "To make the dancers waggle faster and for longer",
+          "To teach young bees how to dance"
+        ],
+        "correct": 1
+      },
+      {
+        "kind": "detail",
+        "prompt": "What do the other bees use to follow the dancer?",
+        "options": [
+          "Their wings",
+          "Their front legs",
+          "Their eyes",
+          "Their antennae"
+        ],
+        "correct": 3
+      }
+    ]
+  },
+  {
+    "id": "penny-post",
+    "topic": "The penny post",
+    "level": 2,
+    "text": "Before 1840, sending a letter across Britain was expensive. The price depended on how far it travelled and how many sheets it held, and it was usually the person receiving the letter who paid. Many letters were turned away at the door because the fee came as an unpleasant surprise. A teacher and reformer named Rowland Hill argued for a different system: cheap postage, paid in advance by the sender, at the same price anywhere in the country. In 1840 the Uniform Penny Post began, and with it came the world’s first adhesive postage stamp, the Penny Black, which carried a small portrait of Queen Victoria. The stamp worked like a receipt that everyone could see. Letters soon poured in. People who had never written to anyone began sending news, bills and greetings. Hill had not invented paper, ink or roads. He had only changed who paid, how much and when, and that was enough.",
+    "questions": [
+      {
+        "kind": "literal",
+        "prompt": "Who usually paid for a letter before 1840?",
+        "options": [
+          "The person who received it",
+          "The person who wrote and sent it",
+          "The postman delivering it",
+          "The local council"
+        ],
+        "correct": 0
+      },
+      {
+        "kind": "inference",
+        "prompt": "Why did the number of letters rise after 1840?",
+        "options": [
+          "The Queen asked her subjects to write to her",
+          "Posting a letter became cheap and simple",
+          "New roads made the mail faster than before",
+          "Schools began teaching everyone to write"
+        ],
+        "correct": 1
+      },
+      {
+        "kind": "detail",
+        "prompt": "Whose portrait was on the Penny Black?",
+        "options": [
+          "Rowland Hill",
+          "Prince Albert",
+          "Queen Victoria",
+          "A postal worker"
+        ],
+        "correct": 2
+      }
+    ]
+  },
+  {
+    "id": "tide-pool",
+    "topic": "A tide pool after the storm",
+    "level": 3,
+    "text": "After a night of strong wind, the beach looked swept clean. At low tide the pools among the rocks held a different crowd from the day before. A sea star had been rolled into a basin that was too shallow, and its tiny tube feet searched the stone for a grip. Mussels stayed shut against the air. A hermit crab tried on a new shell that was still too big, and backed out again. Tide pools are not ordinary puddles. They are small, temporary homes at the edge of something huge and cold, the sea, which returns on a schedule you can read in a tide table. The animals here must survive being covered and being left dry twice a day, in water that grows warmer, saltier or fresher as the hours pass. The storm had only turned up the volume. By afternoon the sea was back, and the shallow basin was a pool again, deeper now, with the sea star tucked beneath a ledge.",
+    "questions": [
+      {
+        "kind": "literal",
+        "prompt": "What did the hermit crab do with the new shell?",
+        "options": [
+          "It moved in and stayed there until the tide came back",
+          "It tried it, found it too big and backed out",
+          "It pushed it back into the sea",
+          "It hid underneath it during the storm"
+        ],
+        "correct": 1
+      },
+      {
+        "kind": "inference",
+        "prompt": "What does the writer mean by saying the storm had only \"turned up the volume\"?",
+        "options": [
+          "The storm was louder than the sea usually is",
+          "The storm changed the times of the tide",
+          "The animals were frightened by the noise of the wind and waves",
+          "Tide pools are always harsh, and the storm made it more so"
+        ],
+        "correct": 3
+      },
+      {
+        "kind": "detail",
+        "prompt": "Where was the sea star by the afternoon?",
+        "options": [
+          "Tucked beneath a ledge",
+          "Back out at sea",
+          "Stranded on the sand",
+          "Inside the hermit crab’s shell"
+        ],
+        "correct": 0
+      }
+    ]
+  },
+  {
+    "id": "rag-paper",
+    "topic": "Paper made from rags",
+    "level": 3,
+    "text": "For many centuries, European paper was not made from trees. It was made from rags: worn shirts, sheets and old sails, soaked, left to rot a little and beaten into a soft pulp of linen and cotton fibres. These fibres are long and strong. A sheet lifted on a wire frame, pressed and dried could last for hundreds of years without turning brown or crumbling. Rags were in such demand that towns organised collection rounds, and in wartime paper could become scarce because linen was needed for bandages. In the nineteenth century, machines learned to make paper from wood pulp, and books, newspapers and school notebooks became cheap. The price was acidity. Much of that wood-based paper slowly eats itself, and many books from that period are now yellow and brittle. Librarians treat the pages and store them cool and dry. A letter written on rag paper in 1700 can still feel tough in the hand. The fibre you start with decides how long the words will last.",
+    "questions": [
+      {
+        "kind": "literal",
+        "prompt": "What was European paper made from for many centuries?",
+        "options": [
+          "Wood pulp and acid",
+          "Dried river reeds",
+          "Thin sheets of animal skin, scraped smooth",
+          "Old rags of linen and cotton"
+        ],
+        "correct": 3
+      },
+      {
+        "kind": "inference",
+        "prompt": "Why might a letter from 1700 outlast a book printed in 1900?",
+        "options": [
+          "Its paper has long, strong fibres and little acid",
+          "People kept it in a drawer and looked after it more carefully",
+          "Ink was better in 1700",
+          "It was printed on much thicker sheets"
+        ],
+        "correct": 0
+      },
+      {
+        "kind": "detail",
+        "prompt": "Why could paper become scarce in wartime?",
+        "options": [
+          "Soldiers burned it for fuel",
+          "Paper mills were closed by law",
+          "Linen was needed for bandages",
+          "The ink ran out first"
+        ],
+        "correct": 2
+      }
+    ]
+  },
+  {
+    "id": "lighthouse-lens",
+    "topic": "The lighthouse lens",
+    "level": 3,
+    "text": "A lighthouse lamp is only as good as the glass in front of it. A flame on its own sends light in every direction, and most of it is wasted on the sea. In the 1820s a French physicist, Augustin Fresnel, found a way to gather that light into a beam. A normal lens that large would have been far too thick and heavy to build, so Fresnel made his in rings. Each ring of glass is cut at its own angle and bends the light toward the horizon, while prisms above and below catch the rays that would otherwise escape. The result looks like a glass beehive, yet it is thin and light, and a lamp the size of a fist can be seen from many miles away. In many towers the whole lens turns slowly, so the beam sweeps past each ship as a flash. Every lighthouse has its own pattern of flashes, and sailors learned to read the pattern as a name.",
+    "questions": [
+      {
+        "kind": "literal",
+        "prompt": "What did Fresnel build his lens from?",
+        "options": [
+          "One solid block of thick glass, polished by hand",
+          "Rings of glass cut at different angles",
+          "Polished metal mirrors",
+          "Thin sheets of oiled paper"
+        ],
+        "correct": 1
+      },
+      {
+        "kind": "inference",
+        "prompt": "Why did sailors learn the pattern of flashes?",
+        "options": [
+          "It told them when to light their own lamps",
+          "It showed how much oil was still left in the tower at night",
+          "It told them which lighthouse they were looking at",
+          "It warned them about bad weather"
+        ],
+        "correct": 2
+      },
+      {
+        "kind": "detail",
+        "prompt": "Why was an ordinary lens not used?",
+        "options": [
+          "Glass of that size could not be made clear enough to see through",
+          "It would let all the light escape",
+          "A lens that large would be too thick and heavy",
+          "It would have cost more than the tower"
+        ],
+        "correct": 2
+      }
+    ]
+  },
+  {
+    "id": "night-ferry",
+    "topic": "The last ferry",
+    "level": 3,
+    "text": "The last ferry crossed at ten. Mara had never taken it alone, and she held the railing as the harbour lights slid backward. An older man sat opposite, mending a net with a needle that caught the lamp. He did not look up. When the engine coughed, she flinched, and only then did he speak. It always does that, he said, and the boat has never once failed. She nodded, though she was not sure she believed him. The water was black and quite calm. After a while she noticed that her hands had loosened on the rail, that the far shore was growing a row of small windows, and that the man had stopped speaking because there was nothing more that needed saying. When the ramp came down she thanked him, and he answered with a small lift of the chin. Walking up the slope, she realised she had stopped counting the minutes some time ago.",
+    "questions": [
+      {
+        "kind": "literal",
+        "prompt": "What was the older man doing during the crossing?",
+        "options": [
+          "Steering the boat",
+          "Mending a net",
+          "Reading a newspaper",
+          "Selling tickets"
+        ],
+        "correct": 1
+      },
+      {
+        "kind": "inference",
+        "prompt": "Why did Mara’s hands loosen on the rail?",
+        "options": [
+          "She slowly began to feel safe",
+          "The ferry slowed down near the shore",
+          "The man took the railing from her",
+          "She was too tired to hold on"
+        ],
+        "correct": 0
+      },
+      {
+        "kind": "detail",
+        "prompt": "When did the older man speak to her?",
+        "options": [
+          "As soon as she sat down",
+          "Before the ferry left the harbour",
+          "When the ramp came down",
+          "After the engine coughed"
+        ],
+        "correct": 3
+      }
+    ]
+  }
+]

@@ -1,0 +1,399 @@
+/* Reading Race. Tokens only; rules from docs/RESPONSIVE-RULES.md. */
+
+.race {
+  width: 100%;
+  min-width: 0;
+}
+
+.intro {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.small {
+  margin: 0;
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+/* ---- the course ---- */
+.track {
+  min-width: 0;
+  margin-bottom: var(--space-2);
+}
+
+.trackSvg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 3.5rem;
+}
+
+.lane {
+  stroke: var(--color-border-light);
+  stroke-width: 3;
+  stroke-dasharray: 6 4;
+}
+
+.flag line {
+  stroke: var(--color-muted);
+  stroke-width: 2;
+}
+
+.flag path {
+  fill: var(--color-accent-2);
+}
+
+.runner circle {
+  fill: var(--color-accent-2);
+}
+
+.runner path {
+  fill: none;
+  stroke: var(--color-accent-2);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+  margin: 0;
+  min-width: 0;
+  font-size: var(--text-sm);
+}
+
+.feed {
+  margin: 0 0 var(--space-3);
+  min-height: 1.5rem;
+  padding: var(--space-1) var(--space-2);
+  border-left: 3px solid var(--color-accent-2);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.subtitle {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.perks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  list-style: none;
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+
+.perks li {
+  min-width: 0;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow-wrap: anywhere;
+}
+
+.ready,
+.reading,
+.questions,
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.paceBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.paceRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.wpm {
+  margin: 0;
+  min-width: 0;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: var(--text-md);
+  overflow-wrap: anywhere;
+}
+
+.toggles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.toggles button {
+  width: 100%;
+  text-transform: none;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+}
+
+/* ---- the reading stage ---- */
+.stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 7rem;
+  padding: var(--space-5) var(--space-3);
+  border: 2px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-panel-raised);
+}
+
+.topic {
+  border-color: var(--habit-study);
+}
+
+.topicLabel,
+.pausedLabel {
+  position: absolute;
+  top: var(--space-1);
+  left: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+
+.topic .topicLabel {
+  color: var(--color-accent-text);
+}
+
+.pausedLabel {
+  left: auto;
+  right: var(--space-2);
+  color: var(--color-accent-2);
+}
+
+.pausedStage {
+  border-style: dashed;
+}
+
+.rsvpBox {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-3) 0;
+}
+
+.rsvp {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: baseline;
+  margin: 0;
+  font-size: clamp(1.25rem, 7vw, 2rem);
+  line-height: 1.3;
+  color: var(--color-text);
+}
+
+.before {
+  justify-self: end;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.after {
+  justify-self: start;
+  overflow-wrap: anywhere;
+}
+
+.pivot {
+  font-weight: 700;
+  color: var(--color-accent-2);
+}
+
+.phrase,
+.sentence {
+  margin: 0;
+  min-width: 0;
+  max-width: 100%;
+  text-align: center;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+.phrase {
+  font-size: clamp(1.125rem, 6vw, 1.75rem);
+}
+
+.sentence {
+  font-size: var(--text-lg);
+}
+
+/* the fixed focus point: two small ticks above and below the middle */
+.focusTop,
+.focusBottom {
+  position: absolute;
+  left: 50%;
+  width: 2px;
+  height: 0.5rem;
+  margin-left: -1px;
+  background: var(--color-accent-2);
+}
+
+.focusTop {
+  top: 0;
+}
+
+.focusBottom {
+  bottom: 0;
+}
+
+.readingActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.readingActions button {
+  width: 100%;
+  min-width: 0;
+}
+
+/* ---- questions ---- */
+.recap {
+  margin: 0;
+  padding: var(--space-2);
+  border: 1px solid var(--habit-study);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.promptText {
+  margin: 0;
+  min-width: 0;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-lg);
+  overflow-wrap: anywhere;
+}
+
+.options {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.option {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  text-align: left;
+  text-transform: none;
+}
+
+.optionN {
+  flex: none;
+  min-width: 1.5rem;
+  font-size: var(--heading-sm);
+  color: var(--color-accent-text);
+}
+
+.optionText {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-md);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* ---- result ---- */
+.banner {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3);
+  border: 2px solid var(--color-accent-2);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-heading);
+  font-size: var(--heading-sm);
+  line-height: 1.6;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--color-accent-2);
+}
+
+.banner[data-result='won'] {
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.summary,
+.learned {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.learned {
+  font-size: var(--text-sm);
+  color: var(--color-info);
+}
+
+.hint {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-sm);
+}
+
+/* Reduced motion: nothing here moves; the word swaps in place and nothing eases. */
+.still * {
+  transition: none;
+  animation: none;
+}
+
+@media (max-width: 359px) {
+  .paceRow,
+  .toggles,
+  .readingActions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 768px) {
+  .options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .toggles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-height: 500px) {
+  .intro,
+  .trackSvg {
+    display: none;
+  }
+  .stage {
+    min-height: 4.5rem;
+    padding: var(--space-4) var(--space-3);
+  }
+  .perks {
+    display: none;
+  }
+  .options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
