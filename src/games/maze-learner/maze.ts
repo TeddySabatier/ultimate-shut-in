@@ -144,6 +144,12 @@ function mirror(cells: readonly number[], width: number, height: number, flipX: 
   return out;
 }
 
+function transposed(cells: readonly number[], width: number, height: number): number[] {
+  const out = cells.slice();
+  for (let r = 0; r < height; r++) for (let c = 0; c < width; c++) out[c * height + r] = cells[r * width + c] ?? WALL;
+  return out;
+}
+
 function flipIndex(i: number, width: number, height: number, flipX: boolean, flipY: boolean): number {
   const r = Math.trunc(i / width);
   const c = i % width;
@@ -159,9 +165,9 @@ function findAll(cells: readonly number[], kind: number): number[] {
 }
 
 /** Lesson 4: a snaking corridor, long enough that a lone reward at the end is almost never found by chance. */
-function corridor(difficulty: number, rng: Rng): { width: number; height: number; cells: number[] } {
+function corridor(rng: Rng): { width: number; height: number; cells: number[] } {
   const rows = 3;
-  const width = ([6, 6, 7, 7, 7][difficulty - 1] ?? 7) + rngInt(rng, 2);
+  const width = 7 + rngInt(rng, 2);
   const height = rows * 2 - 1;
   const cells = Array.from({ length: width * height }, () => WALL);
   for (let k = 0; k < rows; k++) for (let c = 0; c < width; c++) cells[at(width, k * 2, c)] = FLOOR;
@@ -224,17 +230,32 @@ export function buildLayout(seed: number, level: number, difficulty: number): La
   } else if (level === 3) {
     width = [5, 5, 6, 6, 7][d - 1] ?? 6;
     height = [3, 3, 3, 4, 4][d - 1] ?? 4;
-    cells = grid(width, height);
+    const base = grid(width, height);
     const start = at(width, height - 1, 0);
-    cells[start] = START;
-    cells[at(width, height - 1, 2)] = NEAR;
-    cells[at(width, 0, width - 1)] = FAR;
-    sprinkle(cells, width, height, start, 3, rng);
+    base[start] = START;
+    base[at(width, height - 1, 2)] = NEAR;
+    base[at(width, 0, width - 1)] = FAR;
+    cells = base;
+    // Extra walls only where the far cheese stays clearly farther than the near one.
+    for (let attempt = 0; attempt < 24; attempt++) {
+      const trial = base.slice();
+      sprinkle(trial, width, height, start, 3, rng);
+      const reach = distances(trial, width, height, start);
+      if ((reach[find(trial, FAR)] ?? -1) - (reach[find(trial, NEAR)] ?? -1) >= 4) {
+        cells = trial;
+        break;
+      }
+    }
     focus = start;
     hints = [find(cells, FAR)];
   } else if (level === 4) {
-    const built = corridor(d, rng);
+    const built = corridor(rng);
     ({ width, height, cells } = built);
+    // Half the time the corridor runs top to bottom, which suits a phone held upright.
+    if (rng() < 0.5) {
+      cells = transposed(cells, width, height);
+      [width, height] = [height, width];
+    }
     const path = shortestPath(cells, width, height, find(cells, START), find(cells, EXIT));
     const pick = (f: number) => path[Math.max(1, Math.min(path.length - 2, Math.floor(path.length * f)))] ?? 0;
     hints = [pick(0.5), pick(0.25), pick(0.75), pick(0.15), pick(0.4), pick(0.6), pick(0.88)];
@@ -243,13 +264,22 @@ export function buildLayout(seed: number, level: number, difficulty: number): La
     width = height = [5, 6, 6, 6, 7][d - 1] ?? 6;
     cells = grid(width, height);
     cells[0] = START;
-    const bonus = rngInt(rng, 2) === 0 ? 1 : width;
+    // The bonus tile is a dead end beside the start: the creature can only step in and out of it.
+    const down = rngInt(rng, 2) === 0;
+    const bonus = down ? width : 1;
     cells[bonus] = BONUS;
+    if (down) {
+      cells[at(width, 2, 0)] = WALL;
+      cells[at(width, 1, 1)] = WALL;
+    } else {
+      cells[at(width, 0, 2)] = WALL;
+      cells[at(width, 1, 1)] = WALL;
+    }
     cells[at(width, height - 1, width - 1)] = EXIT;
-    sprinkle(cells, width, height, 0, Math.floor(width * height * 0.15), rng, (r, c) => r + c > 1);
+    sprinkle(cells, width, height, 0, Math.floor(width * height * 0.12), rng, (r, c) => r + c > 3);
+    marks = cells.map((k) => (k === EXIT || k === BONUS ? MARK_CHEESE : MARK_NONE));
     focus = bonus;
     hints = [bonus];
-    marks = cells.map((k) => (k === EXIT || k === BONUS ? MARK_CHEESE : MARK_NONE));
   }
 
   if (flipX || flipY) {

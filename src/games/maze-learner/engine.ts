@@ -63,21 +63,21 @@ export const WINDOW = [10, 20, 15, 15, 15] as const;
 export const NEED = [80, 90, 70, 80, 80] as const;
 /** Steps the creature may take in one episode, by lesson. */
 const MAX_STEPS_BY_LEVEL: readonly (readonly number[])[] = [
-  [20, 20, 22, 28, 30],
+  [30, 30, 32, 34, 36],
   [40, 40, 40, 40, 40],
   [40, 40, 40, 40, 40],
-  [44, 44, 44, 44, 44],
+  [40, 40, 40, 40, 40],
   [40, 40, 40, 40, 40],
 ];
 /** Chance (in thousandths) that a step slips into a random direction, by difficulty. */
 const SLIP = [0, 0, 0, 50, 100] as const;
 /** Episode budget of one try, by lesson then difficulty. */
 export const BUDGET: readonly (readonly number[])[] = [
-  [48, 40, 34, 30, 26],
-  [110, 90, 62, 50, 46],
-  [150, 125, 58, 54, 50],
-  [140, 112, 88, 66, 58],
-  [64, 50, 38, 28, 22],
+  [50, 42, 36, 32, 28],
+  [110, 92, 64, 50, 44],
+  [180, 150, 60, 54, 50],
+  [170, 135, 100, 76, 66],
+  [70, 56, 42, 32, 26],
 ];
 export const DEFAULT_EPSILON = 150;
 export const DEFAULT_DISCOUNT = 800;
@@ -209,12 +209,16 @@ export function policyDir(g: Grid, q: readonly number[], i: number): number {
   return any ? best : -1;
 }
 
-function qUpdate(q: number[], i: number, dir: number, rewardPoints: number, j: number, terminal: boolean, alpha: number, gamma: number, g: Grid): void {
+export function qUpdate(q: number[], i: number, dir: number, rewardPoints: number, j: number, terminal: boolean, alpha: number, gamma: number, g: Grid): void {
   const slot = i * 4 + dir;
   const old = q[slot] ?? 0;
   const next = terminal ? 0 : valueOf(g, q, j);
   const target = rewardPoints * SCALE + idiv(gamma * next, SCALE);
-  q[slot] = old + idiv(alpha * (target - old), SCALE);
+  const gap = target - old;
+  let delta = idiv(alpha * gap, SCALE);
+  // A value never stalls one thousandth short of its target (it would leave a faint habit behind).
+  if (delta === 0 && gap !== 0 && alpha > 0) delta = gap > 0 ? 1 : -1;
+  q[slot] = old + delta;
 }
 
 /** Reward written on a tile for entering it (before the once-per-episode crumb rule). */
@@ -359,10 +363,48 @@ export function hasReward(s: Pick<MazeState, 'cells' | 'marks'>): boolean {
   return false;
 }
 
+/**
+ * Follow the learned arrows from the start, as the creature would with no exploring.
+ * Stops at a goal tile, a tile with nothing learned, a tie, or a tile already visited (a loop).
+ */
+export function greedyWalk(s: Pick<MazeState, 'width' | 'height' | 'cells' | 'q'>): { path: number[]; end: number; loop: boolean } {
+  let i = s.cells.indexOf(START);
+  const path = [i];
+  for (let k = 0; k < s.cells.length; k++) {
+    const legal = legalDirs(s, i);
+    let best = -1;
+    let bestV = 0;
+    let ties = 0;
+    for (const d of legal) {
+      const v = s.q[i * 4 + d] ?? 0;
+      if (best < 0 || v > bestV) {
+        best = d;
+        bestV = v;
+        ties = 0;
+      } else if (v === bestV) ties += 1;
+    }
+    if (best < 0 || ties > 0) return { path, end: s.cells[i] ?? WALL, loop: false };
+    const n = neighbor(s.width, s.height, i, best);
+    if (path.includes(n)) return { path, end: s.cells[i] ?? WALL, loop: true };
+    path.push(n);
+    i = n;
+    if (isTerminal(s.cells[i] ?? WALL)) break;
+  }
+  return { path, end: s.cells[i] ?? WALL, loop: false };
+}
+
+/** Do the learned arrows themselves lead to what the lesson asks for? */
+export function arrowsSolve(s: MazeState): boolean {
+  const walk = greedyWalk(s);
+  if (s.level === 3) return walk.end === FAR;
+  if (walk.end !== EXIT) return false;
+  return s.level !== 2 || walk.path.every((i) => s.cells[i] !== WET);
+}
+
 function levelPassed(s: MazeState): boolean {
   if (windowRate(s) < (NEED[s.level - 1] ?? 80)) return false;
-  if (s.level === 4) return crumbCount(s) === 0;
-  return true;
+  if (s.level === 4 && crumbCount(s) > 0) return false;
+  return arrowsSolve(s);
 }
 
 export function budgetFor(level: number, difficulty: number, members: number, timeBonus: number): number {
@@ -543,7 +585,7 @@ function train(s: MazeState, episodes: number): MazeState {
   let last: Episode = { route: s.route, result: s.routeResult };
   let friendFar = s.friendFar;
   let friendEpisodes = s.friendEpisodes;
-  let state: MazeState = s;
+  let state: MazeState = { ...s, q, q2, visits };
   let triesLeft = s.triesLeft;
   let used = s.episodes;
   let totalEpisodes = s.totalEpisodes;
@@ -653,11 +695,9 @@ function reduce(s: MazeState, a: MazeAction): MazeState {
     }
     case 'reset': {
       if (s.passed) return s;
-      const layout = buildLayout(s.seed, s.level, s.difficulty);
       const n4 = s.cells.length * 4;
       return {
         ...s,
-        marks: layout.marks,
         q: zeros(n4),
         q2: s.q2.length > 0 ? zeros(n4) : [],
         visits: zeros(s.cells.length),
