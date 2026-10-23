@@ -1,0 +1,245 @@
+/* Reading Race. Tokens only; rules from docs/RESPONSIVE-RULES.md. */
+
+.race {
+  width: 100%;
+  min-width: 0;
+}
+
+.intro {
+  font-size: var(--text-sm);
+}
+
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  margin-bottom: var(--space-3);
+  min-width: 0;
+}
+
+.subtitle {
+  margin-top: var(--space-3);
+  overflow-wrap: anywhere;
+}
+
+.perks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+
+.perks li {
+  min-width: 0;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow-wrap: anywhere;
+}
+
+.track {
+  min-width: 0;
+  margin-bottom: var(--space-3);
+}
+
+.ready,
+.reading,
+.questions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.paceRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.wpm {
+  margin: 0;
+  min-width: 0;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: var(--text-md);
+  overflow-wrap: anywhere;
+}
+
+.toggles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.toggles button {
+  width: 100%;
+  text-transform: none;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+}
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 5.5rem;
+  padding: var(--space-4);
+  border: 2px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-panel-raised);
+}
+
+.topic {
+  border-color: var(--habit-study);
+}
+
+.word {
+  margin: 0;
+  min-width: 0;
+  max-width: 100%;
+  font-size: var(--text-xl);
+  line-height: 1.4;
+  text-align: center;
+  overflow-wrap: anywhere;
+  color: var(--color-text);
+}
+
+.focus {
+  flex: none;
+  width: 0.75rem;
+  height: 0.25rem;
+  margin-top: var(--space-2);
+  background: var(--color-accent-2);
+}
+
+.readingActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.readingActions button {
+  width: 100%;
+}
+
+.options {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.option {
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  text-transform: none;
+  height: 100%;
+}
+
+.optionN {
+  font-size: var(--heading-xs);
+  color: var(--color-muted);
+}
+
+.optionText {
+  font-family: var(--font-body);
+  font-size: var(--text-md);
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.prompt,
+.promptText {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.promptText {
+  font-size: var(--text-md);
+}
+
+.live {
+  min-height: 1.25rem;
+  font-size: var(--text-sm);
+}
+
+.banner {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3);
+  border: 2px solid var(--color-accent-2);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-heading);
+  font-size: var(--heading-md);
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--color-accent-2);
+}
+
+.banner[data-result='won'] {
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.summary {
+  margin-top: var(--space-3);
+  overflow-wrap: anywhere;
+}
+
+.hint {
+  margin-top: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+/* Reduced motion: same layout, no movement. */
+.still .focus {
+  animation: none;
+}
+
+@media (max-width: 359px) {
+  .paceRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .toggles,
+  .readingActions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .word {
+    font-size: var(--text-lg);
+  }
+}
+
+@media (min-width: 768px) {
+  .options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .toggles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-height: 500px) {
+  .intro {
+    display: none;
+  }
+  .stage {
+    min-height: 3.5rem;
+    padding: var(--space-2);
+  }
+  .perks {
+    display: none;
+  }
+}
