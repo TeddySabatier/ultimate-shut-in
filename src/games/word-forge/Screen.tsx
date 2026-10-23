@@ -22,7 +22,7 @@ import {
 } from './engine';
 import game from './manifest';
 import { strings } from './strings';
-import { getWord } from './words';
+import { WORDS_PER_RUN, getWord } from './words';
 import styles from './Screen.module.css';
 
 function isTyping(target: EventTarget | null): boolean {
@@ -110,6 +110,9 @@ export default function WordForgeScreen(props: GameScreenProps) {
   }, [over, paused, state.inputMode, dispatch]);
 
   const remaining = Math.max(0, state.parSeconds - state.seconds);
+  // Words still to come back: the current card and everything queued (a word counts once).
+  const open = new Set<string>(state.queue);
+  if (state.currentId) open.add(state.currentId);
   const example = word && state.hasStudy ? EXAMPLES[word.id] : undefined;
   const exampleText = example ? example[state.learns === 'fr' ? 'en' : 'fr'] : '';
   const last = lastVerdict(state);
@@ -145,7 +148,7 @@ export default function WordForgeScreen(props: GameScreenProps) {
 
       <p className={styles.status}>
         <span className="mono" data-testid="word-forge-progress">
-          {formatText(s.progress, { n: state.marks.length + (over ? 0 : 1) })}
+          {formatText(s.progress, { n: state.marks.length + (over ? 0 : 1), done: WORDS_PER_RUN - open.size, total: WORDS_PER_RUN })}
         </span>
         <span className="mono" data-testid="word-forge-time">
           {formatText(s.time, { n: remaining })}
@@ -166,6 +169,7 @@ export default function WordForgeScreen(props: GameScreenProps) {
           data-testid="word-forge-heat"
         >
           <span className={styles.heatFill} style={{ width: `${heat(state)}%` }} />
+          <span className={styles.heatLabel}>{formatText(s.heat, { n: heat(state) })}</span>
           {reducedMotion ? null : <span className={styles.sparks} aria-hidden="true" />}
         </div>
         <button type="button" className={cx('btn', styles.dir)} onClick={() => dispatch({ type: 'flip' })} disabled={over}>
@@ -177,8 +181,8 @@ export default function WordForgeScreen(props: GameScreenProps) {
       <div className={styles.live} aria-live="polite">
         {last ? (
           <p className={styles.verdict} data-verdict={last.verdict}>
-            {s.verdict[last.verdict]}
-            {lastWord ? ` ${formatText(s.lastCard, { known: promptOf(lastWord, state.learns), forged: targetOf(lastWord, state.learns) })}` : ''}
+            {over ? '' : s.verdict[last.verdict]}
+            {lastWord ? `${over ? '' : ' '}${formatText(s.lastCard, { known: promptOf(lastWord, state.learns), forged: targetOf(lastWord, state.learns) })}` : ''}
           </p>
         ) : null}
       </div>

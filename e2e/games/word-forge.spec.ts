@@ -3,20 +3,15 @@
  * stays under about 20 seconds.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { botPlayToOutcome, expectNoSeriousA11yViolations, expectResponsiveGame, expectValidOutcome, openLab, readOutcome, replaySameSeed, shootGame } from './lab-helpers';
+import { botPlayToOutcome, expectNoSeriousA11yViolations, expectResponsiveGame, expectValidOutcome, openLab, readOutcome, replaySameSeedWithBot, shootGame } from './lab-helpers';
 
 const ID = 'word-forge';
 
-/**
- * Play a multiple-choice run through the real UI. Pause first so the one-second
- * clock cannot change the score between two replays of the same seed.
- */
+/** Play a multiple-choice run through the real UI by always forging the first option (misses come back). */
 async function playByTapping(page: Page): Promise<void> {
   const stage = page.getByTestId('lab-stage');
-  const pause = stage.getByRole('button', { name: 'Pause' });
-  if ((await pause.count()) > 0) await pause.click();
   const options = stage.getByTestId('word-forge-options').getByRole('button');
-  for (let i = 0; i < 80; i++) {
+  for (let i = 0; i < 100; i++) {
     if ((await stage.getByRole('status').count()) > 0) return;
     if ((await options.count()) === 0) return;
     await options.first().click();
@@ -43,8 +38,9 @@ test('plays a full game to an outcome', async ({ page }, testInfo) => {
 });
 
 test('replaying the same seed gives the same outcome', async ({ page }) => {
-  await openLab(page, ID, { seed: 42, difficulty: 1 });
-  const outcome = await replaySameSeed(page, () => playByTapping(page));
+  // The speed bonus counts real seconds, so the replay check uses the headless bot (timing-proof).
+  await openLab(page, ID, { seed: 42, difficulty: 2 });
+  const outcome = await replaySameSeedWithBot(page);
   expect(outcome.log.length).toBeGreaterThan(0);
 });
 
@@ -59,11 +55,28 @@ test('plays with the keyboard, in French, and forfeits with a partial score', as
   await expectValidOutcome(page);
 });
 
-test('a higher difficulty switches from choices to typing', async ({ page }) => {
+test('a higher difficulty switches from choices to typing, played with the keyboard only', async ({ page }, testInfo) => {
   await openLab(page, ID, { seed: 9, difficulty: 1 });
   await expect(page.getByTestId('word-forge-options')).toBeVisible();
   await openLab(page, ID, { seed: 9, difficulty: 4 });
-  await expect(page.getByTestId('word-forge-input')).toBeVisible();
+  const input = page.getByTestId('word-forge-input');
+  await expect(input).toBeVisible();
+  await expect(input).toBeFocused();
+  await page.keyboard.type('wrongword');
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('word-forge-progress')).toContainText('Strike 2');
+  await expect(page.getByText(/Back into the fire/)).toContainText('Answer: ');
+  await expect(input).toBeFocused();
+  await shootGame(page, testInfo, ID, 'typed');
+});
+
+test('pausing hides the card', async ({ page }) => {
+  await openLab(page, ID, { seed: 3, difficulty: 1 });
+  const stage = page.getByTestId('lab-stage');
+  await stage.getByRole('button', { name: 'Pause' }).click();
+  await expect(stage.getByTestId('word-forge-options')).toHaveCount(0);
+  await stage.getByRole('button', { name: 'Resume' }).click();
+  await expect(stage.getByTestId('word-forge-options')).toBeVisible();
 });
 
 test('fits small and landscape phones', async ({ page }) => {

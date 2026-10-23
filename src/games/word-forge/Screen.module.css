@@ -269,3 +269,15 @@
   border-radius: var(--radius-sm);
   color: var(--color-muted);
 }
+
+.heatLabel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-2);
+  font-family: var(--font-mono, monospace);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  text-shadow: 0 0 3px var(--color-bg), 0 0 3px var(--color-bg);
+}

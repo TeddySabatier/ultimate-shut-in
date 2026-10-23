@@ -52,7 +52,7 @@ describe('Word Forge screen', () => {
     fireEvent.change(input, { target: { value: 'zzzz' } });
     fireEvent.click(screen.getByRole('button', { name: 'Forge' }));
     const live = screen.getByText(/Back into the fire/);
-    expect(live.textContent).toMatch(/ is /);
+    expect(live.textContent).toMatch(/Answer: .+ = /);
     expect(screen.getByTestId('word-forge-input')).toHaveFocus();
   });
 
@@ -62,7 +62,7 @@ describe('Word Forge screen', () => {
     expect(screen.queryByTestId('word-forge-options')).toBeNull();
     expect(screen.getByText(/forge is paused/i)).toBeInTheDocument();
     fireEvent.keyDown(window, { key: '1' });
-    expect(screen.getByTestId('word-forge-progress')).toHaveTextContent('Card 1');
+    expect(screen.getByTestId('word-forge-progress')).toHaveTextContent('Strike 1');
     fireEvent.click(screen.getByRole('button', { name: 'Resume' }));
     expect(screen.getByTestId('word-forge-options')).toBeInTheDocument();
   });
