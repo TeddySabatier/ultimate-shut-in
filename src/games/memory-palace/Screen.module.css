@@ -1,0 +1,203 @@
+/* Memory Palace. Tokens only; rules from docs/RESPONSIVE-RULES.md. */
+
+.palace {
+  width: 100%;
+}
+
+.intro {
+  font-size: var(--text-sm);
+}
+
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.live {
+  min-width: 0;
+  margin: 0 0 var(--space-3);
+  padding: var(--space-3);
+  border: 2px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-panel);
+  overflow-wrap: anywhere;
+}
+
+.perks {
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.subtitle {
+  margin-top: var(--space-4);
+}
+
+.look {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.lookRoom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-3);
+  border: 2px solid var(--color-accent-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-panel-raised);
+}
+
+.art {
+  display: block;
+  width: 100%;
+  max-width: 12rem;
+  height: auto;
+  color: var(--color-accent-text);
+}
+
+.roomLabel {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: var(--heading-xs);
+  text-transform: uppercase;
+  color: var(--color-text);
+}
+
+.timeText {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-md);
+}
+
+.ready {
+  width: 100%;
+}
+
+.recall {
+  min-width: 0;
+}
+
+.tips ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: var(--text-sm);
+}
+
+.hintLine {
+  margin: var(--space-2) 0;
+  overflow-wrap: anywhere;
+}
+
+.hintBtn {
+  width: 100%;
+  margin: var(--space-2) 0;
+}
+
+.rooms,
+.items {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rooms li,
+.items li {
+  min-width: 0;
+}
+
+.roomBtn,
+.itemBtn {
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  text-transform: none;
+  overflow-wrap: anywhere;
+}
+
+.roomBtn {
+  padding: var(--space-2);
+}
+
+.chosen {
+  border-color: var(--color-accent-2);
+  box-shadow: var(--shadow-hard);
+}
+
+.marks {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+
+.hint {
+  margin-top: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.banner {
+  margin: var(--space-4) 0 0;
+  padding: var(--space-3);
+  border: 2px solid var(--color-accent-2);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-heading);
+  font-size: var(--heading-md);
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--color-accent-2);
+  overflow-wrap: anywhere;
+}
+.banner[data-result='won'] {
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.still .art {
+  transition: none;
+}
+
+@media (max-width: 359px) {
+  .rooms,
+  .items {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 768px) {
+  .rooms {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .items {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-height: 500px) {
+  .intro,
+  .perks,
+  .hint {
+    display: none;
+  }
+  .art {
+    max-width: 8rem;
+  }
+  .live {
+    margin-bottom: var(--space-2);
+    padding: var(--space-2);
+  }
+}
