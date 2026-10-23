@@ -35,10 +35,10 @@ function answerRight() {
     fireEvent.change(input, { target: { value: 'x' } });
     fireEvent.submit(input.closest('form')!);
   } else if (screen.queryByTestId('subject-scrolls-steps')) {
-    for (const b of screen.getAllByRole('button', { name: /^[1-5] / })) fireEvent.click(b);
+    for (const b of screen.getAllByRole('button', { name: /^[1-5]/ })) fireEvent.click(b);
     fireEvent.click(screen.getByTestId('subject-scrolls-order-submit'));
   } else {
-    fireEvent.click(screen.getAllByRole('button', { name: /^[1-4] / })[0]!);
+    fireEvent.click(screen.getAllByRole('button', { name: /^[1-4]/ })[0]!);
   }
   fireEvent.click(screen.getByTestId('subject-scrolls-next'));
 }
@@ -112,7 +112,7 @@ describe('Scroll Room screen', () => {
     render(<SubjectScrollsScreen {...props({ run: emptyRun(4), party: parties.single, seed: seedWith('ordered') })} />);
     begin();
     for (let i = 0; i < 6 && screen.queryByTestId('subject-scrolls-steps') === null; i++) answerRight();
-    const steps = screen.getAllByRole('button', { name: /^[1-5] / });
+    const steps = screen.getAllByRole('button', { name: /^[1-5]/ });
     expect(screen.getByTestId('subject-scrolls-order-submit')).toBeDisabled();
     fireEvent.keyDown(window, { key: '1' });
     fireEvent.keyDown(window, { key: '1' });

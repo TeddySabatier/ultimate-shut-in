@@ -189,7 +189,7 @@ describe('grading', () => {
     ['Replica-Set', 'right'],
     ['replicasets', 'almost'],
     ['replicaset ', 'right'],
-    ['ReplicaSte', 'almost'],
+    ['ReplicaSat', 'almost'],
     ['', 'wrong'],
     ['Deployment', 'wrong'],
   ])('types %s: %s', (text, verdict) => {
@@ -232,9 +232,11 @@ describe('scheduling', () => {
     expect(miss.state.currentId).toBe(miss.order[0]);
     const twice = play(['wrong', 'right', 'right', 'wrong', 'right', 'right', 'right', 'right', 'right'], 1, runs.plain, parties.starter);
     expect(twice.state.currentId).toBe(twice.order[0]);
-    const hit = play(Array<'right'>(8).fill('right'), 1, runs.plain, parties.starter);
+    // "After 8 cards" means eight other cards in between: the ninth deal is the return.
+    const hit = play(Array<'right'>(9).fill('right'), 1, runs.plain, parties.starter);
     expect(hit.state.currentId).toBe(hit.order[0]);
-    const study = play(Array<'right'>(6).fill('right'), 1, runs.plain, parties.full);
+    expect(play(Array<'right'>(8).fill('right'), 1, runs.plain, parties.starter).state.currentId).not.toBe(hit.order[0]);
+    const study = play(Array<'right'>(7).fill('right'), 1, runs.plain, parties.full);
     expect(study.state.currentId).toBe(study.order[0]);
     expect(rightGap(start(1, runs.plain, parties.full))).toBe(6);
     expect(rightGap(start(1, runs.plain, parties.starter))).toBe(8);
@@ -308,7 +310,9 @@ describe('score and outcome', () => {
     for (let i = 0; i < 200 && s.currentId; i++) s = answer(s, 'right');
     const hard = hardestTwo(s);
     expect(hard).toHaveLength(2);
-    expect(hard[0]!.id).toBe(state.marks[0]!.id);
+    // The second card was missed twice (first show, then its return), the first once.
+    expect(hard[0]!.id).toBe(state.marks[1]!.id);
+    expect(hard[1]!.id).toBe(state.marks[0]!.id);
     const o = engine.outcome(s)!;
     expect(o.learned?.topic.en).toBe('Kubernetes + eBPF');
     expect(o.learned?.note.en).toContain(hard[0]!.answer.slice(0, 20));

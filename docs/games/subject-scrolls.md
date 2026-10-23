@@ -109,7 +109,7 @@ Every member sits in the room (`troopsUsed` is the whole fitted party, 1 to 8). 
 | Recovered card factor | 0.6 |
 | Win at | 70 percent accuracy |
 | Score split | 700 accuracy, 300 recall |
-| Bot hit rate by difficulty 1 to 5 | 0.82, 0.64, 0.52, 0.48, 0.42 (+0.03 with Study, +0.10 after a hint) |
+| Bot hit rate by difficulty 1 to 5 | 0.82, 0.60, 0.56, 0.54, 0.48 (+0.03 with Study, +0.10 after a hint) |
 
 Bot wins over seeds 1 to 100 (English, both decks, no buffs):
 

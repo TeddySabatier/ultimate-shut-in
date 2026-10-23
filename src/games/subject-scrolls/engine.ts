@@ -94,7 +94,7 @@ export const WIN_ACCURACY = 0.7;
 export const RECOVERED_FACTOR = 0.6;
 const STUDY_BOT_BONUS = 0.03;
 const HINT_BOT_BONUS = 0.1;
-const BOT_HIT = [0, 0.82, 0.64, 0.52, 0.48, 0.42] as const;
+const BOT_HIT = [0, 0.82, 0.6, 0.56, 0.54, 0.48] as const;
 
 export function currentCard(state: ScrollState): Card | undefined {
   return state.currentId ? getCard(state.currentId) : undefined;
