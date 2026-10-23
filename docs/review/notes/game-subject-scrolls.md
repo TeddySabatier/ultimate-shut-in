@@ -25,7 +25,20 @@ Decisions taken unattended while building the subject-learning game and its two 
 
 ## Deck authoring and fact-check
 
-Filled in after the agents report (card counts per deck before and after the fact-check, pages opened, cards fixed or deleted).
+Two deck-author agents (one per subject) read the per-topic pages of the sources files and wrote the cards; two cold fact-checker agents (one per deck, neither had seen the authoring) then opened every cited page and checked every card's answer, distractors, explanation, steps and version claims, fixing or deleting what the page did not support and rewording anything that copied a sentence from a page. Their full reports (per-card tables) were kept outside the repo; the counts:
+
+| Deck | Cards before | Cards after | Edited | Deleted | Pages cited and opened |
+| --- | --- | --- | --- | --- | --- |
+| Kubernetes | 159 | 158 | 38 | 1 | 45 (all loaded) |
+| eBPF | 115 | 115 | 17 | 0 | 51 (all loaded) |
+
+Kubernetes: the deleted card gave a Pod, Service, Ingress debugging order that the cited page does not contain. Edits: 13 rewrites (three defensible distractors replaced, one wrong statement about memory limits corrected, one card re-sourced to the scheduling-readiness page and reframed, three architecture cards re-sourced to `concepts/architecture/`, feature-gate wording made explicit) and 25 rewordings for originality where a sentence had been copied from the page. Tier mix after: 40.5 / 40.5 / 19 percent; 15 to 16 cards per topic; 8 ordered cards.
+
+eBPF: 17 edits: five explanations that near-copied GPL or blog sources (kernel QA, xdp-tutorial, Gregg) rewritten; the `bpftool gen` distractors replaced with options from `common_options.rst` (the signing option is bpftool 7.x, not 6.6); the tail-call limit card now states what the cited helper page says (33) and notes the concept page's wording (32 calls, 33 programs); the CO-RE relocation card fixed (relocation happens in libbpf's load phase); the Linux 7.3 verifier diagnostics card attributes the claim to the ebpf-go page, since kernelnewbies lists 7.2 as the latest release. Tier mix after: 39 / 40 / 21 percent; 12 to 13 cards per topic; 10 ordered cards.
+
+Cards the checkers confirmed with only moderate confidence (true, but the number or the scenario is not on the cited page, or a judgement call): kubernetes-scheduling-15, kubernetes-architecture-13 and -16, kubernetes-troubleshooting-13, kubernetes-lifecycle-16, kubernetes-config-15; ebpf-networking-safety-05 and -11, ebpf-maps-01 and -04, ebpf-basics-05, ebpf-helpers-02, ebpf-core-btf-10, ebpf-toolchains-08, ebpf-program-types-13. A subject-matter read of those fourteen cards is the cheapest next review.
+
+Both authors found that WebFetch returns only part of long pages (kubernetes.io reference pages, docs.ebpf.io); they and the checkers fetched the raw pages (or the raw Markdown of isovalent/ebpf-docs) over plain HTTP instead. `docs.ebpf.io/linux/concepts/btf/` and `/concepts/core/` return 404 and are cited nowhere.
 
 ## Follow-ups (not in this PR)
 

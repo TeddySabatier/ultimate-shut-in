@@ -50,8 +50,8 @@ A run draws **15 to 20 cards** (15 at difficulty 1, 16, 17, 18, then 20 at diffi
 
 Two decks in `src/games/shared/decks/`, authored in original wording from the curated, licence-checked sources in `docs/learning/sources/` and fact-checked card by card against the cited pages (counts in `docs/review/notes/game-subject-scrolls.md`). Cards are in English, the language of the sources.
 
-- **Kubernetes** (`kubernetes.ts`, 10 topics: core workload objects, Services and networking, ConfigMaps and Secrets, storage, scheduling, probes and lifecycle, RBAC and ServiceAccounts, kubectl, troubleshooting, architecture). Source: the kubernetes.io documentation at v1.37 (CC BY 4.0, paraphrased with attribution).
-- **eBPF** (`ebpf.ts`, 9 topics: what eBPF is and the verifier, program types and hooks, maps, helpers and tail calls, CO-RE and BTF, toolchains, loading and lifecycle, observability recipes, networking, safety and limits). Cards assume Linux 6.6 LTS and say so when a number is version-bound. Sources: ebpf.io and docs.ebpf.io (paraphrased with attribution), the kernel documentation and the other inspiration-only sources explained in original words.
+- **Kubernetes** (`kubernetes.ts`, 158 cards, 10 topics: core workload objects, Services and networking, ConfigMaps and Secrets, storage, scheduling, probes and lifecycle, RBAC and ServiceAccounts, kubectl, troubleshooting, architecture). Source: the kubernetes.io documentation at v1.37 (CC BY 4.0, paraphrased with attribution).
+- **eBPF** (`ebpf.ts`, 115 cards, 9 topics: what eBPF is and the verifier, program types and hooks, maps, helpers and tail calls, CO-RE and BTF, toolchains, loading and lifecycle, observability recipes, networking, safety and limits). Cards assume Linux 6.6 LTS and say so when a number is version-bound. Sources: ebpf.io and docs.ebpf.io (paraphrased with attribution), the kernel documentation and the other inspiration-only sources explained in original words.
 
 ### Deck format
 
@@ -115,11 +115,11 @@ Bot wins over seeds 1 to 100 (English, both decks, no buffs):
 
 | Difficulty | Full party | Starter party |
 | --- | --- | --- |
-| 1 | BOT_D1_FULL | BOT_D1_STARTER |
-| 2 (the plain run) | BOT_D2_FULL | BOT_D2_STARTER |
-| 3 | BOT_D3_FULL | BOT_D3_STARTER |
-| 4 | BOT_D4_FULL | BOT_D4_STARTER |
-| 5 | BOT_D5_FULL | BOT_D5_STARTER |
+| 1 | 100 | 100 |
+| 2 (the plain run) | 53 | 32 |
+| 3 | 49 | 32 |
+| 4 | 37 | 20 |
+| 5 | 32 | 10 |
 
 ## Determinism
 
