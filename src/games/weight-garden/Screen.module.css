@@ -1,0 +1,610 @@
+/* Weight Garden. Tokens only (src/styles/tokens.css); rules from docs/RESPONSIVE-RULES.md. */
+
+.garden {
+  width: 100%;
+  min-width: 0;
+}
+
+.srOnlyLocal {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---- top bar: the plots as sprouts, then Stop here / Leave ---- */
+.topBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.plots {
+  display: flex;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.plotStep {
+  flex: none;
+  position: relative;
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-panel);
+}
+
+.stepNow {
+  border-color: var(--color-accent-2);
+}
+
+.stepDone {
+  border-color: var(--color-success);
+}
+
+.sprout {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.stem {
+  stroke: var(--color-success);
+  stroke-width: 2;
+}
+.leaf {
+  fill: var(--color-success);
+}
+.flower {
+  fill: var(--color-accent-2);
+}
+.flowerHeart {
+  fill: var(--color-bg);
+}
+.seedDot {
+  fill: var(--color-muted);
+}
+
+.topButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.intro {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+
+.titleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+}
+
+.plotTitle {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.tries {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-accent-text);
+}
+
+.goal {
+  margin: var(--space-2) 0 var(--space-3);
+  font-size: var(--text-sm);
+}
+
+/* ---- layout: one column, two on wide or short-and-wide screens ---- */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.colA,
+.colB {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+/* ---- the plot ---- */
+.plot {
+  display: block;
+  width: min(100%, 24rem);
+  aspect-ratio: 1;
+  margin: 0 auto;
+  background: var(--color-panel);
+  border: 2px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+}
+
+.amberSoft,
+.amberStrong,
+.blueSoft,
+.blueStrong {
+  shape-rendering: crispEdges;
+}
+
+.amberSoft {
+  fill: var(--color-accent-2);
+  fill-opacity: 0.1;
+}
+.amberStrong {
+  fill: var(--color-accent-2);
+  fill-opacity: 0.22;
+}
+.blueSoft {
+  fill: var(--color-info);
+  fill-opacity: 0.1;
+}
+.blueStrong {
+  fill: var(--color-info);
+  fill-opacity: 0.22;
+}
+
+.axis {
+  stroke: var(--color-border-light);
+  stroke-width: 0.3;
+  stroke-opacity: 0.6;
+}
+
+.boundary {
+  stroke: var(--color-text);
+  stroke-width: 1.1;
+}
+
+.hiddenLine {
+  stroke: var(--color-text);
+  stroke-width: 0.6;
+  stroke-dasharray: 2 1.6;
+  stroke-opacity: 0.75;
+}
+
+.ghost {
+  stroke: var(--color-success);
+  stroke-width: 0.9;
+  stroke-dasharray: 3 2;
+}
+
+.amberSeed {
+  stroke: var(--color-accent-2);
+}
+.blueSeed {
+  stroke: var(--color-info);
+}
+.solid {
+  stroke-width: 0.5;
+}
+.amberSeed.solid {
+  fill: var(--color-accent-2);
+}
+.blueSeed.solid {
+  fill: var(--color-info);
+}
+.hollow {
+  fill: var(--color-bg);
+  stroke-width: 1.2;
+}
+
+.wrongRing {
+  fill: none;
+  stroke: var(--color-danger);
+  stroke-width: 0.7;
+  stroke-dasharray: 1.6 1.2;
+}
+
+.live {
+  margin: 0;
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+/* ---- readouts ---- */
+.readouts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.readout {
+  min-width: 0;
+  padding: var(--space-2);
+  background: var(--color-panel);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.readout dt {
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+
+.readout dd {
+  margin: 0;
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.presses {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.details {
+  min-width: 0;
+  font-size: var(--text-sm);
+}
+
+.details summary {
+  color: var(--color-accent-text);
+}
+
+.legend,
+.perks,
+.numbers {
+  margin: 0;
+  padding-left: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.numbers {
+  font-size: var(--text-xs);
+  overflow-wrap: anywhere;
+}
+
+/* ---- right column ---- */
+.blurb {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.hintText {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  border-left: 3px solid var(--color-success);
+  background: var(--color-panel);
+}
+
+.coach {
+  padding: var(--space-3);
+  background: var(--color-panel);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.coachTitle {
+  margin: 0 0 var(--space-2);
+  font-size: var(--heading-xs);
+  font-family: var(--font-heading);
+  color: var(--color-accent-text);
+}
+
+.facts {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+
+.advice {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.equation {
+  margin: 0;
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.sliders {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  font-size: var(--text-sm);
+}
+
+.slider {
+  width: 100%;
+  min-height: var(--touch-target);
+  margin: 0;
+  accent-color: var(--color-accent-2);
+}
+
+.ends {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+
+.train {
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.trainSub {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  text-transform: none;
+}
+
+.neurons {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.neurons :global(.btn) {
+  font-size: var(--heading-xs);
+  padding-inline: var(--space-2);
+}
+
+.hiddenCount {
+  margin: 0;
+  text-align: center;
+  font-size: var(--text-sm);
+}
+
+.keys {
+  margin: 0;
+  font-size: var(--text-xs);
+}
+
+.settled {
+  padding: var(--space-3);
+  border: 2px solid var(--color-success);
+  border-radius: var(--radius-sm);
+  background: var(--color-panel);
+  font-size: var(--text-sm);
+}
+
+.settled p {
+  margin: 0 0 var(--space-3);
+}
+
+.settledTitle {
+  margin: 0 0 var(--space-2);
+  font-size: var(--heading-xs);
+  font-family: var(--font-heading);
+  color: var(--color-success);
+}
+
+/* ---- curves ---- */
+.chart {
+  margin: 0;
+  min-width: 0;
+}
+
+.chart svg {
+  display: block;
+  width: 100%;
+  background: var(--color-panel);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.chartAxis {
+  stroke: var(--color-border-light);
+  stroke-width: 0.4;
+}
+.chartGoal {
+  stroke: var(--color-success);
+  stroke-width: 0.5;
+  stroke-dasharray: 1 1.5;
+}
+.chartLoss {
+  fill: none;
+  stroke: var(--color-accent-text);
+  stroke-width: 1;
+}
+.chartDot {
+  fill: var(--color-accent-text);
+}
+.chartSpike {
+  fill: var(--color-danger);
+}
+.chartMark {
+  fill: var(--color-danger);
+  font-size: 6px;
+  font-weight: 700;
+}
+.chartText {
+  fill: var(--color-muted);
+  font-size: 5.5px;
+}
+.chartTrain {
+  fill: none;
+  stroke: var(--color-accent-text);
+  stroke-width: 1;
+}
+.chartTest {
+  fill: none;
+  stroke: var(--color-success);
+  stroke-width: 1;
+  stroke-dasharray: 2.4 1.4;
+}
+.chartTrainDot {
+  fill: var(--color-accent-text);
+}
+.chartTestDot {
+  fill: var(--color-success);
+}
+
+.legendRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin-top: var(--space-1);
+  font-size: var(--text-xs);
+}
+
+.keyTrain,
+.keyTest {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.keyTrain::before,
+.keyTest::before {
+  content: '';
+  display: inline-block;
+  width: 1.2rem;
+  border-top: 3px solid var(--color-accent-text);
+}
+
+.keyTest::before {
+  border-top: 3px dashed var(--color-success);
+}
+
+/* ---- the drawing of the network ---- */
+.netFigure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.netSvg {
+  display: block;
+  width: min(100%, 20rem);
+  margin: 0 auto;
+}
+
+.edgePos {
+  stroke: var(--color-accent-2);
+  stroke-linecap: round;
+}
+.edgeNeg {
+  stroke: var(--color-info);
+  stroke-linecap: round;
+}
+.node {
+  fill: var(--color-panel-raised);
+  stroke: var(--color-border-light);
+  stroke-width: 0.8;
+}
+.nodeText {
+  fill: var(--color-text);
+  font-size: 6px;
+}
+
+/* ---- the end ---- */
+.end {
+  margin-top: var(--space-4);
+}
+
+.banner {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-3);
+  border: 2px solid var(--color-accent-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-panel);
+  font-weight: 600;
+}
+
+.end[data-result='won'] .banner {
+  border-color: var(--color-success);
+}
+
+.recap {
+  margin: 0;
+  padding-left: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+/* ---- breakpoints ---- */
+@media (max-width: 359px) {
+  .neurons {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .readouts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .plotStep {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+}
+
+@media (min-width: 640px), (min-width: 560px) and (max-height: 500px) {
+  .layout {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+  .plot {
+    width: 100%;
+  }
+}
+
+@media (max-height: 500px) {
+  .intro {
+    display: none;
+  }
+  .plot {
+    width: min(100%, 68dvh);
+  }
+}
+
+@media (min-width: 768px) {
+  .plot {
+    width: min(100%, 26rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .garden * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

@@ -1,0 +1,231 @@
+/* Haven Rush. Tokens only (src/styles/tokens.css); rules from docs/RESPONSIVE-RULES.md. */
+
+.wrap {
+  width: 100%;
+}
+
+.intro {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+.stage,
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* The squad number and the boss bar, always readable as text next to the canvas. */
+.hud {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+}
+.squad {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: var(--heading-md);
+  color: var(--color-accent-2);
+  overflow-wrap: anywhere;
+}
+.bossBar {
+  min-width: 0;
+}
+
+.board {
+  border: 2px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  line-height: 0;
+}
+
+.canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 6 / 7;
+  margin-inline: auto;
+  /* Vertical swipes still scroll the page; a sideways drag picks a side. */
+  touch-action: pan-y;
+  cursor: pointer;
+}
+
+.feed {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-panel);
+  font-size: var(--text-sm);
+  min-width: 0;
+}
+.feedEmpty {
+  display: none;
+}
+.status {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+.events {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-height: 3.9rem;
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+}
+.events li {
+  overflow-wrap: anywhere;
+}
+
+.flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.flags:empty {
+  display: none;
+}
+.flag {
+  padding: 2px var(--space-2);
+  border: 2px solid var(--color-accent-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  color: var(--color-accent-2);
+}
+
+.study {
+  padding: var(--space-2);
+  border: 2px dashed var(--color-border-light);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+}
+.studyTitle {
+  margin: 0 0 var(--space-1);
+  font-family: var(--font-heading);
+  font-size: var(--heading-xs);
+  color: var(--color-accent-text);
+}
+.studyList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-mono);
+}
+
+.pad {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+.pad :global(.btn) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.sideBtn {
+  min-height: 3rem;
+}
+/* A pressed toggle: a thick accent edge and a filled square before the label, so it is never only a colour. */
+.pad :global(.btn)[aria-pressed='true'] {
+  border-color: var(--color-accent-2);
+  background: var(--color-panel);
+  color: var(--color-accent-2);
+}
+.pad :global(.btn)[aria-pressed='true']::before {
+  content: '';
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  background: currentColor;
+}
+
+.keys {
+  margin: 0;
+  font-size: var(--text-xs);
+}
+.touchHelp {
+  display: none;
+}
+@media (pointer: coarse) {
+  .touchHelp {
+    display: block;
+  }
+}
+
+.banner {
+  margin: 0;
+  padding: var(--space-3);
+  border: 2px solid var(--color-accent-2);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-heading);
+  font-size: var(--heading-sm);
+  line-height: 1.5;
+  text-align: center;
+  color: var(--color-accent-2);
+}
+.banner[data-result='won'] {
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+.banner:focus-visible {
+  outline: 3px solid var(--color-accent-2);
+  outline-offset: 2px;
+}
+
+@media (max-width: 359px) {
+  .hud {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-1);
+  }
+}
+
+@media (min-width: 768px) {
+  .layout {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+@media (max-height: 700px) {
+  .intro {
+    display: none;
+  }
+}
+
+/* Phones on their side and the keyboard-up case: the lane left, the rest right, no intro. */
+@media (max-height: 500px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+  .hud {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-1);
+  }
+  .canvas {
+    aspect-ratio: auto;
+    height: min(18rem, calc(100dvh - 8rem));
+    min-height: 11rem;
+  }
+  .events {
+    min-height: 0;
+  }
+}

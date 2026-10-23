@@ -77,6 +77,15 @@ const tickOf = () => Number(screen.getByTestId('td-root').getAttribute('data-tic
 const hud = () => screen.getByTestId('td-hud').textContent ?? '';
 const board = () => screen.getByTestId('td-board');
 const press = (key: string) => fireEvent.keyDown(board(), { key });
+/** Pick the n-th card, then build it on the pad under the cursor (Enter on the board). */
+const build = (n: number) => {
+  press(String(n));
+  press('Enter');
+};
+const tapPad = (pad: number) => {
+  const c = engine.initial(42, parties.full, runs.plain, 'en').pads[pad]!;
+  fireEvent.pointerDown(board(), { clientX: (c % 9) * 30 + 15, clientY: Math.floor(c / 9) * 30 + 15 }); // 270 x 210 board: cells of 30 px
+};
 
 describe('Hold the Haven screen: the clock', () => {
   it.each([60, 30])('runs 20 ticks per real second at %i frames per second', (fps) => {
@@ -115,7 +124,7 @@ describe('Hold the Haven screen: the clock', () => {
     runFrames(120, 1000 / 60);
     expect(tickOf()).toBe(frozen);
     expect(hud()).toBe(text);
-    press('1');
+    build(1);
     expect(hud()).toContain('Glow 72'); // placed while paused
     expect(tickOf()).toBe(frozen);
     press('p');
@@ -133,7 +142,7 @@ describe('Hold the Haven screen: the clock', () => {
 });
 
 describe('Hold the Haven screen: playing', () => {
-  it('the arrow keys move the cursor and 1 places the first tower there: glow drops and the feed says so', () => {
+  it('the arrow keys move the cursor, 1 picks the first tower and Enter builds it there: glow drops and the feed says so', () => {
     render(<TowerDefenseScreen {...props()} />);
     board().focus();
     expect(screen.getByTestId('td-pad')).toHaveTextContent('Pad 1 of');
@@ -141,6 +150,9 @@ describe('Hold the Haven screen: playing', () => {
     press('ArrowRight');
     expect(screen.getByTestId('td-pad')).not.toHaveTextContent('Pad 1 of');
     press('1');
+    expect(hud()).toContain('Glow 110'); // the number key only picks
+    expect(screen.getByTestId('td-feed')).toHaveTextContent('Runner picked. Tap a free pad');
+    press('Enter');
     expect(hud()).toContain('Glow 72'); // Runner costs 30 + floor(44 / 5)
     expect(screen.getByTestId('td-feed')).toHaveTextContent(/Pell takes a post: Runner on pad \d+/);
     expect(screen.getByTestId('td-pad')).toHaveTextContent('Runner of Pell, level 1');
@@ -150,7 +162,9 @@ describe('Hold the Haven screen: playing', () => {
     render(<TowerDefenseScreen {...props()} />);
     press('1');
     expect(screen.getByRole('button', { name: /Runner/, pressed: true })).toBeInTheDocument();
-    fireEvent.keyDown(board(), { key: 'Enter' });
+    press('Enter'); // builds on the free pad ...
+    expect(hud()).toContain('Glow 72');
+    press('Enter'); // ... and upgrades it on the next press
     expect(hud()).toContain('Glow 34'); // 110 - 38 - 38
     expect(screen.getByTestId('td-pad')).toHaveTextContent('level 2');
     press('s');
@@ -165,12 +179,16 @@ describe('Hold the Haven screen: playing', () => {
   it('a card that costs too much is dimmed, not disabled, and the feed says why', () => {
     render(<TowerDefenseScreen {...props()} />);
     const lantern = screen.getByRole('button', { name: /Lantern/ });
+    const buildHere = () => fireEvent.click(screen.getByRole('button', { name: /^Build/ }));
     fireEvent.click(lantern); // 48
+    buildHere();
     fireEvent.click(screen.getByRole('button', { name: 'Next pad' }));
     fireEvent.click(lantern);
+    buildHere();
     expect(hud()).toContain('Glow 14');
     fireEvent.click(screen.getByRole('button', { name: 'Next pad' }));
     fireEvent.click(lantern);
+    buildHere();
     expect(lantern).not.toBeDisabled();
     expect(lantern).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByTestId('td-feed')).toHaveTextContent('Not enough glow: Lantern costs 48, you have 14.');
@@ -197,6 +215,31 @@ describe('Hold the Haven screen: playing', () => {
     expect(screen.getByTestId('td-feed')).toHaveTextContent('The wave is still arriving.');
   });
 
+  it('a tap on a free pad builds the picked tower there, and the pick is used up', () => {
+    render(<TowerDefenseScreen {...props()} />);
+    fireEvent.click(screen.getByRole('button', { name: /Lantern/ }));
+    expect(hud()).toContain('Glow 110'); // the card alone builds nothing
+    tapPad(3);
+    expect(hud()).toContain('Glow 62');
+    expect(screen.getByTestId('td-pad')).toHaveTextContent('Pad 4 of');
+    expect(screen.getByTestId('td-pad')).toHaveTextContent('Lantern of Wren, level 1');
+    expect(screen.getByRole('button', { name: /Lantern/, pressed: false })).toBeInTheDocument();
+    tapPad(5); // nothing picked: the tap only moves the cursor
+    expect(hud()).toContain('Glow 62');
+    expect(screen.getByTestId('td-pad')).toHaveTextContent('Pad 6 of');
+  });
+
+  it('a tap on a built pad never builds: it only moves the cursor to it', () => {
+    render(<TowerDefenseScreen {...props()} />);
+    fireEvent.click(screen.getByRole('button', { name: /Lantern/ }));
+    tapPad(3);
+    fireEvent.click(screen.getByRole('button', { name: /Runner/ }));
+    tapPad(3);
+    expect(hud()).toContain('Glow 62');
+    expect(screen.getByTestId('td-pad')).toHaveTextContent('Lantern of Wren');
+    expect(screen.getByRole('button', { name: /Runner/, pressed: true })).toBeInTheDocument();
+  });
+
   it('tapping a pad on the board moves the cursor', () => {
     render(<TowerDefenseScreen {...props()} />);
     const s = engine.initial(42, parties.full, runs.plain, 'en');
@@ -209,7 +252,7 @@ describe('Hold the Haven screen: playing', () => {
 
   it('every control is a labelled button', () => {
     render(<TowerDefenseScreen {...props()} />);
-    for (const name of ['Previous pad', 'Next pad', /^Upgrade/, /^Sell/, 'Pause', /^Speed/, /^Next wave/, 'Give up', 'Leave']) {
+    for (const name of ['Previous pad', 'Next pad', /^Build/, /^Sell/, 'Pause', /^Speed/, /^Next wave/, 'Give up', 'Leave']) {
       expect(screen.getByRole('button', { name })).toBeInTheDocument();
     }
     expect(screen.getAllByRole('button', { name: /^\d\s?[A-Z]/ }).length).toBeGreaterThan(0);
@@ -221,7 +264,7 @@ describe('Hold the Haven screen: the end', () => {
   it('Give up ends as fled once, keeps the board, and Leave calls onExit', () => {
     const p = props();
     render(<TowerDefenseScreen {...p} />);
-    press('1');
+    build(1);
     fireEvent.click(screen.getByRole('button', { name: 'Give up' }));
     expect(p.onFinish).toHaveBeenCalledTimes(1);
     expect(vi.mocked(p.onFinish).mock.calls[0]![0]).toMatchObject({ result: 'fled', troopsUsed: ['move'] });
@@ -232,13 +275,14 @@ describe('Hold the Haven screen: the end', () => {
     expect(p.onExit).toHaveBeenCalledTimes(1);
   });
 
-  it('plays a whole game to the outcome the engine computes for the same actions', { timeout: 60000 }, () => {
+  it('plays a whole game to the outcome the engine computes for the same actions', () => {
     const run: RunContext = { ...runs.plain, difficulty: 1 };
     const p = props({ run });
     render(<TowerDefenseScreen {...p} />);
     press('n'); // the only action: call the first wave, then let the clock run with nothing built
     runFrames(1, 0);
-    for (let i = 0; i < 20000 && vi.mocked(p.onFinish).mock.calls.length === 0; i++) runFrames(5, 50);
+    // A frame of 250 ms is five ticks (the clock's catch-up limit), so a long game takes a fifth of the frames.
+    for (let i = 0; i < 6000 && vi.mocked(p.onFinish).mock.calls.length === 0; i++) runFrames(1, 250);
     expect(p.onFinish).toHaveBeenCalledTimes(1);
     const got = vi.mocked(p.onFinish).mock.calls[0]![0] as Outcome;
     // The same actions through the engine alone: a callWave, then ticks until it ends.
@@ -253,7 +297,7 @@ describe('Hold the Haven screen: the end', () => {
     const p = props({ locale: 'fr' });
     render(<TowerDefenseScreen {...p} />);
     expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Tenir le Havre');
-    expect(hud()).toContain('Vague 0 sur 6');
+    expect(hud()).toContain('Prépare-toi : 6 vagues');
     expect(hud()).toContain('Éclat 110');
     fireEvent.click(screen.getByRole('button', { name: 'Abandonner' }));
     const got = vi.mocked(p.onFinish).mock.calls[0]![0] as Outcome;
@@ -356,7 +400,7 @@ describe('Hold the Haven screen: the hint buff', () => {
   it('a second tap (or Enter) places it on the star and spends the hint; a pad that was not starred spends none', () => {
     render(<TowerDefenseScreen {...props({ run: hintRun })} />);
     press('2');
-    press('2'); // second tap: place on the shown star
+    press('Enter'); // place on the shown star
     expect(hud()).toContain('Glow 62');
     expect(hud()).toContain('Hints 1');
     press('1'); // Runner: shows its own star, places nothing
@@ -370,10 +414,13 @@ describe('Hold the Haven screen: the hint buff', () => {
     expect(hud()).toContain('Hints 1');
   });
 
-  it('with no hint left a card tap places at once, as before', () => {
+  it('with no hint left a card tap only picks, and the cursor stays where it is', () => {
     render(<TowerDefenseScreen {...props()} />);
     expect(hud()).not.toContain('Hints');
     press('2');
+    expect(hud()).toContain('Glow 110');
+    expect(screen.getByTestId('td-pad')).toHaveTextContent('Pad 1 of');
+    press('Enter');
     expect(hud()).toContain('Glow 62');
   });
 });
@@ -389,12 +436,14 @@ describe('Hold the Haven screen: focus and text', () => {
 
   it('says in plain words when nothing can be upgraded or sold, and describes the picked tower', () => {
     render(<TowerDefenseScreen {...props()} />);
-    expect(screen.getByRole('button', { name: 'Upgrade' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Build' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Sell' })).toBeInTheDocument();
     press('3');
+    expect(screen.getByRole('button', { name: /^Build \(\d+\)/ })).toBeInTheDocument();
+    expect(screen.getByTestId('td-info')).toHaveTextContent('Sweeper: Hits everything close by.');
+    press('Enter');
     expect(screen.getByRole('button', { name: /^Sell \(\+/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Upgrade \(/ })).toBeInTheDocument();
-    expect(screen.getByTestId('td-info')).toHaveTextContent('Sweeper: Hits everything close by.');
   });
 
   it('keeps the French spacing before a colon in the pad line', () => {
@@ -404,7 +453,7 @@ describe('Hold the Haven screen: focus and text', () => {
 
   it('orders the feed by what happened: a note follows the engine line it came after', () => {
     render(<TowerDefenseScreen {...props()} />);
-    press('1'); // places: an engine line
+    build(1); // places: an engine line
     press('Escape'); // a note
     const texts = Array.from(screen.getByTestId('td-feed').querySelectorAll('li')).map((li) => li.textContent);
     expect(texts[texts.length - 2]).toMatch(/takes a post/);

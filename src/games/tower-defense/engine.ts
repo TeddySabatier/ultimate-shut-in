@@ -115,6 +115,8 @@ export interface TDState {
   earlyTicks: number;
   kills: number;
   leaks: number;
+  /** Percent monster hit points are scaled by: the party's mean power and the map. */
+  hpPct: number;
   speed: 1 | 2;
   shots: Shot[];
   feed: FeedLine[];
@@ -144,7 +146,9 @@ export const FEED_KEEP = 6;
 /** Hit points of the boss. */
 export const STATIC_HP = 800;
 /** Percent of base hit points per difficulty. */
-export const HP_PCT: readonly number[] = [220, 310, 410, 470, 520];
+export const HP_PCT: readonly number[] = [280, 300, 465, 540, 570];
+/** Percent of its mean power that the party adds to the monsters' hit points: a weaker party meets softer monsters. */
+export const PARTY_HP_PCT = 35;
 /** Percent of the template's monster count per difficulty. */
 export const CNT_PCT: readonly number[] = [90, 100, 110, 115, 120];
 /** Glow at the start per difficulty. */
@@ -179,18 +183,18 @@ interface TowerBase {
 const BASE: Record<TowerKind, TowerBase> = {
   runner: { damage: 4, range: 1500, interval: 5, cost: 30 },
   lantern: { damage: 14, range: 2800, interval: 24, cost: 40 },
-  sweeper: { damage: 5, range: 1200, interval: 12, cost: 35 },
-  chorus: { damage: 0, range: 0, interval: 0, cost: 30 },
+  sweeper: { damage: 7, range: 1200, interval: 12, cost: 35 },
+  chorus: { damage: 0, range: 2100, interval: 0, cost: 30 },
   archivist: { damage: 3, range: 2200, interval: 20, cost: 35 },
   lull: { damage: 0, range: 1600, interval: 0, cost: 30 },
   hearth: { damage: 0, range: 0, interval: 400, cost: 45 },
-  bubble: { damage: 8, range: 1800, interval: 18, cost: 40 },
+  bubble: { damage: 10, range: 1800, interval: 18, cost: 40 },
 };
 const DAMAGE_PCT = [100, 150, 220];
 const RANGE_PLUS = [0, 250, 500];
 const CHORUS_BASE = [25, 40, 60];
 const MARK_TICKS = [60, 80, 100];
-const MARK_BASE = [25, 35, 45];
+const MARK_BASE = [40, 50, 60];
 const LULL_BASE = [30, 35, 40];
 const HEARTH_BASE = [400, 300, 220];
 const SPLASH_RADIUS = [700, 700, 900];
@@ -346,7 +350,7 @@ export function intervalOf(kind: TowerKind, level: number, power: number): numbe
 export function costOf(kind: TowerKind, power: number): number {
   return BASE[kind].cost + Math.floor(power / 5);
 }
-/** Percent damage boost a Chorus of this level and power gives its neighbours. */
+/** Percent damage boost a Chorus of this level and power gives the towers in its reach. */
 export function chorusBoost(level: number, power: number): number {
   return CHORUS_BASE[level - 1]! + Math.floor(power / 4);
 }
@@ -402,10 +406,11 @@ export function callWaveBonus(state: TDState): number | null {
   return Math.floor(saved / 10);
 }
 
-function chebyshev(a: number, b: number): number {
-  const dx = (a % COLS) - (b % COLS);
-  const dy = Math.floor(a / COLS) - Math.floor(b / COLS);
-  return Math.max(Math.abs(dx), Math.abs(dy));
+/** Squared distance in units between the centres of two grid cells. */
+function padDist2(a: number, b: number): number {
+  const dx = ((a % COLS) - (b % COLS)) * UNIT;
+  const dy = (Math.floor(a / COLS) - Math.floor(b / COLS)) * UNIT;
+  return dx * dx + dy * dy;
 }
 
 /** Slow (percent) the Lull towers of `state` put on `e` at tick `tick`; `pt` is scratch space. */
@@ -430,7 +435,7 @@ export function enemySlow(state: TDState, e: Enemy, tick: number, pt: Point): nu
   return e.kind === 'the-static' ? Math.floor(slow / 2) : slow;
 }
 
-/** Per pad: how good a spot it is for this member's tower (-1: taken). Chorus: adjacent damage towers; Hearth: 0; others: path cell centres in range. */
+/** Per pad: how good a spot it is for this member's tower (-1: taken). Chorus: damage towers within its reach; Hearth: 0; others: path cell centres in range. */
 export function padScores(state: TDState, member: Member): number[] {
   const kind = member.kind;
   const range = kind === null ? 0 : rangeOf(kind, 1, member.power);
@@ -440,7 +445,7 @@ export function padScores(state: TDState, member: Member): number[] {
     if (kind === 'hearth') return 0;
     if (kind === 'chorus') {
       let n = 0;
-      for (const t of state.towers) if (DAMAGE_KINDS.includes(t.kind) && chebyshev(state.pads[t.pad]!, cell) === 1) n++;
+      for (const t of state.towers) if (DAMAGE_KINDS.includes(t.kind) && padDist2(state.pads[t.pad]!, cell) <= r2) n++;
       return n;
     }
     const px = (cell % COLS) * UNIT;
@@ -527,6 +532,13 @@ function buildWave(template: number, difficulty: number, rng: Rng): Array<{ offs
 // Setup
 // ---------------------------------------------------------------------------
 
+/** Monster hit points scale with the mean power of the party's towers (the members that bring one). */
+function monsterPct(party: Party): number {
+  const ps = party.members.filter((m) => m.habit !== null && HABIT_KIND[m.habit] !== undefined);
+  const mean = ps.length === 0 ? 0 : Math.floor(ps.reduce((a, m) => a + m.power, 0) / ps.length);
+  return 100 + Math.floor((mean * PARTY_HP_PCT) / 100);
+}
+
 function initial(seed: number, party: Party, run: RunContext, locale: Locale): TDState {
   const rng = mulberry32(fnv1a(`tower-defense:${seed >>> 0}`));
   const layout = rngInt(rng, 3) as 0 | 1 | 2;
@@ -574,6 +586,7 @@ function initial(seed: number, party: Party, run: RunContext, locale: Locale): T
     earlyTicks: 0,
     kills: 0,
     leaks: 0,
+    hpPct: monsterPct(party),
     speed: 1,
     shots: [],
     feed: [],
@@ -621,7 +634,7 @@ function startWave(w: TDState, lead: 0 | 1): void {
 function makeEnemy(w: TDState, spawn: Spawn): Enemy {
   const base = ENEMY[spawn.kind];
   const n = spawn.wave;
-  let hp = Math.max(1, Math.floor((Math.floor((base.hp * HP_PCT[w.difficulty - 1]!) / 100) * (100 + 6 * (n - 1))) / 100));
+  let hp = Math.max(1, Math.floor((Math.floor((Math.floor((base.hp * HP_PCT[w.difficulty - 1]!) / 100) * w.hpPct) / 100) * (100 + 6 * (n - 1))) / 100));
   if (n === 1) hp = Math.max(1, Math.floor((hp * 80) / 100));
   const speed = n <= 2 ? Math.floor((base.speed * (100 - w.timePct)) / 100) : base.speed;
   return {
@@ -825,14 +838,15 @@ function actTowers(w: TDState, towers: Tower[], live: Enemy[], credit: Credit): 
     ey[j] = pt.y;
   }
 
-  // Chorus boosts: the highest of the non-jammed Chorus towers on the 8 neighbouring cells; they never add up.
+  // Chorus boosts: the highest of the non-jammed Chorus towers whose reach (a range in units, like every tower's) covers the tower; they never add up.
   const boost = new Array<number>(towers.length).fill(0);
   for (const c of towers) {
     if (c.kind !== 'chorus' || tick < c.jamUntil) continue;
     const b = chorusBoost(c.level, c.power);
+    const reach = rangeOf('chorus', c.level, c.power);
     for (let i = 0; i < towers.length; i++) {
       const t = towers[i]!;
-      if (t !== c && chebyshev(w.pads[c.pad]!, w.pads[t.pad]!) === 1 && b > boost[i]!) boost[i] = b;
+      if (t !== c && b > boost[i]! && padDist2(w.pads[c.pad]!, w.pads[t.pad]!) <= reach * reach) boost[i] = b;
     }
   }
 
@@ -1067,7 +1081,11 @@ function outcome(state: TDState): Outcome | null {
 // ---------------------------------------------------------------------------
 
 const OPENERS: readonly TowerKind[] = ['lantern', 'bubble', 'sweeper', 'runner', 'archivist'];
-export const MAX_BOT_TOWERS = 7;
+/** The bot builds at most this many damage towers (and each support tower once on top). */
+export const MAX_BOT_DAMAGE = 7;
+/** It builds this many damage towers before its first support tower. */
+const GUNS_FIRST = 6;
+const BOT_ORDER: readonly TowerKind[] = ['lantern', 'bubble', 'sweeper', 'runner'];
 
 function memberOf(state: TDState, kind: TowerKind): Member | undefined {
   return state.members.find((m) => m.kind === kind);
@@ -1078,25 +1096,11 @@ function countOf(state: TDState, kind: TowerKind): number {
   return n;
 }
 
-/** The member whose tower the bot wants next: the first rule of spec section 9 that applies. */
-function desiredMember(state: TDState): Member | undefined {
-  if (state.towers.length === 0) {
-    for (const k of OPENERS) {
-      const m = memberOf(state, k);
-      if (m) return m;
-    }
-  }
-  const chorus = memberOf(state, 'chorus');
-  if (chorus && countOf(state, 'chorus') === 0 && padScores(state, chorus).some((n) => n >= 2)) return chorus;
-  const lull = memberOf(state, 'lull');
-  if (lull && countOf(state, 'lull') === 0 && state.started >= 2) return lull;
-  const hearth = memberOf(state, 'hearth');
-  if (hearth && countOf(state, 'hearth') === 0 && state.havenHp < state.havenMax) return hearth;
-  const archivist = memberOf(state, 'archivist');
-  if (archivist && countOf(state, 'archivist') === 0) return archivist;
+/** The damage tower the bot wants next: the damage kind it has the fewest of (ties: Lantern, Bubble, Sweeper, Runner). */
+function nextDamageMember(state: TDState): Member | undefined {
   let best: Member | undefined;
   let bestN = Infinity;
-  for (const k of DAMAGE_KINDS) {
+  for (const k of BOT_ORDER) {
     const m = memberOf(state, k);
     if (!m) continue;
     const n = countOf(state, k);
@@ -1105,14 +1109,38 @@ function desiredMember(state: TDState): Member | undefined {
       bestN = n;
     }
   }
-  // A party with no damage kind at all still builds its Archivist.
-  return best ?? archivist;
+  return best;
+}
+
+/** The member whose tower the bot wants next: the first rule of spec section 9 that applies. */
+function desiredMember(state: TDState): Member | undefined {
+  if (state.towers.length === 0) {
+    for (const k of OPENERS) {
+      const m = memberOf(state, k);
+      if (m) return m;
+    }
+  }
+  let damage = 0;
+  for (const k of DAMAGE_KINDS) damage += countOf(state, k);
+  const archivist = memberOf(state, 'archivist');
+  const gun = nextDamageMember(state);
+  // A party with no damage kind at all builds its Archivist as its gun.
+  if (!gun) return archivist;
+  if (damage < GUNS_FIRST) return gun;
+  const chorus = memberOf(state, 'chorus');
+  if (chorus && countOf(state, 'chorus') === 0 && padScores(state, chorus).some((n) => n >= 2)) return chorus;
+  const lull = memberOf(state, 'lull');
+  if (lull && countOf(state, 'lull') === 0) return lull;
+  if (archivist && countOf(state, 'archivist') === 0) return archivist;
+  const hearth = memberOf(state, 'hearth');
+  if (hearth && countOf(state, 'hearth') === 0 && state.havenHp < state.havenMax) return hearth;
+  return damage < MAX_BOT_DAMAGE ? gun : undefined;
 }
 
 function botPlay(state: TDState, rng: () => number): TDAction | null {
   if (state.result !== null) return null;
   let placing = false;
-  if (state.pads.length > state.towers.length && state.towers.length < MAX_BOT_TOWERS) {
+  if (state.pads.length > state.towers.length) {
     const m = desiredMember(state);
     if (m) {
       placing = true;

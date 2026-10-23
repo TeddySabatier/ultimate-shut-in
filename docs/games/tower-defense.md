@@ -4,7 +4,7 @@ Monsters walk a winding path to the Haven; the troops are the towers. Each vassa
 
 Category `defense`, minimum ring 2, roster 3 to 8, about 5 minutes.
 
-Build spec and player doc. The balanced values of the *tunable* numbers are written back here (HP and count percentages in sections 4 and 5).
+Build spec and player doc. The balanced values of the *tunable* numbers are written back here (hit points in section 4, counts in section 5, the win-rate table in section 13).
 
 ## 1. Conventions
 
@@ -65,12 +65,12 @@ A member with a habit gives one **tower card**; `habit: null` members give none 
 | --- | --- | --- | --- | --- | --- | --- |
 | Runner | move | 4 | 1500 | 5 | 30 | targets the first enemy |
 | Lantern | outside | 14 | 2800 | 24 | 40 | ignores armour |
-| Sweeper | clean | 5 | 1200 | 12 | 35 | hits every enemy in range |
-| Chorus | social | 0 | adjacent pads | none | 30 | damage boost to adjacent towers |
+| Sweeper | clean | 7 | 1200 | 12 | 35 | hits every enemy in range |
+| Chorus | social | 0 | 2100 | none | 30 | damage boost to every tower within its reach |
 | Archivist | study | 3 | 2200 | 20 | 35 | marks its target |
 | Lull | sleep | 0 | 1600 | none | 30 | slows every enemy in range |
 | Hearth | eat | 0 | none | 400 | 45 | repairs the Haven |
-| Bubble | hygiene | 8 | 1800 | 18 | 40 | splash and knock-back |
+| Bubble | hygiene | 10 | 1800 | 18 | 40 | splash and knock-back |
 
 **Scaling** (`lvl` is 1, 2 or 3; arrays are indexed by `lvl - 1`):
 
@@ -86,8 +86,8 @@ A member with a habit gives one **tower card**; `habit: null` members give none 
 Specials (Runner and Lantern: single target, first):
 
 - **Sweeper:** fires when any enemy is in range and hits each one.
-- **Chorus:** never fires. `chorus` for a tower = the **highest** boost among non-jammed Chorus towers at Chebyshev distance 1 on the grid (`max(|dx|,|dy|) === 1`, the 8 neighbours). Boosts never add up. `boost = [25,40,60][lvl-1] + floor(p / 4)` percent. Recomputed every tick, so selling or jamming a Chorus removes it at once.
-- **Archivist:** single target: the first **unmarked** enemy in range, else the first enemy. On hit: `e.markUntil = max(e.markUntil, tick + [60,80,100][lvl-1])`; `e.markPct = max(e.markPct if still marked else 0, [25,35,45][lvl-1] + floor(p / 5))`. Marked while `tick < markUntil`; applies to later hits from every tower.
+- **Chorus:** never fires. `chorus` for a tower = the **highest** boost among non-jammed Chorus towers whose reach covers it: the distance between the two pad centres, squared, is at most `range * range`, with the usual `range = 2100 + 5p + [0,250,500][lvl-1]` (so 2320 u at power 44: a pad two cells away, 2000 u, or a knight's move, 2236 u, is covered; three cells, 3000 u, is not). A Chorus never boosts itself, and boosts never add up. `boost = [25,40,60][lvl-1] + floor(p / 4)` percent. Recomputed every tick, so selling or jamming a Chorus removes it at once. On every map (mirrored or not) 6 or 7 pads have two or more other pads within 2100 u, so one Chorus can always boost two or more towers.
+- **Archivist:** single target: the first **unmarked** enemy in range, else the first enemy. On hit: `e.markUntil = max(e.markUntil, tick + [60,80,100][lvl-1])`; `e.markPct = max(e.markPct if still marked else 0, [40,50,60][lvl-1] + floor(p / 5))`. Marked while `tick < markUntil`; applies to later hits from every tower.
 - **Lull:** never fires. Every tick, each enemy in range of a non-jammed Lull gets `slow = min(50, [30,35,40][lvl-1] + floor(p / 5))`; with several Lulls the highest applies. Silence Specter: slow 0. The Static: `floor(slow / 2)`.
 - **Hearth:** `interval = max(100, [400,300,220][lvl-1] - 2p)`. When `cd === 0` and `havenHp < havenMax`: `havenHp += 1`, `cd = interval`. At full Haven it waits ready at `cd = 0`. A Hearth acts after the leaks of its tick and cannot save a Haven that reached 0 (the loss is settled first, see Tick order).
 - **Bubble:** single target, first. The target takes hit damage; every other enemy within `[700,700,900][lvl-1]` u of the target's point takes `max(1, floor(dSplash * 50 / 100) - armour)`, where `dSplash` is the hit damage before armour with that enemy's own mark. Knock-back: if the target is not the Static and `tick >= e.knockUntil`, `e.pos = max(0, e.pos - [250,300,350][lvl-1])` and `e.knockUntil = tick + 40`.
@@ -109,7 +109,7 @@ Ids and names from `MONSTERS` in `src/game/wave.ts`. Speed in u per tick.
 | `doomscroll-wyrm` | 320 | 24 | 2 | 18 | 3 | mid-boss |
 | `the-static` | 800, scaled like every monster | 16 | 3 | 0 | 5 | boss, see below |
 
-**HP at spawn:** `hp = max(1, floor(floor(base * HP_PCT[d] / 100) * (100 + 6 * (n - 1)) / 100))`, `n` = the wave's number in this game (1..total); in wave 1, then `hp = max(1, floor(hp * 80 / 100))`. `HP_PCT = [220, 310, 410, 470, 520]` *balanced* (a leaking monster is simply removed, so the Haven's hit points are the only loss and the win rate is steep in monster hit points; see section 13 for the win rates). The Static is scaled like every monster (about 4,700 hit points on wave 8 at difficulty 3).
+**HP at spawn:** `hp = max(1, floor(floor(floor(base * HP_PCT[d] / 100) * hpPct / 100) * (100 + 6 * (n - 1)) / 100))`, `n` = the wave's number in this game (1..total); in wave 1, then `hp = max(1, floor(hp * 80 / 100))`. `HP_PCT = [280, 300, 465, 540, 570]` *balanced*. `hpPct = 100 + floor(meanPower * 35 / 100)` is fixed at setup: `meanPower` is the mean `power` of the members that bring a tower, so monsters toughen with the party, but at a third of the rate the towers do (a level 12 party meets monsters 15 percent tougher, a new party 2 percent). Without it a new party met monsters it could never beat. A leaking monster is simply removed, so the Haven's hit points are the only loss and the win rate is steep in monster hit points; see section 13 for the win rates. The Static is scaled like every monster (about 6,000 hit points on wave 8 at difficulty 3 with the full party).
 
 **Speed at spawn:** waves 1 and 2: `floor(speed * (100 - min(40, timeSeconds)) / 100)`. Each tick: `eff = max(1, floor(speed * (100 - slow) / 100))`; `pos += eff`. Net progress stays positive: a fully slowed Golem gains 360 u per 40-tick knock-back cooldown against 350 u of push.
 
@@ -184,6 +184,7 @@ export interface TDState {
   queue: Spawn[]; enemies: Enemy[]; nextId: number; tick: number; cleared: number; total: number;
   glow: number; glowEarned: number; havenHp: number; havenMax: number; revivesLeft: number; hintsLeft: number;
   attackPct: number; luckPct: number; timePct: number; earlyTicks: number; kills: number; leaks: number;
+  hpPct: number;                                                              // monster hit points, percent: the party's mean power
   speed: 1 | 2; shots: Shot[]; feed: FeedLine[]; feedSeq: number; result: 'won' | 'lost' | 'fled' | null;
 }
 export type TDAction =
@@ -195,32 +196,35 @@ export type TDAction =
 
 **Tick order:** (1) `tick += 1`, `shots = []`; (2) start the scheduled wave when `tick === waveAt` (its spawns enter the queue at `tick + offset`; a called wave at `tick + 1 + offset`); (3) spawn due queue entries (cap); (4) move enemies with slow, leaks, then settle a Haven at 0: a revive, or the game is **lost** and the rest of the tick is skipped; (5) Static pulses; (6) towers act in pad order; (7) remove dead enemies (`hp <= 0`), pay glow, count kills; (8) trickle; (9) update `cleared`, schedule the next wave; (10) won, guard.
 
-**`bestPad(state, memberId)`:** the free pad whose range covers the most path cell centres (Chorus: most adjacent damage towers; Hearth: lowest free pad); ties to the lowest pad.
+**`bestPad(state, memberId)`:** the free pad whose range covers the most path cell centres (Chorus: most damage towers within its reach; Hearth: lowest free pad); ties to the lowest pad.
 
 ## 9. Bot
 
 `botPlay(state, rng)` returns `null` only when over; one action per call.
 
-1. **Place** when a free pad exists and fewer than 7 towers stand. The desired kind is the first that applies: (a) no tower yet: the first present of Lantern, Bubble, Sweeper, Runner, Archivist; (b) Chorus present, none placed, and a free pad adjacent to 2 or more damage towers; (c) Lull present, none placed, `started >= 2`; (d) Hearth present, none placed, `havenHp < havenMax`; (e) Archivist present, none placed; (f) the present damage kind (Runner, Lantern, Sweeper, Bubble) with the fewest towers, ties in that order. Pad: `rng` picks among the pads tied with `bestPad`'s score. Place if affordable, else go to 3.
-2. **Upgrade** when 7 towers stand or no pad is free: the cheapest affordable upgrade of a damage tower, ties to the lowest pad.
+1. **Place** when a free pad exists. The desired kind is the first that applies: (a) no tower yet: the first present of Lantern, Bubble, Sweeper, Runner, Archivist; (b) fewer than 6 damage towers (Runner, Lantern, Sweeper, Bubble) stand: the present damage kind with the fewest towers, ties in the order Lantern, Bubble, Sweeper, Runner (a party with no damage kind builds its Archivist instead); then, once each, in this order: (c) Chorus present, none placed, and a free pad with two or more damage towers within its reach; (d) Lull present, none placed; (e) Archivist present, none placed; (f) Hearth present, none placed, `havenHp < havenMax`; then (g) a seventh damage tower (the kind of rule b) and no more. Pad: `rng` picks among the pads tied with `bestPad`'s score. Place if affordable, else go to 3.
+2. **Upgrade** when nothing is left to place: the cheapest affordable upgrade of a damage tower, ties to the lowest pad.
 3. **callWave** when no enemy is alive, the queue is empty and 1 or 2 found nothing affordable.
 4. Otherwise `tick`.
+
+Why this order: the supports (Chorus, Lull, Archivist, Hearth) are built after the guns because early glow is better spent on damage; the first version built them first and a bot with more members won less often than a bot with fewer. Section 13 has the check: taking any one member out of the full party never raises the bot's difficulty 3 win rate by more than 10 points.
 
 **Naive bot** (tests only): cycles the party's cards in order, places on the lowest free pad when affordable, never upgrades, never calls a wave.
 
 ## 10. Screen
 
-- **Layout:** `h2` title; HUD text (wave n/total, Haven hp/max, glow; `data-testid="td-hud"`); board; tower cards; pad controls; game controls; feed. The canvas (`role="img"`, `aria-label` = cursor pad and key help) sits in a focusable wrapper (`tabIndex=0`, visible focus ring). Portrait: one column, canvas `width: 100%; aspect-ratio: 9 / 7`. `max-height: 500px`: two columns `minmax(0, 1.1fr) minmax(0, 1fr)`, canvas height capped at `calc(100dvh - 5rem)`. Cards `repeat(auto-fill, minmax(min(100%, 4.9rem), 1fr))` (4 on a phone, 3 in the landscape column), 2 columns under 360px. Every control is a `<button>`, at least 44x44 px.
-- **Cards:** a button each (glyph, name, cost). A tap places it on the free cursor pad if affordable, else selects it (`aria-pressed`). Unaffordable: dimmed, not `disabled`; the feed says why.
-- **Controls:** Previous pad, Next pad, Upgrade (cost), Sell (refund); Pause (`aria-pressed`), Speed x1/x2, Next wave (bonus), Give up (`forfeit`), Leave (`exit()`, own handler).
-- **Keyboard** (on the game root, ignored in text fields): arrows move the cursor to the nearest pad strictly in that direction (smallest `10 * primary + secondary` distance, else stay); `1`-`8` = the n-th card; Enter or Space place the selected card on a free pad or upgrade an occupied one; `S` or Delete sell; Escape clears the selection; `P` pause; `N` next wave; `X` speed.
-- **Touch and mouse:** a tap on the canvas moves the cursor to that pad.
+- **Layout:** `h2` title; intro (until the first wave); HUD text (wave n/total, Haven hp/max, glow; `data-testid="td-hud"`); board and the pad line (a line of text: what is on the pad, what the picked tower does); tower cards; pad buttons; game controls; feed. The cards sit right under the board so a phone shows both. The canvas (`role="img"`, `aria-label` = cursor pad and key help) sits in a focusable wrapper (`tabIndex=0`, visible focus ring). Portrait: one column, canvas `width: 100%; aspect-ratio: 9 / 7`. `max-height: 500px`: two columns `minmax(0, 1.1fr) minmax(0, 1fr)`, canvas height capped at `calc(100dvh - 5rem)`. Cards `repeat(auto-fill, minmax(min(100%, 4.2rem), 1fr))` (3 or 4 on a phone, 3 in the landscape column; this replaces the first plan of `repeat(4, ...)`, which overflowed the narrow landscape column), 3 columns under 360px so two rows of cards still fit under the board. Every control is a `<button>`, at least 44x44 px.
+- **Cards:** a button each (glyph, name, cost). A tap only **picks** the tower (`aria-pressed`); it builds nothing. Unaffordable: dashed, not `disabled`; the feed says why when you try to build it.
+- **Building (one flow for touch, mouse and keyboard):** pick a card, then put it on a free pad: tap the pad (a tap on a free pad builds the picked tower there and uses up the pick), or move the cursor and press Enter or Space on the board, or press the **Build** button. A tap on a built pad only moves the cursor to it. The intro says this and is shown until the first wave starts; before that the HUD reads "Get ready: n waves", never "Wave 0".
+- **Controls:** Previous pad, Next pad (short visible labels in French, "Précédent" and "Suivant", with the full text in `aria-label`), one button for the pad under the cursor ("Build (cost)" on a free pad with a tower picked, "Upgrade (cost)" on a built one, "Top level"), Sell (refund); Pause (`aria-pressed`), Speed x1/x2, Next wave (bonus; disabled once the last wave has started), Give up (`forfeit`), Leave (`exit()`, own handler).
+- **Keyboard** (on the game root, ignored in text fields): arrows move the cursor to the nearest pad strictly in that direction (smallest `10 * primary + secondary` distance, else stay); `1`-`8` = pick the n-th card; Enter or Space build the picked card on a free pad or upgrade an occupied one; `S` or Delete sell; Escape clears the selection; `P` pause; `N` next wave; `X` speed.
+- **Touch and mouse:** a tap on the canvas moves the cursor to the nearest pad within one cell and, with a tower picked and the pad free, builds it there.
 - **Clock:** `useFixedStep(() => { for (let i = 0; i < state.speed; i++) dispatch({ type: 'tick' }) }, { running: outcome === null && !paused, onFrame })`. Place, upgrade and sell work while paused.
 - **Feed:** `aria-live="polite"`, last 4 lines of `state.feed` plus Screen lines (paused, resumed, speed, not enough glow). Engine keys: `waveStart` "Wave {n} of {total}: {monsters}.", `bossArrives` "The Static crackles onto the path.", `waveCleared` "Wave {n} cleared. Next wave in {s} s.", `leak` "{monster} reached the Haven. Haven {hp} of {max}.", `jam` "The Static jams {name}'s {tower}.", `revive` "Second wind: the Haven stands again at {hp}.", `placed`, `upgraded`, `sold`, `won` "The Haven holds. All {total} waves cleared.", `lost` "The troops come home after wave {n}. The Haven stands, as it always does.", `fled` "The troops head home early."
 - **Not colour alone:** a glyph and letter per tower (chevrons, rays, fan, notes, book, crescent, flame, rings); dashed path line; dotted pad rings; bracket cursor; hint star; ring on marked enemies, "z" on slowed ones, cross-hatch on jammed towers.
 - **Rendering:** Canvas 2D via `useCanvas` (DPR capped at 3, resize). `cell = floor(min(w / 9, h / 7))`, board centred. Static layer drawn once per size into an offscreen canvas. Token colours read once. No allocation in the frame loop: iterate state arrays, one reusable `Map` of previous enemy positions rebuilt on state change, a pool of 32 particles. Enemies drawn at `prev + (cur - prev) * alpha`.
 - **Reduced motion:** `alpha = 1`, no particles, shake or pulsing; enemies still step per tick.
-- **Hint:** with `hintsLeft > 0`, tapping a card (or its key) only selects it and moves the cursor to its `bestPad`, which gets the star and is announced in text (feed, pad status, board label); a second tap or Enter places it, and a hint is spent only when the tower lands on the starred pad that was shown. With no hint left a card tap places at once on a free cursor pad.
+- **Hint:** with `hintsLeft > 0`, tapping a card (or its key) also moves the cursor to its `bestPad`, which gets the star and is announced in text (feed, pad status, board label); building there (a tap on the pad, Enter, or the Build button) spends one hint, and only when the tower lands on the starred pad that was shown.
 - **Text mirrors the canvas:** the pad status says if the tower is jammed and shows the description of the selected card; a jammed tower cannot be sold (the feed says why).
 
 ## Party
@@ -243,16 +247,17 @@ Each habit adds its tower card: the starter party (Move, Outside, Clean) builds 
 | Acceptance item | Tests |
 | --- | --- |
 | path following | maps have 8-12 pads touching a connected path; mirror is `x -> 8 - x`; speed `s` reaches the Haven in exactly `ceil(END / s)` ticks through every cell centre |
-| each tower | Runner first target; Lantern ignores armour; Sweeper hits all in range; Chorus adjacent only, highest boost, gone on sell; Archivist mark extra damage until `markUntil`; Lull exact slow, cap 50, Specter immune, Static halved; Hearth +1 per interval, never above max; Bubble splash radius, knock-back once per 40 ticks, not the Static |
+| each tower | Runner first target; Lantern ignores armour; Sweeper hits all in range; Chorus boosts the towers in its reach and no others, highest boost, gone on sell; Archivist mark extra damage until `markUntil`; Lull exact slow, cap 50, Specter immune, Static halved; Hearth +1 per interval, never above max; Bubble splash radius, knock-back once per 40 ticks, not the Static |
 | power, levels | power scales damage, range, interval, cost; upgrade costs `cost` then `2 * cost`, stops at 3 |
 | economy | refused without glow; sell 70 percent; trickle; luck and wave-1 double; glow never negative over 200 random-action games |
 | waves from the seed | same seed same layout, mirror, waves, 5 seeds give 3+ different; counts, intervals, totals per difficulty; one Static, last |
 | boss | pulse jams the nearest tower in 3000 u for 60 ticks every 100; immune to knock-back; leaks 5 |
 | win and loss | won on the last clear; lost at 0, before won; revive half HP per count; forfeit fled; no change after the end; callWave bonus and refusal; tick guard |
 | determinism | two bot games identical; JSON round trip mid-game continues identically; every state number is an integer |
-| frame rate | ticks in batches of 1, 2, 5 give the same state; Screen (fake `requestAnimationFrame`): 1 s is 20 ticks at 30 and 60 fps, 40 at x2 |
-| bot | wins 40-70 percent of seeds 1..100, difficulty 3, full party; terminates on every difficulty and fixture party |
+| frame rate | ticks in batches of 1, 2, 5 give the same state (the whole-game Screen test advances five ticks per frame, so it takes well under a second); Screen (fake `requestAnimationFrame`): 1 s is 20 ticks at 30 and 60 fps, 40 at x2 |
+| bot | wins 40-70 percent of seeds 1..100, difficulty 3, full party; terminates on every difficulty and fixture party; a Chorus reaches two or more pads on every map |
 | difficulty 1 | naive bot wins with the starter party on 45+ of seeds 1..50 |
+| curve | every party wins difficulty 1 and 27+ of 30 on difficulty 2; starter 5+ of 30 on difficulty 3; mid and five-vassal parties win some on difficulty 3; full wins less often at each step up; removing any one member of the full party never raises its difficulty 3 wins by more than 3 of 30 |
 | 60 fps, fit | at most 48 enemies alive, shots at most towers; Screen draws after a resize at DPR 2; e2e fit |
 
 e2e, each under 20 s: loads, axe (shot `start`); keyboard place (arrow, `1`: glow drops, feed says placed) and `P` freezes the HUD (shot `play`); difficulty 1 by Bot play (shot `end`); same-seed replay; French; `expectResponsiveGame`.
@@ -263,18 +268,21 @@ In order, only if time runs short: (1) level 3 upgrades (keep level 2), (2) Map 
 
 ## 13. As built
 
-- **Balance.** Damage grows with `(100 + p)` percent (power 44: 1.44). `HP_PCT = [220, 310, 410, 470, 520]` and `CNT_PCT = [90, 100, 110, 115, 120]` (no step above 1.45 times); start glow and the Static's 800 are as first written. Wins of the bot of section 9 (no buffs; "mid" is 8 members at power 20, `makeMember` level 6, loyalty 20):
+- **Balance.** Damage grows with `(100 + p)` percent (power 44: 1.44). `HP_PCT = [280, 300, 465, 540, 570]`, `hpPct = 100 + floor(meanPower * 35 / 100)` (monsters toughen with the party, at a third of the rate), `CNT_PCT = [90, 100, 110, 115, 120]`; start glow and the Static's 800 are as first written. Base damage was retuned until no single tower kind was clearly the weakest: Sweeper 5 to 7, Bubble 8 to 10, Archivist mark base 25/35/45 to 40/50/60 percent (a bot that built only Bubbles won 11 percent of difficulty 3 games where one that built only Lanterns won all of them; after the retune the four kinds of gun sit within about 20 points of each other). Wins of the bot of section 9 (seeds 1..100, no buffs; "mid" is 8 members at power 20, `makeMember` level 6, loyalty 20; "five" is 5 vassals at power 21, level 5, loyalty 60):
 
-| Difficulty | full party (power 44) | mid party (power 20) | starter party (power 8) |
-| --- | --- | --- | --- |
-| 1 | 30 of 30 | 30 of 30 | 30 of 30 |
-| 2 | 30 of 30 | 20 of 30 | 24 of 30 |
-| 3 | 16 of 30 (51 of 100) | 11 of 30 | 0 of 30 |
-| 4 | 12 of 30 | 0 of 30 | 0 of 30 |
-| 5 | 3 of 30 (5 of 50) | 0 of 30 | 0 of 30 |
+| Difficulty | full (power 44) | mid (power 20) | five (power 21) | starter (power 8) | mixed fixture |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 100 | 100 | 100 | 100 | 100 |
+| 2 | 100 | 100 | 100 | 93 | 100 |
+| 3 | 63 | 31 | 11 | 26 | 31 |
+| 4 | 40 | 0 | 0 | 0 | 3 |
+| 5 | 6 | 0 | 0 | 0 | 0 |
 
-  The naive player (cycle the cards, never upgrade, never call a wave) with the starter party wins 50 of 50 seeds on difficulty 1. Each of these is asserted in `engine.test.ts`: full d3 seeds 1..100 between 40 and 70; mid d3 seeds 1..30 at least 3; starter d2 seeds 1..30 from 18 to 29; naive d1 seeds 1..50 at least 45; full d5 seeds 1..50 at least 1.
+  Reading the table: every party wins the first two difficulties, the starter party still wins a quarter of difficulty 3 games, and the full party takes difficulty 3 about two times in three. The step between difficulty 2 and 3 is real (a new party goes from 93 to 26 percent) but no longer a wall (it was 100 to 0). **Known limits:** (1) the three maps are not equally hard for every party, so a win rate moves in steps of about a third, which is why the five-vassal party (11 percent) can sit below the starter party (26 percent) on difficulty 3: a single map decides it; (2) the bot is a floor, not a ceiling: a player who upgrades well, times the Lull and calls waves early does better than every number here; (3) only the full party has a real chance at difficulty 4 and 5. The Arena raises the difficulty every other room (`roomDifficulty`: difficulty 3 from room 4, or room 2 from ring 4, then 4 from room 6 and 5 from room 8), and a party that has won its way there has also been trained and geared, so it is no longer the starter party.
+  The check that support towers help: take one member out of the full party and the bot's difficulty 3 wins (300 seeds) go 185 (with all eight) to 170 without Move, 170 without Outside, 146 without Clean, 182 without Social, 178 without Study, 194 without Sleep, 150 without Eat, 203 without Hygiene: the biggest rise is 6 points (Hygiene), the rest fall or stay, so no member is a trap.
+  The naive player (cycle the cards, never upgrade, never call a wave) with the starter party wins 50 of 50 seeds on difficulty 1. Each of these is asserted in `engine.test.ts` with a looser band than the table (30 seeds): full d3 seeds 1..100 between 40 and 70; every party wins difficulty 1 and at least 27 of 30 on difficulty 2; starter d3 at least 5 of 30; mid at least 5 and five at least 2 on d3; naive d1 at least 45 of 50; full d5 at least 1 of 50.
+- **Chorus reach:** the Chorus first boosted only the 8 neighbouring cells, and no pad on any map had more than one neighbouring pad, so it could never boost two towers (and the bot never built one). It now reaches 2100 u plus 5 per power plus 250 per level, from pad centre to pad centre; a test asserts that on every map and mirror at least 5 pads have two or more other pads in reach.
 - **Rules the spec left open:** towers skip a monster that is already down this tick; a kill goes to the member whose blow drops the monster; `cleared` is the oldest wave still queued or alive, minus one (so overlapping waves clear together); `glowEarned` includes the next-wave bonus; a Haven at 0 is settled right after the leaks (so a Hearth or a kill in the same tick cannot undo it); the bot builds its Archivist as the damage kind when the party has no Runner, Lantern, Sweeper or Bubble.
 - **Feed:** the engine writes lines as a key plus parameters already in the player's language; a `waveDone` line says "Wave n cleared." when a later wave is already on its way.
 - **Size:** about 46 KB of code (manifest, engine, strings, Screen, drawing, CSS) before gzip.
-- **Screenshots:** `docs/games/img/tower-defense-start.png`, `-play.png`, `-end.png`.
+- **Screenshots:** `docs/games/img/tower-defense-start.png`, `-play.png`, `-end.png`. The `end` shot is the closing screen after a player gives up in the middle of a game (towers and monsters on the board, the banner "The troops head home"), not a won or lost board: a real game takes minutes and the e2e budget is 20 seconds each.
