@@ -1,0 +1,412 @@
+[
+  {
+    "id": "chat-gare",
+    "topic": "Le chat de la gare",
+    "level": 1,
+    "text": "Un chat gris vivait sous le banc de la petite gare. Il ne disait bonjour à personne, mais dès que le premier train était parti, il s’installait au soleil. La cheffe de gare posait une soucoupe de lait près de la porte du bureau, toujours à la même heure. Un mardi, un enfant a mis son cartable trop près de la soucoupe. Le chat a reculé sous le banc. L’enfant n’a rien dit. Il a attendu, puis il a tiré son cartable un peu plus loin. Le chat est revenu, a lapé un peu de lait et s’est recouché. Le mercredi, l’enfant a laissé de la place dès son arrivée. La cheffe de gare a souri sans faire de commentaire. Le chat n’est pas devenu l’ami de l’enfant. Mais ce jour-là, ils ont partagé le même quai, sans se gêner.",
+    "questions": [
+      {
+        "kind": "literal",
+        "prompt": "Où le chat gris vivait-il ?",
+        "options": [
+          "Dans le bureau de la cheffe",
+          "Dans un train à l’arrêt",
+          "Sous le banc de la gare",
+          "Derrière la soucoupe"
+        ],
+        "correct": 2
+      },
+      {
+        "kind": "inference",
+        "prompt": "Pourquoi l’enfant tire-t-il son cartable plus loin ?",
+        "options": [
+          "Parce que le cartable était trop lourd",
+          "Pour laisser le chat approcher de sa soucoupe",
+          "Parce que la cheffe de gare le lui a demandé en souriant",
+          "Pour ne pas rater son train"
+        ],
+        "correct": 1
+      },
+      {
+        "kind": "detail",
+        "prompt": "Que posait la cheffe de gare près de la porte du bureau ?",
+        "options": [
+          "Un coussin",
+          "Un bol d’eau",
+          "Un panier de croquettes",
+          "Une soucoupe de lait"
+        ],
+        "correct": 3
+      }
+    ]
+  },
+  {
+    "id": "ciel-bleu",
+    "topic": "Pourquoi le ciel est bleu",
+    "level": 1,
+    "text": "La lumière du soleil paraît blanche, mais elle est un mélange de toutes les couleurs. Quand elle traverse l’air, elle rencontre de minuscules molécules de gaz. Ces molécules renvoient dans tous les sens surtout la lumière bleue, bien plus que la rouge. C’est pour cela que, de n’importe quel côté du ciel, tes yeux reçoivent beaucoup de bleu. Le soleil, lui, paraît un peu jaune, parce qu’une partie de son bleu a été dispersée en chemin. Le soir, la lumière traverse beaucoup plus d’air pour arriver jusqu’à toi. Le bleu se perd presque entièrement, et il reste de l’orange et du rouge. Sur la Lune, il n’y a pas d’air autour. Le ciel y reste donc noir, même en plein jour, et le soleil est un disque blanc très brillant. Le ciel bleu n’est pas une peinture : c’est de la lumière renvoyée par l’air.",
+    "questions": [
+      {
+        "kind": "literal",
+        "prompt": "Quelle couleur l’air renvoie-t-il surtout dans tous les sens ?",
+        "options": [
+          "Le rouge",
+          "Le bleu",
+          "Le jaune",
+          "Le vert"
+        ],
+        "correct": 1
+      },
+      {
+        "kind": "inference",
+        "prompt": "Pourquoi le ciel de la Lune reste-t-il noir en plein jour ?",
+        "options": [
+          "Le soleil y brille moins fort",
+          "La Lune est trop loin du soleil",
+          "La poussière lunaire absorbe toute la lumière du soleil",
+          "Il n’y a pas d’air pour renvoyer la lumière"
+        ],
+        "correct": 3
+      },
+      {
+        "kind": "detail",
+        "prompt": "Quelles couleurs restent le soir, quand le bleu s’est perdu ?",
+        "options": [
+          "L’orange et le rouge",
+          "Le bleu et le violet",
+          "Le vert et le jaune",
+          "Le rose et le gris"
+        ],
+        "correct": 0
+      }
+    ]
+  },
+  {
+    "id": "cadenas",
+    "topic": "Comment marche un cadenas",
+    "level": 1,
+    "text": "Un cadenas à combinaison n’a pas de clé. À l’intérieur, il y a plusieurs petits disques, chacun percé d’une encoche. Quand tu tournes les chiffres, tu fais tourner les disques. Tant que les encoches ne sont pas alignées, une petite tige bloque l’anse : tu as beau tirer, rien ne s’ouvre. Quand tu affiches la bonne combinaison, les encoches se retrouvent en face les unes des autres et forment un petit couloir. La tige peut alors glisser dedans, et l’anse se libère. Un cadenas à clé suit la même idée, mais avec des goupilles de hauteurs différentes. La clé les pousse juste assez haut pour qu’elles s’alignent. Si elles sont trop hautes ou trop basses, le cylindre reste bloqué. Dans les deux cas, la serrure ne s’ouvre que si toutes les pièces sont à la bonne place.",
+    "questions": [
+      {
+        "kind": "literal",
+        "prompt": "Que forment les encoches quand la combinaison est la bonne ?",
+        "options": [
+          "Un trou assez grand pour glisser une clé",
+          "Un cercle qui ferme l’anse",
+          "Un aimant qui attire l’anse",
+          "Un petit couloir pour la tige"
+        ],
+        "correct": 3
+      },
+      {
+        "kind": "inference",
+        "prompt": "Pourquoi la clé doit-elle avoir exactement la bonne forme ?",
+        "options": [
+          "Pour faire tourner les disques à la main, un par un",
+          "Pour bloquer la tige dans l’anse",
+          "Pour pousser chaque goupille à la bonne hauteur",
+          "Pour chauffer le métal du cylindre"
+        ],
+        "correct": 2
+      },
+      {
+        "kind": "detail",
+        "prompt": "Qu’est-ce qui bloque l’anse tant que les encoches ne sont pas alignées ?",
+        "options": [
+          "Une petite tige",
+          "Un ressort",
+          "Un disque plein",
+          "Une goupille de cuivre"
+        ],
+        "correct": 0
+      }
+    ]
+  },
+  {
+    "id": "herisson",
+    "topic": "Le hérisson de la nuit",
+    "level": 1,
+    "text": "Le hérisson sort surtout la nuit. Avec son museau fin, il fouille les feuilles mortes à la recherche de vers de terre, d’insectes et de limaces. Son dos porte environ cinq mille piquants, qui sont en fait des poils durs et creux. Quand il a peur, il se roule en boule : ses piquants se dressent, et son ventre, doux et sans défense, reste caché à l’intérieur. Cette boule le protège très bien contre un renard, mais pas contre une voiture. En automne, le hérisson mange beaucoup pour faire des réserves de graisse. Puis il cherche un tas de feuilles ou de bois et s’y installe pour passer l’hiver. Il dort alors profondément, son cœur bat très lentement et sa température baisse. Au printemps, il se réveille, un peu plus maigre, prêt à reprendre ses promenades de nuit.",
+    "questions": [
+      {
+        "kind": "literal",
+        "prompt": "Que mange surtout le hérisson ?",
+        "options": [
+          "Des graines et des noisettes",
+          "Des vers de terre, des insectes et des limaces",
+          "Des fruits tombés, des champignons et des baies sauvages",
+          "Des souris et des oiseaux"
+        ],
+        "correct": 1
+      },
+      {
+        "kind": "inference",
+        "prompt": "Pourquoi le hérisson mange-t-il beaucoup en automne ?",
+        "options": [
+          "Parce qu’il y a beaucoup plus de limaces et d’insectes en automne",
+          "Pour devenir plus gros qu’un renard",
+          "Pour avoir des réserves de graisse avant l’hiver",
+          "Pour faire pousser de nouveaux piquants"
+        ],
+        "correct": 2
+      },
+      {
+        "kind": "detail",
+        "prompt": "Environ combien de piquants le hérisson porte-t-il sur le dos ?",
+        "options": [
+          "Cinquante",
+          "Cinq cents",
+          "Cinq mille",
+          "Cinquante mille"
+        ],
+        "correct": 2
+      }
+    ]
+  },
+  {
+    "id": "braille",
+    "topic": "Les six points de Louis Braille",
+    "level": 2,
+    "text": "Louis Braille est devenu aveugle dans son enfance, après un accident dans l’atelier de son père, à Coupvray. À l’école pour jeunes aveugles de Paris, il a découvert un système inventé pour l’armée, l’écriture de nuit, avec lequel des soldats lisaient des messages du bout des doigts, sans lumière. L’idée était bonne, mais le code était trop compliqué : il fallait plusieurs touchers pour une seule lettre. Braille l’a simplifié. Il a choisi une cellule de six points, en deux colonnes de trois, assez petite pour qu’un seul geste du doigt suffise à la lire. Il avait environ quinze ans quand son système a pris sa forme. Il a fallu des années avant que l’école l’adopte officiellement, mais les élèves s’en servaient déjà entre eux. Aujourd’hui, le braille sert encore à lire une étiquette, un menu ou une partition, parce qu’il montre exactement comment un mot s’écrit.",
+    "questions": [
+      {
+        "kind": "literal",
+        "prompt": "Combien de points forment une cellule braille ?",
+        "options": [
+          "Six",
+          "Quatre",
+          "Huit",
+          "Douze"
+        ],
+        "correct": 0
+      },
+      {
+        "kind": "inference",
+        "prompt": "Pourquoi Braille a-t-il simplifié le code de l’armée ?",
+        "options": [
+          "Les soldats n’en avaient plus besoin",
+          "Il fallait plusieurs touchers pour une seule lettre",
+          "L’école refusait les messages secrets envoyés par l’armée",
+          "Le papier coûtait trop cher"
+        ],
+        "correct": 1
+      },
+      {
+        "kind": "detail",
+        "prompt": "Où Louis Braille a-t-il perdu la vue ?",
+        "options": [
+          "À l’école de Paris",
+          "Sur un chemin de campagne, près du village",
+          "Dans l’atelier de son père",
+          "Dans une caserne"
+        ],
+        "correct": 2
+      }
+    ]
+  },
+  {
+    "id": "pont-du-gard",
+    "topic": "Le pont du Gard",
+    "level": 2,
+    "text": "Il y a près de deux mille ans, les Romains ont voulu amener l’eau d’une source jusqu’à la ville de Nîmes, à une cinquantaine de kilomètres de là. Ils n’avaient pas de pompes. Ils ont donc construit un canal presque plat, qui descend très doucement, de quelques dizaines de centimètres seulement par kilomètre, pour que l’eau coule toute seule. Quand la rivière du Gardon a barré le chemin, ils n’ont pas contourné la vallée. Ils ont bâti un pont de trois étages d’arches, le pont du Gard, haut d’environ cinquante mètres. Les pierres, taillées avec précision, tiennent sans ciment : leur poids suffit. Pendant des siècles, l’eau a coulé tout en haut, dans un canal couvert. Puis, faute d’entretien, le calcaire s’est déposé dans le canal, et l’eau a cessé d’arriver. Le pont, lui, est resté debout, et on peut aujourd’hui le traverser à pied.",
+    "questions": [
+      {
+        "kind": "literal",
+        "prompt": "Combien d’étages d’arches le pont du Gard compte-t-il ?",
+        "options": [
+          "Deux",
+          "Quatre",
+          "Cinq",
+          "Trois"
+        ],
+        "correct": 3
+      },
+      {
+        "kind": "inference",
+        "prompt": "Pourquoi le canal descend-il très doucement ?",
+        "options": [
+          "Pour que l’eau coule toute seule, sans pompe",
+          "Pour que l’eau arrive le plus vite possible dans la ville",
+          "Pour que le pont ne s’écroule pas",
+          "Pour que le calcaire ne s’y dépose pas"
+        ],
+        "correct": 0
+      },
+      {
+        "kind": "detail",
+        "prompt": "Qu’est-ce qui a fini par boucher le canal ?",
+        "options": [
+          "Des feuilles mortes et de la terre amenées par le vent",
+          "Du calcaire déposé par l’eau",
+          "Des pierres tombées du pont",
+          "La glace de l’hiver"
+        ],
+        "correct": 1
+      }
+    ]
+  },
+  {
+    "id": "tournee-de-lina",
+    "topic": "La tournée de Lina",
+    "level": 3,
+    "text": "Lina chargeait sa sacoche avant le premier chant du coq, moins par obligation que par habitude. Sa tournée suivait la rivière, montait sur le plateau, puis desservait trois fermes trop isolées pour qu’un car s’y arrête. Elle connaissait les chiens par leur nom et les boîtes aux lettres par leurs caprices : celle qui coinçait, celle qui prenait l’eau, celle que le vent refermait trop fort. Un vendredi, elle trouva une enveloppe dont l’adresse avait disparu sous la pluie, avec pour seul indice le dessin d’un pommier. Elle interrogea la boulangère, puis le maire, puis un enfant qui rentrait de l’école. Le pommier se trouvait derrière la ferme du milieu, celle dont la boîte prenait l’eau. Lina glissa donc la lettre tout au fond, sous un petit carton qu’elle gardait pour les jours de pluie. Personne ne l’applaudit. Le samedi, pourtant, une femme leva la main depuis le verger, et cela lui suffit.",
+    "questions": [
+      {
+        "kind": "literal",
+        "prompt": "Que restait-il comme indice sur l’enveloppe du vendredi ?",
+        "options": [
+          "Un nom à moitié effacé",
+          "Le tampon du maire",
+          "Un numéro de ferme",
+          "Le dessin d’un pommier"
+        ],
+        "correct": 3
+      },
+      {
+        "kind": "inference",
+        "prompt": "Pourquoi Lina glisse-t-elle la lettre sous un petit carton ?",
+        "options": [
+          "Pour la protéger de l’eau dans une boîte qui prend l’eau",
+          "Pour que personne d’autre ne la lise avant la bonne ferme",
+          "Pour la retrouver plus facilement",
+          "Pour qu’elle ne s’envole pas"
+        ],
+        "correct": 0
+      },
+      {
+        "kind": "detail",
+        "prompt": "Combien de fermes sont trop isolées pour qu’un car s’y arrête ?",
+        "options": [
+          "Trois",
+          "Deux",
+          "Quatre",
+          "Six"
+        ],
+        "correct": 0
+      }
+    ]
+  },
+  {
+    "id": "metre",
+    "topic": "Inventer le mètre",
+    "level": 3,
+    "text": "Avant la Révolution française, chaque région avait ses propres mesures : le pied, la toise, l’aune, qui changeaient d’une ville à l’autre. Une aune de tissu n’avait pas la même longueur partout, et les disputes entre marchands étaient fréquentes. Les savants de l’époque ont donc proposé une mesure tirée de la Terre elle-même : le mètre serait la dix-millionième partie de la distance entre le pôle Nord et l’équateur. Pour la calculer, deux équipes ont mesuré pendant des années l’arc de méridien qui va de Dunkerque à Barcelone, en posant des triangles sur le paysage, malgré la guerre et la méfiance des villageois. Un étalon en platine, déposé à Paris en 1799, a servi de référence. Bien plus tard, le mètre a été redéfini à partir de la vitesse de la lumière. Sa fonction n’a pas changé : que deux ateliers, deux villes, deux pays disent la même longueur et se comprennent.",
+    "questions": [
+      {
+        "kind": "literal",
+        "prompt": "D’où voulait-on tirer le mètre ?",
+        "options": [
+          "Du pied d’un roi",
+          "De la longueur d’un pendule",
+          "De la taille de la Terre",
+          "De la hauteur d’une montagne"
+        ],
+        "correct": 2
+      },
+      {
+        "kind": "inference",
+        "prompt": "Pourquoi une mesure commune était-elle utile aux marchands ?",
+        "options": [
+          "Elle évitait les disputes sur la longueur d’une marchandise",
+          "Elle rendait les tissus moins chers",
+          "Elle les obligeait à voyager davantage",
+          "Elle supprimait toutes les taxes entre les villes et les régions"
+        ],
+        "correct": 0
+      },
+      {
+        "kind": "detail",
+        "prompt": "Entre quelles villes a-t-on mesuré l’arc de méridien ?",
+        "options": [
+          "Dunkerque et Barcelone",
+          "Paris et Marseille",
+          "Bordeaux et Toulouse, le long de la Garonne",
+          "Lille et Madrid"
+        ],
+        "correct": 0
+      }
+    ]
+  },
+  {
+    "id": "fourmis-champignon",
+    "topic": "Les fourmis jardinières",
+    "level": 3,
+    "text": "Dans les forêts d’Amérique tropicale, on croise parfois une longue file de fourmis qui portent chacune un morceau de feuille au-dessus de leur tête, comme de petits parasols verts. Pourtant, elles ne mangent presque pas ces feuilles. Dans la fourmilière, d’autres ouvrières les mâchent et les mélangent avec leur salive pour en faire une pâte, sur laquelle elles cultivent un champignon. C’est ce champignon qui nourrit la colonie. On peut donc parler d’une véritable agriculture : les fourmis choisissent les feuilles, nettoient le jardin, retirent les moisissures et, si une maladie s’installe, elles peuvent abandonner la parcelle et en recommencer une ailleurs. Les plus petites d’entre elles voyagent parfois sur les fragments, afin de chasser les mouches qui viennent pondre dessus. Cette alliance est très ancienne : le champignon a besoin des fourmis pour vivre, et les fourmis ne pourraient pas se passer de lui.",
+    "questions": [
+      {
+        "kind": "literal",
+        "prompt": "En quoi les ouvrières transforment-elles les feuilles dans la fourmilière ?",
+        "options": [
+          "En un toit contre la pluie",
+          "En une réserve pour l’hiver",
+          "En une pâte sur laquelle pousse un champignon",
+          "En un repas préparé spécialement pour les larves"
+        ],
+        "correct": 2
+      },
+      {
+        "kind": "inference",
+        "prompt": "Pourquoi le texte parle-t-il d’agriculture ?",
+        "options": [
+          "Les fourmis plantent de jeunes arbres dans la forêt tropicale",
+          "Elles cultivent, soignent et protègent leur champignon",
+          "Les fourmis vendent leurs feuilles",
+          "Le champignon pousse tout seul dans la fourmilière"
+        ],
+        "correct": 1
+      },
+      {
+        "kind": "detail",
+        "prompt": "Pourquoi les plus petites fourmis voyagent-elles sur les fragments de feuille ?",
+        "options": [
+          "Pour goûter les feuilles avant toutes les autres ouvrières",
+          "Pour montrer le chemin à la colonne",
+          "Pour se reposer pendant le trajet",
+          "Pour chasser les mouches qui viennent y pondre"
+        ],
+        "correct": 3
+      }
+    ]
+  },
+  {
+    "id": "marais-salants",
+    "topic": "Le sel des marais",
+    "level": 3,
+    "text": "Dans un marais salant, le sel ne s’extrait pas : il apparaît tout seul, patiemment, grâce au soleil et au vent. L’eau de mer entre d’abord dans un grand bassin, puis passe lentement de bassin en bassin par de petits canaux. Peu profonds, ces bassins laissent l’eau s’évaporer. À chaque étape, elle devient plus salée, parce que seule l’eau s’en va, tandis que le sel reste. Dans les derniers bassins, appelés cristallisoirs, l’eau est si chargée que le sel se dépose. Par temps chaud et sec, une fine pellicule de cristaux blancs se forme à la surface : c’est la fleur de sel, que le paludier récolte avec un long râteau plat, tout en douceur, pour ne pas la mêler à la vase. Le gros sel, lui, tombe au fond et se ramasse à la fin. Un été trop humide, et la récolte est maigre.",
+    "questions": [
+      {
+        "kind": "literal",
+        "prompt": "Qu’est-ce que la fleur de sel ?",
+        "options": [
+          "Le sel qui tombe au fond du bassin",
+          "Une fine pellicule de cristaux à la surface",
+          "Le sel brun et gris mélangé à la vase du fond du bassin",
+          "Une plante qui pousse au bord des bassins"
+        ],
+        "correct": 1
+      },
+      {
+        "kind": "inference",
+        "prompt": "Pourquoi l’eau devient-elle de plus en plus salée de bassin en bassin ?",
+        "options": [
+          "On ajoute du sel à chaque étape",
+          "Seule l’eau s’évapore, le sel reste",
+          "La mer est plus salée près des bassins",
+          "La vase libère du sel dans l’eau"
+        ],
+        "correct": 1
+      },
+      {
+        "kind": "detail",
+        "prompt": "Comment s’appelle la personne qui récolte le sel du marais ?",
+        "options": [
+          "Le marinier",
+          "Le berger",
+          "Le pêcheur",
+          "Le paludier"
+        ],
+        "correct": 3
+      }
+    ]
+  }
+]
