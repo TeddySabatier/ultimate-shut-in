@@ -87,6 +87,9 @@ The owner's actual goal is narrower and more useful than "learning in general": 
 
 ### First two decks, as a sketch
 
+Sources for both decks are curated and licence-checked in `docs/learning/sources/` (`kubernetes.md`, `ebpf.md`): read the per-topic lists there before writing a card, and use their attribution format in the card's source field.
+
+
 **Kubernetes (about 140 cards, 10 topics):** core objects (Pod, ReplicaSet, Deployment, StatefulSet, DaemonSet, Job, CronJob); Services and Ingress and the networking model; ConfigMaps and Secrets; storage (PV, PVC, StorageClass); scheduling (requests and limits, affinity, taints and tolerations, priority); probes and lifecycle; RBAC and ServiceAccounts; kubectl fluency (get, describe, logs, exec, rollout, diff, explain); troubleshooting patterns (Pending, CrashLoopBackOff, ImagePullBackOff, OOMKilled, DNS); and architecture (API server, etcd, scheduler, controllers, kubelet, CNI, CRI). Source: kubernetes.io docs.
 
 **eBPF (about 110 cards, 9 topics):** what eBPF is and the verifier's guarantees; program types and hooks (kprobe, uprobe, tracepoint, XDP, tc, cgroup, LSM); maps (hash, array, per-CPU, ring buffer, LRU) and when to use each; helpers and tail calls; CO-RE and BTF; toolchains (libbpf, bpftool, bcc, bpftrace, and when each fits); loading and lifecycle (pinning, attach, replace); observability recipes (latency histograms, syscall tracing); networking recipes (XDP drop, load balancing); and safety and limits (verifier errors, instruction limits, kernel version differences). Sources: ebpf.io, kernel docs, libbpf and bpftool docs.
