@@ -18,6 +18,10 @@ import {
   type Party,
   type RunContext,
 } from '../contract';
+// eslint-disable-next-line no-restricted-imports -- src/games/shared holds cross-game helpers (CONTRACT.md section 2); eslint.config.js does not list it yet, see docs/review/notes/game-subject-scrolls.md
+import { DEFAULT_GAPS, schedule, type CardProgress } from '../shared/scheduler';
+// eslint-disable-next-line no-restricted-imports -- same reason as above
+import { gradeTyped, levenshtein, normalizeAnswer, type Verdict } from '../shared/typedAnswer';
 import { strings, type WordForgeStrings } from './strings';
 import {
   MAX_SHOWS,
@@ -29,7 +33,8 @@ import {
   type WordEntry,
 } from './words';
 
-export type Verdict = 'right' | 'almost' | 'wrong';
+export type { Verdict };
+export { gradeTyped, levenshtein, normalizeAnswer };
 export type InputMode = 'choice' | 'typed';
 
 export interface Mark {
@@ -38,12 +43,7 @@ export interface Mark {
   credit: number;
 }
 
-export interface WordProgress {
-  id: string;
-  shows: number;
-  wrongs: number;
-  scheduledFinal: boolean;
-}
+export type WordProgress = CardProgress;
 
 export interface WordForgeState {
   seed: number;
@@ -85,17 +85,11 @@ export type WordForgeAction =
   | { type: 'forfeit' };
 
 const BASE_SECONDS = 180;
-const RIGHT_GAP = 8;
+const RIGHT_GAP = DEFAULT_GAPS.right;
 const STUDY_RIGHT_GAP = 6;
-const FIRST_MISS_GAP = 2;
-const LATER_MISS_GAP = 5;
 const WIN_ACCURACY = 0.7;
 const STUDY_BOT_BONUS = 0.03;
 const BOT_HIT = [0, 0.8, 0.62, 0.5, 0.47, 0.41] as const;
-
-const APOSTROPHES = /['\u2018\u2019\u02BC\u0060]/g;
-const HYPHENS = /[\u2010-\u2014\u2212]/g;
-const MARKS = /\p{M}/gu;
 
 export function promptOf(word: WordEntry, learns: Locale): string {
   return learns === 'fr' ? word.en : word.fr;
@@ -148,51 +142,6 @@ export function rightGap(state: Pick<WordForgeState, 'hasStudy'>): number {
   return state.hasStudy ? STUDY_RIGHT_GAP : RIGHT_GAP;
 }
 
-/** NFC, trim, collapse spaces, lower case, fold apostrophes, dashes and the ligatures oe/ae. Optionally strip accents. */
-export function normalizeAnswer(raw: string, stripAccents: boolean): string {
-  let s = raw.normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase();
-  // Ligatures are not accents and are hard to type: oe/ae always count.
-  s = s.replace(APOSTROPHES, "'").replace(HYPHENS, '-').replace(/œ/g, 'oe').replace(/æ/g, 'ae');
-  if (stripAccents) {
-    s = s.normalize('NFD').replace(MARKS, '').normalize('NFC');
-  }
-  return s;
-}
-
-export function levenshtein(a: string, b: string): number {
-  if (a === b) return 0;
-  const m = a.length;
-  const n = b.length;
-  if (m === 0) return n;
-  if (n === 0) return m;
-  let prev: number[] = [];
-  for (let j = 0; j <= n; j++) prev.push(j);
-  for (let i = 1; i <= m; i++) {
-    const cur = [i];
-    const ca = a.charCodeAt(i - 1);
-    for (let j = 1; j <= n; j++) {
-      const cost = ca === b.charCodeAt(j - 1) ? 0 : 1;
-      const del = (prev[j] ?? 0) + 1;
-      const ins = (cur[j - 1] ?? 0) + 1;
-      const sub = (prev[j - 1] ?? 0) + cost;
-      cur.push(Math.min(del, ins, sub));
-    }
-    prev = cur;
-  }
-  return prev[n] ?? n;
-}
-
-export function gradeTyped(answer: string, expected: string, stripAccents: boolean): { verdict: Verdict; credit: number } {
-  const got = normalizeAnswer(answer, stripAccents);
-  const want = normalizeAnswer(expected, stripAccents);
-  if (got.length === 0) return { verdict: 'wrong', credit: 0 };
-  if (got === want) return { verdict: 'right', credit: 1 };
-  // Strict mode: the right letters with accents missing or wrong are "almost", however many accents.
-  if (!stripAccents && normalizeAnswer(answer, true) === normalizeAnswer(expected, true)) return { verdict: 'almost', credit: 0.5 };
-  if (want.length >= 3 && levenshtein(got, want) <= 1) return { verdict: 'almost', credit: 0.5 };
-  return { verdict: 'wrong', credit: 0 };
-}
-
 function shuffle<T>(rng: Rng, items: readonly T[]): T[] {
   const arr = [...items];
   for (let i = arr.length - 1; i > 0; i--) {
@@ -202,15 +151,6 @@ function shuffle<T>(rng: Rng, items: readonly T[]): T[] {
     arr[j] = tmp;
   }
   return arr;
-}
-
-function insertAfter(queue: readonly string[], delay: number, id: string): string[] {
-  const i = Math.min(Math.max(0, delay), queue.length);
-  return [...queue.slice(0, i), id, ...queue.slice(i)];
-}
-
-function progressOf(state: WordForgeState, id: string): WordProgress {
-  return state.progress.find((p) => p.id === id) ?? { id, shows: 0, wrongs: 0, scheduledFinal: false };
 }
 
 function optionsFor(rng: Rng, word: WordEntry, pool: readonly WordEntry[]): string[] {
@@ -280,9 +220,6 @@ function deal(state: WordForgeState, rng: Rng): WordForgeState {
 function applyAnswer(state: WordForgeState, verdict: Verdict, credit: number): WordForgeState {
   const id = state.currentId;
   if (!id) return state;
-  const prev = progressOf(state, id);
-  const shows = prev.shows + 1;
-  const wrongs = verdict === 'wrong' ? prev.wrongs + 1 : prev.wrongs;
   let streak = state.streak;
   let revivesLeft = state.revivesLeft;
   if (verdict === 'wrong') {
@@ -294,19 +231,11 @@ function applyAnswer(state: WordForgeState, verdict: Verdict, credit: number): W
   } else {
     streak += 1;
   }
-  const scheduledFinal = prev.scheduledFinal || credit >= 0.5;
-  let queue = state.queue;
-  if (shows < MAX_SHOWS) {
-    if (credit < 0.5) {
-      queue = insertAfter(queue, wrongs <= 1 ? FIRST_MISS_GAP : LATER_MISS_GAP, id);
-    } else if (!prev.scheduledFinal) {
-      queue = insertAfter(queue, rightGap(state), id);
-    }
-  }
+  const booked = schedule(state.queue, state.progress, id, credit, { ...DEFAULT_GAPS, right: rightGap(state), maxShows: MAX_SHOWS });
   const next: WordForgeState = {
     ...state,
-    queue,
-    progress: [...state.progress.filter((p) => p.id !== id), { id, shows, wrongs, scheduledFinal }],
+    queue: booked.queue,
+    progress: booked.progress,
     marks: [...state.marks, { id, verdict, credit }],
     streak,
     maxStreak: Math.max(state.maxStreak, streak),
