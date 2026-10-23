@@ -223,13 +223,18 @@ export default function MemoryPalaceScreen(props: GameScreenProps) {
         <span className="mono" data-testid="memory-palace-round">
           {formatText(s.round, { n: Math.min(state.roundIndex + 1, ROUND_COUNT), total: ROUND_COUNT })}
         </span>
-        <span className="mono">{state.phase === 'recall' ? s.phaseRecall : state.phase === 'memorise' ? s.phaseMemorise : s.phaseIntro}</span>
+        <span className="mono">{over ? s.phaseDone : state.phase === 'recall' ? s.phaseRecall : state.phase === 'memorise' ? s.phaseMemorise : s.phaseIntro}</span>
         <span className="mono" data-testid="memory-palace-score">
           {formatText(s.progress, { correct, total })}
         </span>
       </p>
 
-      <div className={styles.live} aria-live="polite" role="status" data-testid="memory-palace-prompt">
+      <div
+        className={cx(styles.live, (outcome || state.phase === 'memorise') && 'srOnly')}
+        aria-live="polite"
+        role="status"
+        data-testid="memory-palace-prompt"
+      >
         {live}
       </div>
 
