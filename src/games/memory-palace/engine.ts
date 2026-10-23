@@ -33,9 +33,19 @@ export const HINT_BONUS = 150;
 export const SCORE_BASE = 850;
 export const FLED_SCORE_BASE = 400;
 /** Bot error percent by difficulty (index 1..5). Difficulty 1 is perfect. */
-export const BOT_ERROR_PCT = [0, 0, 28, 34, 40, 46] as const;
-const MIN_DISPLAY_TICKS = 4;
+export const BOT_ERROR_PCT = [0, 0, 37, 44, 52, 59] as const;
+/** Look time never drops under two seconds, whatever the buffs. */
+const MIN_DISPLAY_TICKS = 40;
 const PROMPT_COUNT = 8;
+export const TIP_COUNT = 6;
+/** A time-buff second adds this many 50 ms ticks to every look, capped. */
+export const TIME_TICKS_PER_SECOND = 4;
+export const TIME_TICKS_CAP = 120;
+/** The bot misses a little less for every this many extra ticks of look time. */
+const BOT_TICKS_PER_PCT = 8;
+/** Even with a letter hint the bot forgets this share of the things it was hinted about. */
+export const BOT_HINTED_MISS_PCT = 35;
+const BOT_TIME_RELIEF_CAP = 10;
 
 export interface PalaceItem {
   wordId: number;
@@ -67,7 +77,7 @@ export interface RoundPlay {
   hints: LetterHint[];
 }
 
-export type Phase = 'memorise' | 'recall' | 'done';
+export type Phase = 'intro' | 'memorise' | 'recall' | 'done';
 
 export interface MemoryPalaceState {
   seed: number;
@@ -118,14 +128,15 @@ export function distractorCount(difficulty: number, luckAmount: number): number 
   return Math.max(0, difficulty - cut);
 }
 
+/** Look time per thing in 50 ms ticks: 8, 6.5, 5, 4 and 3 seconds. */
 export function baseDisplayTicks(difficulty: number): number {
-  return [0, 24, 20, 16, 12, 8][clampInt(difficulty, 1, 5)] ?? 16;
+  return [0, 160, 130, 100, 80, 60][clampInt(difficulty, 1, 5)] ?? 100;
 }
 
-/** Extra ticks from Sleep (power) plus the time buff (seconds, one tick each, capped). */
+/** Extra ticks from Sleep (half its power) plus the time buff (4 ticks per second of buff, capped). */
 export function extraDisplayTicks(sleepPower: number, timeSeconds: number): number {
-  const sleep = Math.floor(sleepPower / 4);
-  const time = Math.min(40, Math.max(0, timeSeconds));
+  const sleep = Math.floor(Math.max(0, sleepPower) / 2);
+  const time = Math.min(TIME_TICKS_CAP, Math.max(0, timeSeconds) * TIME_TICKS_PER_SECOND);
   return sleep + time;
 }
 
@@ -198,10 +209,11 @@ function memberByHabit(party: Party, habit: string): PartyMember | undefined {
   return party.members.find((m) => m.habit === habit);
 }
 
+/** Rooms for `count` things: every room before any repeats, listed in walking order (gate to tower). */
 function assignRooms(rng: () => number, count: number): RoomId[] {
   const order = shuffle(rng, ROOM_IDS);
   const assigned = Array.from({ length: count }, (_, i) => order[i % order.length]!);
-  return shuffle(rng, assigned);
+  return assigned.sort((a, b) => ROOM_IDS.indexOf(a) - ROOM_IDS.indexOf(b));
 }
 
 function makeRound(rng: () => number, count: number, distractors: number, used: number[]): RoundPlan {
@@ -232,7 +244,7 @@ function beginRound(state: MemoryPalaceState, index: number, resetPlay: boolean)
     : state.plays;
   return {
     ...state,
-    phase: 'memorise',
+    phase: 'intro',
     roundIndex: index,
     showIndex: 0,
     ticksLeft: state.displayTicksByRound[index] ?? MIN_DISPLAY_TICKS,
@@ -287,9 +299,24 @@ function revealNext(state: MemoryPalaceState): MemoryPalaceState {
   return { ...state, phase: 'recall', ticksLeft: 0 };
 }
 
+export function capitalise(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/** The vivid caption of an item (what to picture), without the room or the word. */
+export function captionText(item: PalaceItem, s: MemoryPalaceStrings): string {
+  return s.prompts[item.promptId] ?? s.prompts[0] ?? '';
+}
+
+/** Where an item is shown: "In the hall". */
+export function roomAtText(roomId: RoomId, s: MemoryPalaceStrings): string {
+  return capitalise(s.roomAt[roomId]);
+}
+
+/** The full prompt, for the live region: "In the hall: lantern. Make the picture huge." */
 export function promptText(state: MemoryPalaceState, item: PalaceItem, s: MemoryPalaceStrings): string {
-  const template = s.prompts[item.promptId] ?? s.prompts[0]!;
-  return formatText(template, { item: wordText(item.wordId, state.locale), room: s.rooms[item.roomId] });
+  const colon = state.locale === 'fr' ? ' :' : ':';
+  return `${roomAtText(item.roomId, s)}${colon} ${wordText(item.wordId, state.locale)}. ${captionText(item, s)}`;
 }
 
 export function outcomeLog(state: MemoryPalaceState, s: MemoryPalaceStrings): string[] {
@@ -308,15 +335,18 @@ export function outcomeLog(state: MemoryPalaceState, s: MemoryPalaceStrings): st
   return lines;
 }
 
+/** Which technique tip a round carries (0..TIP_COUNT-1): the seed picks the start, each round moves on. */
+export function tipIndex(seed: number, roundIndex: number): number {
+  return ((seed >>> 0) + roundIndex) % TIP_COUNT;
+}
+
 function learnedNote(state: MemoryPalaceState): { topic: { en: string; fr: string }; note: { en: string; fr: string } } {
-  const last = state.rounds[state.rounds.length - 1]?.items[0];
-  const tipEn = last ? promptText({ ...state, locale: 'en' }, last, strings.en) : strings.en.prompts[0]!;
-  const tipFr = last ? promptText({ ...state, locale: 'fr' }, last, strings.fr) : strings.fr.prompts[0]!;
+  const tip = tipIndex(state.seed, Math.max(0, state.rounds.length - 1));
   return {
     topic: { en: strings.en.learned.topic, fr: strings.fr.learned.topic },
     note: {
-      en: formatText(strings.en.learned.note, { tip: tipEn }),
-      fr: formatText(strings.fr.learned.note, { tip: tipFr }),
+      en: formatText(strings.en.learned.note, { tip: strings.en.tips[tip] ?? '' }),
+      fr: formatText(strings.fr.learned.note, { tip: strings.fr.tips[tip] ?? '' }),
     },
   };
 }
@@ -354,7 +384,7 @@ function initial(seed: number, party: Party, run: RunContext, locale: Locale): M
     seed: seed >>> 0,
     locale,
     difficulty,
-    phase: 'memorise',
+    phase: 'intro',
     roundIndex: 0,
     rounds,
     plays: rounds.map(() => emptyPlay()),
@@ -390,6 +420,7 @@ function reduce(state: MemoryPalaceState, action: MemoryPalaceAction): MemoryPal
   }
 
   if (action.type === 'advance') {
+    if (state.phase === 'intro') return { ...state, phase: 'memorise' };
     if (state.phase !== 'memorise') return state;
     return revealNext(state);
   }
@@ -450,8 +481,9 @@ function outcome(state: MemoryPalaceState): Outcome | null {
   const { correct, total, hintsUsed } = tally(state);
   const pct = accuracyPct(state);
   const result = state.forfeited ? 'fled' : pct >= WIN_RATIO ? 'won' : 'lost';
-  const hintBonus = result !== 'fled' && hintsUsed === 0 ? HINT_BONUS : 0;
-  const raw = result === 'fled' ? (FLED_SCORE_BASE * correct) / Math.max(1, total) : (SCORE_BASE * correct) / Math.max(1, total) + hintBonus;
+  // 850 for every thing in place, 150 more when no letter was asked for; a left game counts for less.
+  const ceiling = result === 'fled' ? FLED_SCORE_BASE : SCORE_BASE + (hintsUsed === 0 ? HINT_BONUS : 0);
+  const raw = (ceiling * correct) / Math.max(1, total);
   return {
     result,
     score: clampScore(raw),
@@ -471,31 +503,50 @@ function outcome(state: MemoryPalaceState): Outcome | null {
   };
 }
 
+/** Percent chance (0..100) that the bot forgets a thing: by difficulty, less with a longer look. */
+export function botErrorPct(state: MemoryPalaceState): number {
+  const base = BOT_ERROR_PCT[state.difficulty] ?? 0;
+  if (base === 0) return 0;
+  const extra = (state.displayTicksByRound[0] ?? 0) - baseDisplayTicks(state.difficulty);
+  const relief = Math.min(BOT_TIME_RELIEF_CAP, Math.max(0, Math.floor(extra / BOT_TICKS_PER_PCT)));
+  return Math.max(0, base - relief);
+}
+
+/**
+ * The bot walks the palace, then places every thing in order. It forgets some
+ * things (more on hard runs). When it has a letter hint it spends it on a thing
+ * it forgot, like a player would; without one it guesses a wrong room.
+ * The kit's bot rng does not depend on the game seed, so the roll is mixed
+ * with a hash of the seed, the round and the word: different palaces forget
+ * different things, and the same palace always forgets the same ones.
+ */
 function botPlay(state: MemoryPalaceState, rng: () => number): MemoryPalaceAction | null {
   if (isOver(state)) return null;
+  if (state.phase === 'intro') return { type: 'advance' };
   if (state.phase === 'memorise') return { type: 'tick' };
   if (state.phase !== 'recall') return null;
   const round = currentRound(state);
   const play = currentPlay(state);
   if (!round || !play) return null;
-  if (state.hintsLeft > 0) {
-    const used = new Set(placedIds(play));
-    const hinted = new Set(play.hints.map((h) => h.wordId));
-    if (round.items.some((it) => !used.has(it.wordId) && !hinted.has(it.wordId))) return { type: 'hint' };
-  }
   const used = new Set(placedIds(play));
   const next = round.items.find((it) => !used.has(it.wordId));
   if (!next) return null;
-  const err = BOT_ERROR_PCT[state.difficulty] ?? 0;
-  // Mix the bot rng with the word id so a given error stream is not identical
-  // across seeds (the kit's bot rng does not depend on the game seed).
-  const roll = (Math.floor(rng() * 100) + next.wordId) % 100;
-  if (roll < err) {
-    const others = ROOM_IDS.filter((id) => id !== next.roomId);
-    const roomId = others[rngIntSafe(rng, others.length)] ?? next.roomId;
-    return { type: 'place', wordId: next.wordId, roomId };
+  // A second walk through the same round (a revive) is a fresh draw and a better one: the player has seen it twice.
+  const again = state.reviveUsed && state.roundIndex === state.revivedRound;
+  const mix = fnv1a(`bot:${state.seed}:${state.roundIndex}:${next.wordId}:${again ? 'again' : 'first'}`) % 100;
+  const roll = (Math.floor(rng() * 100) + mix) % 100;
+  const hinted = play.hints.some((h) => h.wordId === next.wordId);
+  if (hinted) {
+    // A hint turns most forgotten things into remembered ones, not all of them.
+    if (roll >= BOT_HINTED_MISS_PCT) return { type: 'place', wordId: next.wordId, roomId: next.roomId };
+  } else if (roll >= (again ? Math.floor(botErrorPct(state) / 2) : botErrorPct(state))) {
+    return { type: 'place', wordId: next.wordId, roomId: next.roomId };
+  } else if (state.hintsLeft > 0) {
+    return { type: 'hint' };
   }
-  return { type: 'place', wordId: next.wordId, roomId: next.roomId };
+  const others = ROOM_IDS.filter((id) => id !== next.roomId);
+  const roomId = others[rngIntSafe(rng, others.length)] ?? next.roomId;
+  return { type: 'place', wordId: next.wordId, roomId };
 }
 
 function forfeit(): MemoryPalaceAction {

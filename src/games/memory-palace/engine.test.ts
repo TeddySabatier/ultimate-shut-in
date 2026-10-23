@@ -10,6 +10,7 @@ import {
   BOT_ERROR_PCT,
   HINT_BONUS,
   SCORE_BASE,
+  TIME_TICKS_PER_SECOND,
   WIN_RATIO,
   currentItem,
   currentPlay,
@@ -36,7 +37,7 @@ const start = (seed = 1, run: RunContext = runs.plain, party = parties.full, loc
 
 function skipLook(s: MemoryPalaceState): MemoryPalaceState {
   let next = s;
-  while (next.phase === 'memorise') next = engine.reduce(next, { type: 'advance' });
+  while (next.phase === 'intro' || next.phase === 'memorise') next = engine.reduce(next, { type: 'advance' });
   return next;
 }
 
@@ -66,7 +67,7 @@ function playPerfect(s: MemoryPalaceState): MemoryPalaceState {
   let guard = 0;
   while (!engine.outcome(next) && guard < 80) {
     guard += 1;
-    if (next.phase === 'memorise') next = skipLook(next);
+    if (next.phase === 'intro' || next.phase === 'memorise') next = skipLook(next);
     else if (next.phase === 'recall') next = placeCorrect(next);
     else break;
   }
@@ -78,7 +79,7 @@ function playAllWrong(s: MemoryPalaceState): MemoryPalaceState {
   let guard = 0;
   while (!engine.outcome(next) && guard < 80) {
     guard += 1;
-    if (next.phase === 'memorise') next = skipLook(next);
+    if (next.phase === 'intro' || next.phase === 'memorise') next = skipLook(next);
     else if (next.phase === 'recall') next = placeWrong(next);
     else break;
   }
@@ -163,7 +164,7 @@ describe('memory palace engine', () => {
     const timed = displayTicksFor(2, 0, 20);
     expect(slept).toBeGreaterThan(plain);
     expect(timed).toBeGreaterThan(plain);
-    expect(extraDisplayTicks(44, 20)).toBe(Math.floor(44 / 4) + 20);
+    expect(extraDisplayTicks(44, 20)).toBe(Math.floor(44 / 2) + 20 * TIME_TICKS_PER_SECOND);
     const full = start(1, runs.plain, parties.full);
     const starter = start(1, runs.plain, parties.starter);
     expect(full.displayTicksByRound[0]!).toBeGreaterThan(starter.displayTicksByRound[0]!);
@@ -181,7 +182,7 @@ describe('memory palace engine', () => {
   });
 
   it('ticks drain look time then open the next item, then recall', () => {
-    let s = start(4, emptyRun(1), parties.starter);
+    let s = engine.reduce(start(4, emptyRun(1), parties.starter), { type: 'advance' });
     const first = currentItem(s);
     expect(first).toBeTruthy();
     const startTicks = s.ticksLeft;
@@ -280,12 +281,12 @@ describe('memory palace engine', () => {
     const n = currentRound(s)!.items.length;
     for (let i = 0; i < n; i++) s = placeWrong(s);
     expect(s.reviveUsed).toBe(false);
-    while (s.phase === 'memorise') s = engine.reduce(s, { type: 'advance' });
+    s = skipLook(s);
     while (s.phase === 'recall' && s.roundIndex === 1) s = placeWrong(s);
-    while (s.phase === 'memorise') s = engine.reduce(s, { type: 'advance' });
+    s = skipLook(s);
     while (s.phase === 'recall' && !s.reviveUsed) s = placeWrong(s);
     expect(s.reviveUsed).toBe(true);
-    expect(s.phase).toBe('memorise');
+    expect(s.phase).toBe('intro');
   });
 
   it('Social marks a visible room-count tip; starter parties do not', () => {
@@ -325,12 +326,12 @@ describe('memory palace engine', () => {
   });
 
   it('the bot wins some and loses some on difficulty 2', () => {
-    const results = Array.from({ length: 20 }, (_, i) => playToEnd(game, i + 1, parties.full, runs.plain).outcome?.result);
+    const results = Array.from({ length: 60 }, (_, i) => playToEnd(game, i + 1, parties.full, runs.plain).outcome?.result);
     const wins = results.filter((r) => r === 'won').length;
     expect(results).toContain('won');
     expect(results).toContain('lost');
-    expect(wins).toBeGreaterThanOrEqual(6);
-    expect(wins).toBeLessThanOrEqual(16);
+    expect(wins).toBeGreaterThanOrEqual(24);
+    expect(wins).toBeLessThanOrEqual(46);
   });
 
   it('remaining choices drop after a place, and troopsUsed stays inside the party', () => {
@@ -350,7 +351,7 @@ describe('memory palace engine', () => {
     const prefix = currentPlay(hinted)!.hints[0]!.prefix;
     const wordId = currentPlay(hinted)!.hints[0]!.wordId;
     expect(wordText(wordId, 'en').startsWith(prefix)).toBe(true);
-    const item = currentItem(start(40, emptyRun(1), parties.full, 'fr'));
+    const item = currentItem(engine.reduce(start(40, emptyRun(1), parties.full, 'fr'), { type: 'advance' }));
     expect(item).toBeTruthy();
     expect(wordText(item!.wordId, 'fr').length).toBeGreaterThan(0);
   });
