@@ -47,11 +47,11 @@ export { ROOM_KINDS, type RoomKind } from './data';
 /** Tries a plot gives before the garden wilts. */
 export const MAX_TRIES = 3;
 /** Above this training loss the weights have flown apart. */
-export const DIVERGE_LOSS = 30;
+export const DIVERGE_LOSS = 12;
 /** The learning rates the slider offers, low to high. */
-export const LR_STEPS: readonly number[] = [0.01, 0.02, 0.03, 0.05, 0.07, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.7, 1, 1.5];
+export const LR_STEPS: readonly number[] = [0.01, 0.02, 0.03, 0.05, 0.07, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.7, 1, 1.5, 2, 3];
 export const MIN_LR = 0.01;
-export const MAX_LR = 1.5;
+export const MAX_LR = 3;
 /** Slider range of a hand-turned weight. */
 export const WEIGHT_LIMIT = 4;
 export const MAX_HIDDEN = 4;
@@ -158,18 +158,28 @@ interface RoomConfig {
   startLr: number;
   goodLr: number;
   goalPct: number;
-  targetLoss: number;
 }
 
 /** The numbers of one plot at one difficulty (1 gentle, 5 tight). */
 export function roomConfig(kind: RoomKind, difficulty: number): RoomConfig {
   const i = clamp(Math.round(difficulty), 1, 5) - 1;
   const pick = (a: readonly number[]) => a[i] ?? a[0] ?? 0;
-  if (kind === 'train') return { batch: 4, budget: pick([10, 9, 8, 7, 6]), startLr: 0.02, goodLr: 0.2, goalPct: 95, targetLoss: 0.06 };
-  if (kind === 'xor') return { batch: 10, budget: pick([16, 14, 12, 12, 10]), startLr: 0.15, goodLr: 0.15, goalPct: 95, targetLoss: 0 };
-  if (kind === 'noise') return { batch: 12, budget: pick([12, 12, 12, 11, 10]), startLr: 0.25, goodLr: 0.25, goalPct: pick(NOISE_GOAL), targetLoss: 0 };
-  if (kind === 'boss') return { batch: 12, budget: pick([14, 12, 9, 9, 9]), startLr: 0.25, goodLr: 0.25, goalPct: pick([82, 86, 90, 92, 94]), targetLoss: 0 };
-  return { batch: 0, budget: 0, startLr: 0.1, goodLr: 0.1, goalPct: 95, targetLoss: 0 };
+  if (kind === 'train') return { batch: 4, budget: pick([10, 9, 8, 7, 6]), startLr: 0.02, goodLr: 0.2, goalPct: 95 };
+  if (kind === 'xor') return { batch: 10, budget: pick([16, 14, 12, 12, 10]), startLr: 0.15, goodLr: 0.15, goalPct: 95 };
+  if (kind === 'noise') return { batch: 12, budget: pick([12, 12, 12, 11, 10]), startLr: 0.25, goodLr: 0.25, goalPct: pick(NOISE_GOAL) };
+  if (kind === 'boss') return { batch: 12, budget: pick([14, 12, 9, 9, 8]), startLr: 0.25, goodLr: 0.25, goalPct: pick([82, 86, 90, 92, 95]) };
+  return { batch: 0, budget: 0, startLr: 0.1, goodLr: 0.1, goalPct: 95 };
+}
+
+/**
+ * The loss the auto-train plot asks for: a little above what a well-trained
+ * single neuron reaches on these very seeds (so it is always reachable, and
+ * a gentler margin at low difficulty).
+ */
+export function targetLossFor(seeds: readonly Seed[], difficulty: number): number {
+  const best = lossOf(train(zeroNet(0), seeds, 0.2, 300), trainSeeds(seeds));
+  const margin = [1.5, 1.4, 1.3, 1.2, 1.15][clamp(Math.round(difficulty), 1, 5) - 1] ?? 1.3;
+  return round2(best * margin + 0.02);
 }
 
 export function kindOf(state: Pick<WeightGardenState, 'plan' | 'room'>): RoomKind {
@@ -276,7 +286,7 @@ function setupRoom(base: WeightGardenState, room: number, luck: number): WeightG
       lr: cfg.startLr,
       batch: cfg.batch === 0 ? 0 : cfg.batch + base.moveBoost,
       budget: cfg.budget === 0 ? 0 : cfg.budget + extraRounds,
-      targetLoss: cfg.targetLoss,
+      targetLoss: kind === 'train' ? targetLossFor(seeds, base.difficulty) : 0,
       goalPct: cfg.goalPct,
       rounds: 0,
       fails: 0,

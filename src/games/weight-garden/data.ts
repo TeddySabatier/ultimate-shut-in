@@ -22,7 +22,7 @@ const AXES: readonly (readonly [number, number])[] = [
 type Rng = () => number;
 
 function bell(rng: Rng): number {
-  return (rng() + rng() + rng()) / 1.5 - 1; // roughly -1..1, peaked at 0
+  return rng() + rng() + rng() - 1.5; // -1.5..1.5, peaked at 0, spread about 0.5
 }
 
 function pt(x: number, y: number, l: number, t: number): Seed {
@@ -42,7 +42,7 @@ function clusters(rng: Rng, o: { gap: number; spread: number; nTrain: number; nT
     for (const l of [1, -1]) {
       for (let i = 0; i < n; i++) {
         const along = l * o.gap + bell(rng) * o.spread;
-        const across = bell(rng) * o.spread * 1.6;
+        const across = bell(rng) * o.spread * 1.2;
         out.push(pt(ux * along - uy * across, uy * along + ux * across, l, t));
       }
     }
@@ -108,23 +108,23 @@ function ring(rng: Rng, o: { radius: number; margin: number; nTrain: number; nTe
 }
 
 /** Test accuracy (percent) the noisy plot asks for, by difficulty 1 to 5. */
-export const NOISE_GOAL: readonly number[] = [82, 86, 88, 89, 90];
+export const NOISE_GOAL: readonly number[] = [78, 82, 84, 86, 87];
 
 /**
  * Noisy clusters. A plain line must be able to reach the goal on the test seeds
  * (so that stopping early or staying small always works): candidates are drawn
- * until one qualifies, at most ten times.
+ * until one qualifies, at most 24 times.
  */
 function noisy(rng: Rng, d: number): Seed[] {
   const goal = NOISE_GOAL[d - 1] ?? 86;
   let best: Seed[] = [];
   let bestAcc = -1;
-  for (let i = 0; i < 10; i++) {
-    const seeds = clusters(rng, { gap: 0.4 - 0.02 * (d - 1), spread: 0.24 + 0.015 * (d - 1), nTrain: 6, nTest: 20, flips: 2 + (d > 2 ? 1 : 0) });
+  for (let i = 0; i < 24; i++) {
+    const seeds = clusters(rng, { gap: 0.4 - 0.02 * (d - 1), spread: 0.4 + 0.03 * (d - 1), nTrain: 6, nTest: 20, flips: 2 + (d > 2 ? 1 : 0) });
     const line = train(zeroNet(0), seeds, 0.3, 150);
     const test = seeds.filter((s) => s.t === 0);
     const acc = (countRight(line, test) * 100) / test.length;
-    if (acc >= goal + 4) return seeds;
+    if (acc >= goal + 3) return seeds;
     if (acc > bestAcc) {
       best = seeds;
       bestAcc = acc;
@@ -143,7 +143,7 @@ export function makeSeeds(rng: Rng, kind: RoomKind, difficulty: number): Seed[] 
   if (kind === 'boss') {
     return ring(rng, { radius: 0.55, margin: 0.2 - 0.03 * (d - 1), nTrain: 28, nTest: 36 });
   }
-  return clusters(rng, { gap: 0.72 - 0.05 * (d - 1), spread: 0.12 + 0.02 * (d - 1), nTrain: 10, nTest: 6, flips: 0 });
+  return clusters(rng, { gap: 0.72 - 0.05 * (d - 1), spread: 0.26 + 0.03 * (d - 1), nTrain: 10, nTest: 6, flips: 0 });
 }
 
 /** The line through the middle of the two class averages (training seeds), as slider values: score = a*x + b*y + c. */
