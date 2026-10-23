@@ -315,7 +315,9 @@ export default function MazeLearnerScreen(props: GameScreenProps) {
 
   // Painting with a pointer: press on a tile, then drag over others.
   const tileAt = (e: ReactPointerEvent): number => {
-    const el = document.elementFromPoint(e.clientX, e.clientY);
+    // A touch keeps the pointer on the tile where it started, so ask the page what is under the finger.
+    const under = typeof document.elementFromPoint === 'function' ? document.elementFromPoint(e.clientX, e.clientY) : null;
+    const el = under instanceof Element ? under : e.target;
     const tile = el instanceof Element ? el.closest('[data-i]') : null;
     return tile instanceof HTMLElement ? Number(tile.dataset.i) : -1;
   };
