@@ -110,6 +110,8 @@ export interface WeightGardenState {
   testOk: number;
   testN: number;
   loss: number;
+  /** How the try began (before the first press): the left end of the curves. */
+  start: HistoryEntry;
   history: HistoryEntry[];
   /** The last Train press flew apart (the weights were replanted). */
   diverged: boolean;
@@ -224,6 +226,12 @@ function withNet(state: WeightGardenState, net: Net): WeightGardenState {
   return { ...state, net, ...measure(net, state.seeds) };
 }
 
+/** Same, and remember how the try began. */
+function withFreshNet(state: WeightGardenState, net: Net): WeightGardenState {
+  const next = withNet(state, net);
+  return { ...next, start: { l: next.loss, tr: pct(next.trainOk, next.trainN), te: pct(next.testOk, next.testN) } };
+}
+
 /** Is the plot's goal met right now? (The player then opens the next plot.) */
 export function roomPassed(state: WeightGardenState): boolean {
   const kind = kindOf(state);
@@ -278,7 +286,7 @@ function setupRoom(base: WeightGardenState, room: number, luck: number): WeightG
   const seeds = makeSeeds(dataRng, kind, base.difficulty);
   const net = startingNet(kind, seeds, mulberry32(fnv1a(`weight-garden:${base.seed}:${room}:net`)), luck);
   const extraRounds = kind === 'line' ? 0 : base.sleepBonus;
-  return withNet(
+  return withFreshNet(
     {
       ...base,
       room,
@@ -341,6 +349,7 @@ function initial(seed: number, party: Party, run: RunContext, locale: Locale): W
     testOk: 0,
     testN: 0,
     loss: 0,
+    start: { l: 0, tr: 0, te: 0 },
     history: [],
     diverged: false,
     divergences: 0,
@@ -373,7 +382,7 @@ function clampLr(v: number): number {
 function replant(state: WeightGardenState, over: Partial<WeightGardenState>): WeightGardenState {
   const rng = turnRng(state.seed, state.turn);
   const fresh = bestSeedling(() => randomNet(rng, state.net.hidden), state.seeds, 1 + Math.floor(state.luckPoints / 5));
-  return withNet({ ...state, ...over, turn: state.turn + 1, rounds: 0, history: [], diverged: false }, fresh);
+  return withFreshNet({ ...state, ...over, turn: state.turn + 1, rounds: 0, history: [], diverged: false }, fresh);
 }
 
 function pushHistory(history: HistoryEntry[], e: HistoryEntry): HistoryEntry[] {

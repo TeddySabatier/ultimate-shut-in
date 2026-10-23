@@ -159,9 +159,9 @@ export default function WeightGardenScreen(props: GameScreenProps) {
   let curve: ReactNode = null;
   if (!hand) {
     curve = showTest ? (
-      <AccChart history={state.history} budget={state.budget} locale={locale} goal={state.goalPct} />
+      <AccChart start={state.start} history={state.history} budget={state.budget} locale={locale} goal={state.goalPct} />
     ) : (
-      <LossChart history={state.history} budget={state.budget} locale={locale} target={state.targetLoss} />
+      <LossChart start={state.start} history={state.history} budget={state.budget} locale={locale} target={state.targetLoss} />
     );
   }
 
@@ -231,6 +231,7 @@ export default function WeightGardenScreen(props: GameScreenProps) {
           <p className={styles.blurb}>{formatText(room.blurb, { n: cfg.batch + state.moveBoost })}</p>
           {state.hintOn ? <p className={styles.hintText}>{room.hint}</p> : null}
 
+          {over ? null : (
           <section className={styles.coach} aria-labelledby={`${uid}-coach`}>
             <h4 id={`${uid}-coach`} className={styles.coachTitle}>
               {state.showAdvice ? s.coach.studyTitle : s.coach.title}
@@ -240,14 +241,15 @@ export default function WeightGardenScreen(props: GameScreenProps) {
                 ? formatText(s.coach.facts.line, { right: state.trainOk, n: state.trainN })
                 : showTest
                   ? formatText(s.coach.facts.gap, { tr, te })
-                  : state.history.length > 1
-                    ? formatText(s.coach.facts.loss, { from: fmtLoss(state.history[0]?.l ?? 0), to: fmtLoss(state.history[state.history.length - 1]?.l ?? 0) })
+                  : state.history.length > 0
+                    ? formatText(s.coach.facts.loss, { from: fmtLoss(state.start.l), to: fmtLoss(state.history[state.history.length - 1]?.l ?? 0) })
                     : formatText(s.coach.facts.line, { right: state.trainOk, n: state.trainN })}
             </p>
             <p className={styles.advice} aria-live="polite" data-testid="weight-garden-coach">
               {state.showAdvice || hand ? coachText : s.coach.noStudy}
             </p>
           </section>
+          )}
 
           {over ? null : (
             <div className={styles.controls}>

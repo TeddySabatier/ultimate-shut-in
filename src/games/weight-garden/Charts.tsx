@@ -9,7 +9,7 @@ import { strings } from './strings';
 import styles from './Screen.module.css';
 
 const W = 120;
-const H = 56;
+const H = 64;
 const PAD_L = 8;
 const PAD_R = 4;
 const PAD_T = 4;
@@ -25,33 +25,36 @@ function py(frac: number): number {
 }
 
 interface ChartProps {
+  /** How the try began, then one entry per press. */
+  start: HistoryEntry;
   history: readonly HistoryEntry[];
   /** Presses a try may use: the x axis is always this wide, so the empty part shows what is left. */
   budget: number;
   locale: 'en' | 'fr';
 }
 
-export function LossChart({ history, budget, locale, target }: ChartProps & { target: number }) {
+export function LossChart({ start, history: pressed, budget, locale, target }: ChartProps & { target: number }) {
   const s = strings[locale].chart;
-  const slots = Math.max(budget, 2);
-  const pts = history.map((h, i) => `${px(i, slots).toFixed(1)},${py(1 - Math.min(h.l, LOSS_MAX) / LOSS_MAX).toFixed(1)}`);
+  const history = [start, ...pressed];
+  const slots = Math.max(budget + 1, 2);
+  const pts = history.map((h, i) => `${px(i, slots).toFixed(1)},${py(Math.min(h.l, LOSS_MAX) / LOSS_MAX).toFixed(1)}`);
   const spikes = history.map((h, i) => (h.l > LOSS_MAX ? i : -1)).filter((i) => i >= 0);
   return (
     <figure className={styles.chart}>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={lossAlt(history, locale)} data-testid="weight-garden-loss-chart">
         <line x1={PAD_L} y1={py(0)} x2={W - PAD_R} y2={py(0)} className={styles.chartAxis} />
         <line x1={PAD_L} y1={py(0)} x2={PAD_L} y2={py(1)} className={styles.chartAxis} />
-        {target > 0 ? <line x1={PAD_L} y1={py(1 - target / LOSS_MAX)} x2={W - PAD_R} y2={py(1 - target / LOSS_MAX)} className={styles.chartGoal} /> : null}
+        {target > 0 ? <line x1={PAD_L} y1={py(target / LOSS_MAX)} x2={W - PAD_R} y2={py(target / LOSS_MAX)} className={styles.chartGoal} /> : null}
         {pts.length > 1 ? <polyline points={pts.join(' ')} className={styles.chartLoss} /> : null}
         {history.map((h, i) => (
-          <circle key={i} cx={px(i, slots)} cy={py(1 - Math.min(h.l, LOSS_MAX) / LOSS_MAX)} r={1.6} className={h.l > LOSS_MAX ? styles.chartSpike : styles.chartDot} />
+          <circle key={i} cx={px(i, slots)} cy={py(Math.min(h.l, LOSS_MAX) / LOSS_MAX)} r={1.6} className={h.l > LOSS_MAX ? styles.chartSpike : styles.chartDot} />
         ))}
         {spikes.map((i) => (
           <text key={i} x={px(i, slots)} y={py(1) + 6} textAnchor="middle" className={styles.chartMark}>
             !
           </text>
         ))}
-        <text x={PAD_L + 1.5} y={PAD_T + 5} className={styles.chartText}>
+        <text x={PAD_L + 1.5} y={PAD_T + 8} className={styles.chartText}>
           {s.lossKey}
         </text>
         <text x={W - PAD_R} y={H - 1} textAnchor="end" className={styles.chartText}>
@@ -63,9 +66,10 @@ export function LossChart({ history, budget, locale, target }: ChartProps & { ta
   );
 }
 
-export function AccChart({ history, budget, locale, goal }: ChartProps & { goal: number }) {
+export function AccChart({ start, history: pressed, budget, locale, goal }: ChartProps & { goal: number }) {
   const s = strings[locale].chart;
-  const slots = Math.max(budget, 2);
+  const history = [start, ...pressed];
+  const slots = Math.max(budget + 1, 2);
   const line = (pick: (h: HistoryEntry) => number) => history.map((h, i) => `${px(i, slots).toFixed(1)},${py(pick(h) / 100).toFixed(1)}`).join(' ');
   return (
     <figure className={styles.chart}>
@@ -81,7 +85,7 @@ export function AccChart({ history, budget, locale, goal }: ChartProps & { goal:
             <rect x={px(i, slots) - 1.4} y={py(h.te / 100) - 1.4} width={2.8} height={2.8} className={styles.chartTestDot} />
           </g>
         ))}
-        <text x={PAD_L + 1.5} y={PAD_T + 5} className={styles.chartText}>
+        <text x={W - PAD_R} y={PAD_T + 3} textAnchor="end" className={styles.chartText}>
           100%
         </text>
         <text x={W - PAD_R} y={H - 1} textAnchor="end" className={styles.chartText}>

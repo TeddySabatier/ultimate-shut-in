@@ -54,15 +54,6 @@ const run = (difficulty: RunContext['difficulty'], extra: Partial<RunContext> = 
 const start = (s = 1, d: RunContext['difficulty'] = 3, party: Party = parties.starter, extra: Partial<RunContext> = {}) =>
   engine.initial(s, party, run(d, extra), 'en');
 const act = (state: WeightGardenState, ...actions: WeightGardenAction[]) => actions.reduce((st, a) => engine.reduce(st, a), state);
-const botSteps = (state: WeightGardenState, n: number) => {
-  let st = state;
-  for (let i = 0; i < n && !isOver(st); i++) {
-    const a = engine.botPlay(st, () => 0.5);
-    if (!a) break;
-    st = engine.reduce(st, a);
-  }
-  return st;
-};
 /** Let the bot play until the given plot (0 based) is open. */
 const openPlot = (state: WeightGardenState, plot: number) => {
   let st = state;

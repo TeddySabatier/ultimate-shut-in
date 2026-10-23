@@ -23,3 +23,11 @@ So the folder was rebuilt from the brief. What was kept is the shape, not the co
 - The bot is a "casual competent" gardener: it grows 3 hidden neurons on XOR and the ring (4 is more comfortable), so it wins about 60 to 70 percent at difficulty 3 and a human who picks 4 neurons does better.
 - `attack` and `defense` buffs are ignored (nothing in a gardener's work is attacked or defended).
 - No file outside the owned list was needed.
+
+## Result
+
+- Code 59 KB of 150 KB, no assets; three screenshots 134 KB in total.
+- Unit tests: 52 in `engine.test.ts` (hand-computed 2-2-1 forward and backward pass, XOR unsolvable with one neuron and solvable with a hidden layer, divergence at a too-high rate, a train-test gap on the noise plot, rules, party, buffs, scoring, determinism, bot), 9 in `Screen.test.tsx`, 10 in the contract kit.
+- Bot over 100 seeds on difficulty 3: first four plots settled 98 percent (starter party), wins 55 percent (starter) and 77 percent (full party).
+- Nothing was cut: all five plots, the hidden-layer size choice (2 to 4) and the boss plot are in.
+- The bot's rng argument is unused (its choices are rule based); the kit's seed check still passes because the seeds on the plots differ.
