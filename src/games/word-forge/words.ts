@@ -106,12 +106,12 @@ const TRAVEL: readonly Raw[] = [
   ['village', 'village', 'village', 'noun', 'm'],
   ['beach', 'beach', 'plage', 'noun', 'f'],
   ['mountain', 'mountain', 'montagne', 'noun', 'f'],
-  ['river', 'river', 'rivière', 'noun', 'f'],
+  ['lake', 'lake', 'lac', 'noun', 'm'],
   ['sea', 'sea', 'mer', 'noun', 'f'],
   ['forest', 'forest', 'forêt', 'noun', 'f'],
   ['bridge', 'bridge', 'pont', 'noun', 'm'],
-  ['left', 'left', 'gauche', 'adj', 'n'],
-  ['right', 'right', 'droite', 'adj', 'n'],
+  ['crossroads', 'crossroads', 'carrefour', 'noun', 'm'],
+  ['boat', 'boat', 'bateau', 'noun', 'm'],
   ['north', 'north', 'nord', 'noun', 'm'],
   ['south', 'south', 'sud', 'noun', 'm'],
   ['east', 'east', 'est', 'noun', 'm'],
@@ -131,14 +131,14 @@ const TRAVEL: readonly Raw[] = [
   ['border', 'border', 'frontière', 'noun', 'f'],
   ['island', 'island', 'île', 'noun', 'f'],
   ['road', 'road', 'route', 'noun', 'f'],
-  ['weekend', 'weekend', 'week-end', 'noun', 'm'],
+  ['plane', 'plane', 'avion', 'noun', 'm'],
 ];
 
 const WORK: readonly Raw[] = [
   ['book', 'book', 'livre', 'noun', 'm'],
   ['school', 'school', 'école', 'noun', 'f'],
   ['teacher', 'teacher', 'professeur', 'noun', 'm'],
-  ['student', 'student', 'élève', 'noun', 'n'],
+  ['student', 'student', 'étudiant', 'noun', 'm'],
   ['lesson', 'lesson', 'leçon', 'noun', 'f'],
   ['homework', 'homework', 'devoirs', 'noun', 'm'],
   ['exam', 'exam', 'examen', 'noun', 'm'],
@@ -152,7 +152,7 @@ const WORK: readonly Raw[] = [
   ['job', 'job', 'emploi', 'noun', 'm'],
   ['boss', 'boss', 'patron', 'noun', 'm'],
   ['colleague', 'colleague', 'collègue', 'noun', 'n'],
-  ['email', 'email', 'e-mail', 'noun', 'm'],
+  ['printer', 'printer', 'imprimante', 'noun', 'f'],
   ['phone', 'phone', 'téléphone', 'noun', 'm'],
   ['write', 'write', 'écrire', 'verb', 'n'],
   ['read', 'read', 'lire', 'verb', 'n'],
@@ -180,7 +180,7 @@ const WORK: readonly Raw[] = [
 const FEELINGS: readonly Raw[] = [
   ['happy', 'happy', 'heureux', 'adj', 'n'],
   ['sad', 'sad', 'triste', 'adj', 'n'],
-  ['angry', 'angry', 'fâché', 'adj', 'n'],
+  ['angry', 'angry', 'en colère', 'adj', 'n'],
   ['tired', 'tired', 'fatigué', 'adj', 'n'],
   ['scared', 'scared', 'effrayé', 'adj', 'n'],
   ['proud', 'proud', 'fier', 'adj', 'n'],
@@ -193,7 +193,7 @@ const FEELINGS: readonly Raw[] = [
   ['sister', 'sister', 'sœur', 'noun', 'f'],
   ['brother', 'brother', 'frère', 'noun', 'm'],
   ['child', 'child', 'enfant', 'noun', 'n'],
-  ['neighbour', 'neighbour', 'voisin', 'noun', 'm'],
+  ['visitor', 'visitor', 'visiteur', 'noun', 'm'],
   ['love', 'love', 'amour', 'noun', 'm'],
   ['hope', 'hope', 'espoir', 'noun', 'm'],
   ['fear', 'fear', 'peur', 'noun', 'f'],
@@ -205,7 +205,7 @@ const FEELINGS: readonly Raw[] = [
   ['wait', 'wait', 'attendre', 'verb', 'n'],
   ['help', 'help', 'aider', 'verb', 'n'],
   ['thanks', 'thank you', 'merci', 'phrase', 'n'],
-  ['please', 'please', "s'il te plaît", 'phrase', 'n'],
+  ['welcome', 'welcome', 'bienvenue', 'phrase', 'n'],
   ['sorry', 'sorry', 'désolé', 'adj', 'n'],
   ['hello', 'hello', 'bonjour', 'phrase', 'n'],
   ['goodbye', 'goodbye', 'au revoir', 'phrase', 'n'],
@@ -249,4 +249,4 @@ export function decksForDifficulty(difficulty: 1 | 2 | 3 | 4 | 5): DeckId[] {
 }
 
 /** Epicene nouns tagged `n` on purpose (both genders in French). */
-export const EPICENE_IDS: readonly string[] = ['work-student', 'work-colleague', 'feelings-child'];
+export const EPICENE_IDS: readonly string[] = ['work-colleague', 'feelings-child'];

@@ -261,3 +261,11 @@
     display: none;
   }
 }
+
+.paused {
+  margin: var(--space-3) 0;
+  padding: var(--space-3);
+  border: 2px dashed var(--color-border-light);
+  border-radius: var(--radius-sm);
+  color: var(--color-muted);
+}

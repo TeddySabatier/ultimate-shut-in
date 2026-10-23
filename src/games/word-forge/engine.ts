@@ -72,7 +72,6 @@ export interface WordForgeState {
   streak: number;
   maxStreak: number;
   forfeited: boolean;
-  timedOut: boolean;
   partyIds: string[];
 }
 
@@ -91,7 +90,8 @@ const STUDY_RIGHT_GAP = 6;
 const FIRST_MISS_GAP = 2;
 const LATER_MISS_GAP = 5;
 const WIN_ACCURACY = 0.7;
-const BOT_HIT = [0, 0.9, 0.76, 0.64, 0.52, 0.4] as const;
+const STUDY_BOT_BONUS = 0.03;
+const BOT_HIT = [0, 0.8, 0.62, 0.5, 0.47, 0.41] as const;
 
 const APOSTROPHES = /['\u2018\u2019\u02BC\u0060]/g;
 const HYPHENS = /[\u2010-\u2014\u2212]/g;
@@ -124,15 +124,19 @@ export function heat(state: WordForgeState): number {
 }
 
 export function isOver(state: WordForgeState): boolean {
-  if (state.forfeited || state.timedOut) return true;
+  if (state.forfeited) return true;
   return state.currentId === null && state.queue.length === 0 && state.marks.length > 0;
 }
+
+/** A word is worth 1 when it was never missed, 0.6 of its final credit when it needed the forge again. */
+export const RECOVERED_FACTOR = 0.6;
 
 export function creditSum(state: WordForgeState): number {
   const last = new Map<string, number>();
   for (const m of state.marks) last.set(m.id, m.credit);
+  const missed = new Set(state.progress.filter((p) => p.wrongs > 0).map((p) => p.id));
   let sum = 0;
-  for (const id of state.wordIds) sum += last.get(id) ?? 0;
+  for (const id of state.wordIds) sum += (last.get(id) ?? 0) * (missed.has(id) ? RECOVERED_FACTOR : 1);
   return sum;
 }
 
@@ -144,12 +148,12 @@ export function rightGap(state: Pick<WordForgeState, 'hasStudy'>): number {
   return state.hasStudy ? STUDY_RIGHT_GAP : RIGHT_GAP;
 }
 
-/** NFC, trim, collapse spaces, lower case, fold apostrophes and dashes. Optionally strip accents and ligatures. */
+/** NFC, trim, collapse spaces, lower case, fold apostrophes, dashes and the ligatures oe/ae. Optionally strip accents. */
 export function normalizeAnswer(raw: string, stripAccents: boolean): string {
   let s = raw.normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase();
-  s = s.replace(APOSTROPHES, "'").replace(HYPHENS, '-');
+  // Ligatures are not accents and are hard to type: oe/ae always count.
+  s = s.replace(APOSTROPHES, "'").replace(HYPHENS, '-').replace(/œ/g, 'oe').replace(/æ/g, 'ae');
   if (stripAccents) {
-    s = s.replace(/œ/g, 'oe').replace(/æ/g, 'ae');
     s = s.normalize('NFD').replace(MARKS, '').normalize('NFC');
   }
   return s;
@@ -183,6 +187,8 @@ export function gradeTyped(answer: string, expected: string, stripAccents: boole
   const want = normalizeAnswer(expected, stripAccents);
   if (got.length === 0) return { verdict: 'wrong', credit: 0 };
   if (got === want) return { verdict: 'right', credit: 1 };
+  // Strict mode: the right letters with accents missing or wrong are "almost", however many accents.
+  if (!stripAccents && normalizeAnswer(answer, true) === normalizeAnswer(expected, true)) return { verdict: 'almost', credit: 0.5 };
   if (want.length >= 3 && levenshtein(got, want) <= 1) return { verdict: 'almost', credit: 0.5 };
   return { verdict: 'wrong', credit: 0 };
 }
@@ -322,7 +328,7 @@ export function outcomeLog(state: WordForgeState, s: WordForgeStrings): string[]
     lines.push(formatText(s.log.card, { known, forged, result }));
   }
   const acc = Math.round(accuracyOf(state) * 100);
-  const end = state.forfeited ? s.log.endFled : state.timedOut && accuracyOf(state) < WIN_ACCURACY ? s.log.endLost : accuracyOf(state) >= WIN_ACCURACY ? s.log.endWon : s.log.endLost;
+  const end = state.forfeited ? s.log.endFled : accuracyOf(state) >= WIN_ACCURACY ? s.log.endWon : s.log.endLost;
   lines.push(formatText(end, { n: state.marks.length, acc, streak: state.maxStreak }));
   return lines;
 }
@@ -403,7 +409,6 @@ function initial(seed: number, party: Party, run: RunContext, locale: Locale): W
     streak: 0,
     maxStreak: 0,
     forfeited: false,
-    timedOut: false,
     partyIds: party.members.map((m) => m.id),
   };
   return deal(base, turnRng(base.seed, 0));
@@ -413,9 +418,7 @@ function reduce(state: WordForgeState, action: WordForgeAction): WordForgeState 
   if (isOver(state)) return state;
   if (action.type === 'forfeit') return { ...state, forfeited: true };
   if (action.type === 'second') {
-    const seconds = state.seconds + 1;
-    if (seconds >= state.parSeconds) return { ...state, seconds, timedOut: true };
-    return { ...state, seconds };
+    return { ...state, seconds: state.seconds + 1 };
   }
   if (action.type === 'flip') {
     const learns: Locale = state.learns === 'en' ? 'fr' : 'en';
@@ -484,10 +487,15 @@ function mutateWrong(expected: string, rng: Rng): string {
   return expected.slice(0, cut);
 }
 
-function botPlay(state: WordForgeState, rng: () => number): WordForgeAction | null {
+function botPlay(state: WordForgeState, given: () => number): WordForgeAction | null {
   if (isOver(state)) return null;
   if (state.seconds < state.parSeconds && state.seconds < Math.floor(state.marks.length / 2)) return { type: 'second' };
-  const hit = BOT_HIT[state.difficulty] ?? 0.7;
+  // The kit's bot stream does not depend on the seed, so mix in a per-card stream derived from the game's
+  // seed: the bot misses different cards in different games, and the same ones when replayed.
+  const own = turnRng(state.seed, 7000 + state.marks.length);
+  const rng = () => (given() + own()) % 1;
+  // Study puts the example sentence on the card: that is worth a few points of accuracy to a player, and to the bot.
+  const hit = (BOT_HIT[state.difficulty] ?? 0.7) + (state.hasStudy ? STUDY_BOT_BONUS : 0);
   const success = rng() < hit;
   if (state.inputMode === 'choice') {
     if (!state.currentId || state.options.length === 0) return { type: 'choose', index: 0 };

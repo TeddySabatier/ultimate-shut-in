@@ -2,7 +2,7 @@
  * Word Forge Screen: cards, four options or a typed field, a heat bar, and a
  * coarse timer. State comes only from the engine through `useEngine`.
  */
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { SystemWindow } from '../../components/SystemWindow';
 import { cx } from '../../utils/cx';
 import { formatText, type GameScreenProps } from '../contract';
@@ -16,6 +16,7 @@ import {
   engine,
   heat,
   isOver,
+  promptOf,
   targetOf,
   type WordForgeState,
 } from './engine';
@@ -49,6 +50,11 @@ function TypeForm({
   onForge: (text: string) => void;
 }) {
   const [draft, setDraft] = useState('');
+  const input = useRef<HTMLInputElement>(null);
+  // One form per card (keyed by the card): put the caret in the field so typing just works.
+  useEffect(() => {
+    input.current?.focus();
+  }, []);
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
     onForge(draft);
@@ -59,6 +65,7 @@ function TypeForm({
         {label}
       </label>
       <input
+        ref={input}
         id="word-forge-input"
         data-testid="word-forge-input"
         className={styles.input}
@@ -92,7 +99,7 @@ export default function WordForgeScreen(props: GameScreenProps) {
     if (over) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.altKey || e.ctrlKey || e.metaKey || isTyping(e.target)) return;
-      if (state.inputMode !== 'choice') return;
+      if (paused || state.inputMode !== 'choice') return;
       const n = Number(e.key);
       if (!Number.isInteger(n) || n < 1 || n > 4) return;
       e.preventDefault();
@@ -100,12 +107,13 @@ export default function WordForgeScreen(props: GameScreenProps) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [over, state.inputMode, dispatch]);
+  }, [over, paused, state.inputMode, dispatch]);
 
   const remaining = Math.max(0, state.parSeconds - state.seconds);
   const example = word && state.hasStudy ? EXAMPLES[word.id] : undefined;
   const exampleText = example ? example[state.learns === 'fr' ? 'en' : 'fr'] : '';
   const last = lastVerdict(state);
+  const lastWord = last ? getWord(last.id) : undefined;
   const endText = outcome ? s.end[outcome.result] : null;
   const langName = state.learns === 'fr' ? s.langFr : s.langEn;
 
@@ -167,13 +175,20 @@ export default function WordForgeScreen(props: GameScreenProps) {
       </div>
 
       <div className={styles.live} aria-live="polite">
-        {last ? <p className={styles.verdict} data-verdict={last.verdict}>{s.verdict[last.verdict]}</p> : null}
+        {last ? (
+          <p className={styles.verdict} data-verdict={last.verdict}>
+            {s.verdict[last.verdict]}
+            {lastWord ? ` ${formatText(s.lastCard, { known: promptOf(lastWord, state.learns), forged: targetOf(lastWord, state.learns) })}` : ''}
+          </p>
+        ) : null}
       </div>
 
       {endText ? (
         <p className={styles.banner} role="status" data-result={outcome?.result}>
           {endText}
         </p>
+      ) : paused ? (
+        <p className={styles.paused}>{s.paused}</p>
       ) : word ? (
         <>
           <h3 className={styles.promptLabel}>{s.prompt}</h3>

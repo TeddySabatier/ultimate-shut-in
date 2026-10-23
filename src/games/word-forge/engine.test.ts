@@ -7,6 +7,7 @@ import { parties, playToEnd, runs } from '../testing/contract';
 import { EXAMPLES } from './examples';
 import {
   accuracyOf,
+  creditSum,
   currentTarget,
   engine,
   gradeTyped,
@@ -110,6 +111,16 @@ describe('answer checker', () => {
     ['cafe', 'café', false, 'almost'],
     ['œuf', 'œuf', false, 'right'],
     ['oeuf', 'œuf', true, 'right'],
+    ['oeuf', 'œuf', false, 'right'],
+    ['ŒUF', 'œuf', false, 'right'],
+    ['coeur', 'cœur', false, 'right'],
+    ['élève', 'élève', false, 'right'],
+    ['eleve', 'élève', false, 'almost'],
+    ['eleve', 'élève', true, 'right'],
+    ["S'IL TE PLAÎT", "s'il te plaît", false, 'right'],
+    ['petit déjeuner', 'petit-déjeuner', false, 'almost'],
+    ['pomme  de terre', 'pomme de terre', false, 'right'],
+    ['\tpomme\n', 'pomme', false, 'right'],
     ["s'il te plaît", "s'il te plaît", false, 'right'],
     ['s’il te plait', "s'il te plaît", true, 'right'],
     ['week-end', 'week-end', false, 'right'],
@@ -262,11 +273,13 @@ describe('scoring, party, buffs, bot', () => {
     expect(play.outcome?.learned?.note.fr).toMatch(/ \/ /);
   });
 
-  it('a second tick at par ends as a timeout', () => {
+  it('speed is a bonus, never a deadline: seconds past par end nothing and score no speed points', () => {
     const s = start(1, emptyRun(1), parties.single);
-    const timed = engine.reduce({ ...s, seconds: s.parSeconds - 1 }, { type: 'second' });
-    expect(timed.timedOut).toBe(true);
-    expect(engine.outcome(timed)?.result).toBe('lost');
+    const late = engine.reduce({ ...s, seconds: s.parSeconds + 500 }, { type: 'second' });
+    expect(engine.outcome(late)).toBeNull();
+    const fast = playKinds(Array.from({ length: 60 }, () => 'right'), 3, emptyRun(1), parties.single).state;
+    const slow = { ...fast, seconds: fast.parSeconds + 100 };
+    expect(engine.outcome(fast)?.score).toBeGreaterThan(engine.outcome(slow)?.score ?? 0);
   });
 
   it('Social auto-reveals one typed card; leftover actions after the end are ignored', () => {
@@ -274,5 +287,82 @@ describe('scoring, party, buffs, bot', () => {
     expect(s.revealed).toBe(true);
     const ended = engine.reduce(s, { type: 'forfeit' });
     expect(engine.reduce(ended, { type: 'choose', index: 0 })).toBe(ended);
+  });
+});
+
+describe('deck quality and exact scheduling', () => {
+  it('has no repeated English or French entry, no stray spaces, lower-case English', () => {
+    for (const side of ['en', 'fr'] as const) {
+      const all = WORDS.map((w) => w[side].toLowerCase());
+      expect(new Set(all).size, side).toBe(all.length);
+    }
+    for (const w of WORDS) {
+      for (const text of [w.en, w.fr]) expect(text, w.id).toBe(text.trim().replace(/\s+/g, ' '));
+      expect(w.en, w.id).toBe(w.en.toLowerCase());
+      expect(w.fr, w.id).toBe(w.fr.toLowerCase());
+    }
+  });
+
+  it('keeps a single accepted spelling: no British/American variants and no ambiguous direction words', () => {
+    const banned = ['neighbour', 'harbour', 'colour', 'favourite', 'left', 'right', 'email', 'weekend', 'please'];
+    for (const w of WORDS) expect(banned, w.id).not.toContain(w.en);
+  });
+
+  it('puts a miss back after 2 cards, the second miss after 5, in an exact order', () => {
+    // starter party: no Study, so a first right answer would come back after 8
+    const { state, order } = playKinds(['wrong', 'right', 'right', 'wrong', 'right', 'right', 'right', 'right', 'right'], 1, runs.plain, parties.starter);
+    const x = order[0];
+    expect(order[3]).toBe(x);
+    expect(order.filter((id) => id === x)).toHaveLength(2);
+    expect(state.currentId).toBe(x);
+    expect(order.indexOf(x!, 4)).toBe(-1);
+  });
+
+  it('a word that came back is worth 0.6, a clean word 1, a missed final 0', () => {
+    const s = start(5, emptyRun(1), parties.single);
+    const [a, b, c] = s.wordIds as [string, string, string];
+    const state: WordForgeState = {
+      ...s,
+      marks: [
+        { id: a, verdict: 'right', credit: 1 },
+        { id: b, verdict: 'right', credit: 1 },
+        { id: c, verdict: 'wrong', credit: 0 },
+      ],
+      progress: [
+        { id: a, shows: 2, wrongs: 0, scheduledFinal: true },
+        { id: b, shows: 2, wrongs: 1, scheduledFinal: true },
+        { id: c, shows: 4, wrongs: 4, scheduledFinal: false },
+      ],
+    };
+    expect(creditSum(state)).toBeCloseTo(1 + 0.6, 6);
+  });
+
+  it('the bot beats the game often on easy runs and rarely on hard ones (100 seeds, full party)', () => {
+    const wins = (d: 1 | 2 | 3 | 4 | 5): number => {
+      let n = 0;
+      for (let seed = 1; seed <= 100; seed++) if (playToEnd(game, seed, parties.full, emptyRun(d)).outcome?.result === 'won') n += 1;
+      return n;
+    };
+    const w = [wins(1), wins(2), wins(3), wins(4), wins(5)];
+    expect(w[0]).toBeGreaterThanOrEqual(90);
+    expect(w[1]).toBeGreaterThanOrEqual(40);
+    expect(w[1]).toBeLessThanOrEqual(75);
+    expect(w[4]).toBeLessThanOrEqual(45);
+    for (let i = 1; i < 5; i++) expect(w[i]!).toBeLessThanOrEqual(w[i - 1]! + 5);
+  });
+
+  it('a fuller party wins more with the same bot (Study helps)', () => {
+    let full = 0;
+    let starter = 0;
+    for (let seed = 1; seed <= 100; seed++) {
+      if (playToEnd(game, seed, parties.full, emptyRun(2)).outcome?.result === 'won') full += 1;
+      if (playToEnd(game, seed, parties.starter, emptyRun(2)).outcome?.result === 'won') starter += 1;
+    }
+    expect(full).toBeGreaterThan(starter);
+  });
+
+  it('a typed card in strict mode keeps accents strict, ligatures are folded', () => {
+    expect(gradeTyped('oeuf', 'œuf', false).verdict).toBe('right');
+    expect(gradeTyped('ete', 'été', false).verdict).not.toBe('right');
   });
 });
